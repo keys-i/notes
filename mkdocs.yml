@@ -1,0 +1,133 @@
+# Site Information
+site_name: My Online Repository
+site_url: https://keys-i.github.io/notes
+site_dir: public
+docs_dir: ./docs
+site_description: A collection of my projects and notes
+
+repo_name: keys-i/notes
+repo_url: https://github.com/keys-i/notes
+
+# Theme Configuration
+theme:
+  name: material
+  language: en # Set language to English
+  custom_dir: overrides
+  logo: assets/images/fixed/sitelogo.png
+
+  static_templates:
+    - 404.html
+  include_search_page: true
+  palette:
+    - scheme: default # Light mode
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to dark mode
+    - scheme: slate # Dark mode
+      toggle:
+        icon: material/weather-night
+        name: Switch to light mode
+  font:
+    text: Inter # Modern font for body text
+    code: Source Code Pro # Font for code blocks
+  features:
+    - content.action.view # View action on content
+    - content.code.annotate # Allows code annotations
+    - content.code.copy # Adds copy button to code blocks
+    - content.code.select # Allows code block selection
+    - content.tabs.link # Creates links for tabbed content
+    - navigation.expand # Expands navigation sections
+    - navigation.indexes # Adds indexes for easier navigation
+    # - navigation.instant  # Disabled as it breaks some JavaScript functionality
+    - navigation.sections # Shows sections in the navigation
+    - navigation.top # Adds "Back to top" button
+    - search.highlight # Highlights search terms in results
+    - search.share # Allows sharing of search results
+    - search.suggest # Provides search suggestions
+  favicon: assets/images/fixed/favicon.ico
+
+copyright: Copyright &copy; 2026 Keys
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/keys-i
+      name: My Github
+  repo:
+    url: https://github.com/keys-i/notes
+    base: keys-i/notes
+    tree: /tree/main
+    blob: /blob/main/docs
+    raw: /raw/scratch/docs
+    viewfile: /blob/scratch/docs
+    viewdir: /tree/scratch/docs
+  analytics:
+    provider: google
+    property: G-ET55XVX3GD
+  generator: false
+  comments:
+    enabled: true
+    mode: utterances
+    type: issues
+# Markdown Extensions
+markdown_extensions:
+  - codehilite
+  - md_in_html
+  - def_list
+  - sane_lists
+  - footnotes # Adds support for footnotes
+  - attr_list # Allows adding attributes to elements
+  - pymdownx.highlight # Enhances syntax highlighting
+  - pymdownx.superfences # Provides advanced code block fencing
+  - pymdownx.details # Adds collapsible detail/summary blocks
+  - pymdownx.magiclink # Automatically turns URLs into clickable links
+  - pymdownx.tasklist # Adds support for task lists
+  - pymdownx.emoji # Adds emoji support
+  - admonition # Enables warning and note blocks
+  - toc:
+      title: "On this page"
+      permalink: "#"
+      toc_depth: 2
+
+  - pymdownx.arithmatex # For mathematical formulas
+  - pymdownx.tilde # Enables strikethroughs
+  - pymdownx.caret # Adds caret notation for insertions
+  - pymdownx.mark # Adds mark notation for highlighting
+  - pymdownx.smartsymbols # Adds smart symbols for better typography
+
+# Extra JavaScript for enhanced functionality
+extra_javascript:
+  - "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-MML-AM_CHTML" # Math rendering
+  - https://fastly.jsdelivr.net/npm/jquery/dist/jquery.min.js # jQuery support
+  - https://fastly.jsdelivr.net/npm/echarts/dist/echarts.min.js # Charting support via ECharts
+  - assets/javascripts/interactive_graph.js # Custom interactive graph script
+  - assets/javascripts/obsidian_tags.js # Custom CSS for Obsidian tags
+
+# Extra CSS for custom styling
+extra_css:
+  - assets/stylesheets/interactive_graph.css # Styling for interactive graph
+  - assets/stylesheets/obsidian_tags.css # Obsidian-style tags
+  # - assets/stylesheets/custom_theme.css  # Optional: Add custom theme styles
+
+# Plugins for added functionality
+plugins:
+  - search # Enables search functionality across the site
+  - callouts
+  - obsidian-support
+  - obsidian-interactive-graph # Interactive graph functionality for visualizing connections
+  - mermaid2 # Adds diagram support using Mermaid
+  - minify: # Optional: Minifies HTML for faster loading
+      minify_html: true
+  - git-authors:
+      show_contribution: false
+      show_line_count: false
+      show_email_address: false
+      count_empty_lines: false
+      fallback_to_empty: false
+      sort_authors_by: name
+      authorship_threshold_percent: 20
+      exclude:
+        - index.md
+      enabled: true
+  - print-site
+  # Add more plugins as needed, such as mkdocs-git-revision-date for versioning
