@@ -44,7 +44,7 @@ To build the resources and documentation locally:
    mkdocs build
    ```
 
-   This will generate the static site files in the `site` directory.
+   This will generate the static site files in the `public` directory.
 
 2. **Preview the documentation locally:**
 
@@ -56,7 +56,7 @@ To build the resources and documentation locally:
 
 ## Deployment
 
-notes is set up for automatic deployment to GitHub Pages. Each time a change is pushed to the `main` branch, the repository’s GitHub Actions workflow handles the deployment process.
+notes is set up for automatic deployment to GitHub Pages. Pushes to `main` and `master` build the MkDocs site and publish the generated `public/` directory through GitHub Actions.
 
 ### GitHub Actions Workflow
 
@@ -64,9 +64,12 @@ The GitHub Actions workflow includes steps for:
 
 - Checking out the repository.
 - Setting up Python.
-- Installing the required dependencies.
-- Building the MkDocs site.
-- Deploying the static site to GitHub Pages.
+- Installing the Poetry-managed dependencies.
+- Building the MkDocs site from `mkdocs.yml`.
+- Uploading the generated Pages artifact.
+- Deploying the artifact to GitHub Pages.
+
+GitHub Pages should be configured to use **GitHub Actions** as the build and deployment source for this workflow to publish successfully.
 
 ## Contribution
 
