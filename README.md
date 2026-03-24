@@ -1,6 +1,6 @@
-[![website](https://github.com/keys-i/notes/actions/workflows/main.yml/badge.svg?cache=clear)](https://github.com/keys-i/notes/actions/workflows/main.yml)
-
 # notes Documentation
+
+[![website](https://github.com/keys-i/notes/actions/workflows/main.yml/badge.svg?cache=clear)](https://github.com/keys-i/notes/actions/workflows/main.yml)
 
 Welcome to the documentation for notes, an online repository of resources. This repository serves as a central hub for various materials, including assignments, projects, and more. Here you'll find details on how to set up, build, and deploy the repository's resources and documentation.
 
