@@ -94,27 +94,25 @@ page.meta.comments == false %}
 </p>
 
 {% if config.extra.comments.mode == "giscus" %}
-<script
-    src="https://giscus.app/client.js"
-    data-repo="keys-i/eRepo"
-    data-repo-id="R_kgDOMs0zsw"
-    data-category="General"
-    data-category-id="DIC_kwDOMs0zs84CiqyY"
-    data-mapping="title"
-    data-strict="1"
-    data-reactions-enabled="1"
-    data-emit-metadata="1"
-    data-input-position="bottom"
-    data-theme="dark"
-    data-lang="en"
-    data-loading="lazy"
-    crossorigin="anonymous"
-    async
-></script>
+<script src="https://giscus.app/client.js"
+        data-repo="keys-i/notes"
+        data-repo-id="R_kgDORv7gZA"
+        data-category="General"
+        data-category-id="DIC_kwDORv7gZM4C5NrE"
+        data-mapping="pathname"
+        data-strict="0"
+        data-reactions-enabled="1"
+        data-emit-metadata="0"
+        data-input-position="bottom"
+        data-theme="preferred_color_scheme"
+        data-lang="en"
+        crossorigin="anonymous"
+        async>
+</script>
 {% else %}
 <script
     src="https://utteranc.es/client.js"
-    repo="keys-i/eRepo"
+    repo="keys-i/notes"
     issue-term="title"
     theme="photon-dark"
     crossorigin="anonymous"
