@@ -1,7 +1,9 @@
 # Tutorial 5
 
 ## Q1
+
 ### (a.)
+
 ```haskell
 lexp -> atom | list
 atom -> NUM | ID
@@ -11,7 +13,9 @@ lexpSeq' -> lexp lexpSeq' | ϵ
 ```
 
 ### (b.)
+
 FIRST
+
 ```haskell
 FIRST(lexp) = {NUM, ID, LPAREN} 
 FIRST(atom) = {NUM, ID}
@@ -21,6 +25,7 @@ FIRST(lexpSeq') = {NUM, ID, LPAREN, ϵ}
 ```
 
 FOLLOW
+
 ```haskell
 FOLLOW(lexp) = {$,NUM,ID,LPAREN,RPAREN}
 FOLLOW(atom) = {$,NUM,ID,LPAREN,RPAREN}
@@ -30,10 +35,13 @@ FOLLOW(lexpSeq') = {RPAREN}
 ```
 
 ### (c.)
+
 LL(1), since:
+
 - $\text{FIRST(atom)} \cap \text{FIRST(list)} = \varnothing$
 - ${\text{NUM},\text{ID}}$ are disjoint
 - $\text{FIRST(lexp)} \cap \text{FOLLOW(lexpSeq')} = {\text{NUM},\text{ID},\text{LPAREN}} \cap {\text{RPAREN}} = \varnothing$
+
 ### (d.)
 
 $$
@@ -45,6 +53,7 @@ $$
 $$
 
 ### (e.)
+
 ```java
 private void parseLexp() {
     if (tokens.isMatch(Token.NUM) || tokens.isMatch(Token.ID)) {
@@ -123,8 +132,11 @@ private LList parseList() {
 ```
 
 ---
+
 ## Q2
+
 ### (a)
+
 $$
 \begin{aligned}  
 \text{Type} &\to \text{INT}\ \text{Type'}\  \newline
@@ -133,7 +145,8 @@ $$
 $$
 
 ### (b.)
-$$ 
+
+$$
 \begin{aligned}  
 \text{VarList} &\to \text{Ident}\ \text{VarList'}\  \newline
 \text{VarList'} &\to \text{COMMA}\ \text{Ident}\ \text{VarList'} \mid \varepsilon  
@@ -145,20 +158,21 @@ $$
 \begin{aligned}  
 \text{Declaration} &\to \text{Type}\ \text{VarList}\ \newline
 \text{Type} &\to \text{INT}\ \text{Type'}\  \newline
-\text{Type'} &\to \text{LBRACKET}\ \text{RBRACKET}\ \text{Type'} \mid \varepsilon\ \newline 
+\text{Type'} &\to \text{LBRACKET}\ \text{RBRACKET}\ \text{Type'} \mid \varepsilon\ \newline
 \text{VarList} &\to \text{Ident}\ \text{VarList'}\  \newline
-\text{VarList'} &\to \text{COMMA}\ \text{Ident}\ \text{VarList'} \mid \varepsilon\ \newline 
+\text{VarList'} &\to \text{COMMA}\ \text{Ident}\ \text{VarList'} \mid \varepsilon\ \newline
 \text{Ident} &\to \text{ID}  
 \end{aligned}  
 $$
 
 ### (c.)
+
 FIRST
 $$
 \begin{aligned}  
 \text{FIRST(Declaration)} &= {\text{INT}}\  \newline
 \text{FIRST(Type)} &= {\text{INT}}\  \newline
-\text{FIRST(Type')} &= {\text{LBRACKET}, \varepsilon}\ \newline 
+\text{FIRST(Type')} &= {\text{LBRACKET}, \varepsilon}\ \newline
 \text{FIRST(VarList)} &= {\text{ID}}\  \newline
 \text{FIRST(VarList')} &= {\text{COMMA}, \varepsilon}\  \newline
 \text{FIRST(Ident)} &= {\text{ID}}  
@@ -178,11 +192,14 @@ $$
 $$
 
 ### (d.)
+
 LL(1), since:
 
 - $\text{FIRST(LBRACKET RBRACKET Type')} \cap \text{FOLLOW(Type')} = {\text{LBRACKET}} \cap {\text{ID}} = \varnothing$
 - $\text{FIRST(COMMA Ident VarList')} \cap \text{FOLLOW(VarList')} = {\text{COMMA}} \cap {\$} = \varnothing$
+
 ### (e.)
+
 $$
 \begin{aligned}  
 \text{Declaration} &\to \text{Type}\ \text{VarList}\  \newline
@@ -222,6 +239,7 @@ private void parseIdent() {
 ```
 
 ### (g.)
+
 ```java
 void parseDeclaration(SymTable syms) {
     TypeRep t = parseType();
@@ -270,11 +288,15 @@ private String parseIdent() {
 ---
 
 ## Q3
+
 ### (a.)
+
 No.
 
 ### (b.)
+
 No.
 
 ### (c.)
+
 No. An unambiguous grammar need not be LL(1).

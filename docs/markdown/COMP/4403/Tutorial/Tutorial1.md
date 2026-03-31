@@ -8,13 +8,15 @@ read x; read y;
 if x < y then
     max := y
 else
-	max := x;
+ max := x;
 write max
 end
 ```
 
-## Q1.
+## Q1
+
 ### (a)
+
 ```sequence-token
 KW_VAR,
 IDENTIFIER("x") COLON IDENTIFIER("int") SEMICOLON IDENTIFIER("y") COLON IDENTIFIER("int") SEMICOLON IDENTIFIER("max") COLON IDENTIFIER("int")
@@ -30,6 +32,7 @@ EOF
 ```
 
 ### (b)
+
 ```mermaid
 graph TD
 

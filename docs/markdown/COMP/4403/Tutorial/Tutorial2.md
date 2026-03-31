@@ -1,70 +1,100 @@
 # Tutorial 2
 
 ## Q1
-### a.
-#### i.
+
+### a
+
+#### i
+
 ```haskell
 A -> A “:” N | N
 N -> 0 | 1
 ```
+
 ##### Language
+
 All strings are of the form
 $$
 L = \{\,b_1:b_2\cdots:b_k \mid k \ge 1,\; b_i \in \{0,1\}\,\}
 
 $$
+
 ##### Equivalent Regex
+
 ```regex
 (0|1)(:(0|1))*
 ```
-#### ii.
+
+#### ii
+
 ```haskell
 A -> A N | ϵ
 N -> 0 | 1
 ```
+
 ##### Language
+
 All strings are of the form
 $$
 L = \{\; w \mid w \in \{0,1\}^*\;\}
 $$
+
 ##### Equivalent Regex
-```regex
-(0|1)*
-```
-#### iii.
-```haskell
-A -> A A | N
-N -> 0 | 1
-```
-##### Language
-All strings are of the form
-$$
-L=\{\; w \mid w \in \{0,1\}^+ \;\}
-$$
-##### Equivalent Regex
-```regex
-(0|1)+
-```
-#### iv.
-```haskell
-A -> A N | N | ϵ
-N -> 0 | 1
-```
-##### Language
-All strings are of the form
-$$
-L=\{\; w \mid w \in \{0,1\}^* \;\}
-$$
-##### Equivalent Regex
+
 ```regex
 (0|1)*
 ```
 
-### b.
+#### iii
+
+```haskell
+A -> A A | N
+N -> 0 | 1
+```
+
+##### Language
+
+All strings are of the form
+$$
+L=\{\; w \mid w \in \{0,1\}^+ \;\}
+$$
+
+##### Equivalent Regex
+
+```regex
+(0|1)+
+```
+
+#### iv
+
+```haskell
+A -> A N | N | ϵ
+N -> 0 | 1
+```
+
+##### Language
+
+All strings are of the form
+$$
+L=\{\; w \mid w \in \{0,1\}^* \;\}
+$$
+
+##### Equivalent Regex
+
+```regex
+(0|1)*
+```
+
+### b
+
 #### i. It has a fixed separator ":"
+
 #### ii. it applies the same operation for any length input
-#### iii.
+
+#### iii
+
 Left Tree
+
 ```mermaid
 graph TD
 
@@ -92,7 +122,9 @@ Ai2[A] --> Nsi2[N]
 Nsi2 --> 0sii2[0]
 end
 ```
+
 Right Tree
+
 ```mermaid
 graph TD
 
@@ -120,8 +152,11 @@ Ai1[A] --> Nii1[N]
 Nii1 --> 0iii1[0]
 end
 ```
-#### iv.
+
+#### iv
+
 Left Tree
+
 ```mermaid
 graph TD
 
@@ -148,7 +183,9 @@ subgraph R
 Ai2[A] --> ϵsii2[ϵ]
 end
 ```
+
 Right Tree
+
 ```mermaid
 graph TD
 
@@ -176,23 +213,31 @@ Ai1[A] --> ϵiii1[ϵ]
 end
 ```
 
-
 ## Q2
-### a.
+
+### a
+
 ```haskell
 A -> A A | "(" A ")" | ϵ
 ```
+
 ##### Language
+
 All strings are of the form
 $$
 L=\{\; w \mid w \in \{(,)\}^* \text{ and } w \text{ is balanced} \;\}  
 $$
+
 ##### Equivalent Regex
+
 ```regex
 ^(?:\((?R)*\))*$
 ```
-### b.
+
+### b
+
 Left Tree
+
 ```mermaid
 graph TD
 
@@ -208,6 +253,7 @@ end
 ```
 
 Right Tree
+
 ```mermaid
 graph TD
 
@@ -223,7 +269,9 @@ end
 ```
 
 ## Q3
-### a.
+
+### a
+
 ```mermaid
 graph TD
 
@@ -248,7 +296,9 @@ Eiit3 --> Eiiit3[4]
 Ei3[T] --> Esi3[F]
 Esi3 --> Esii3[5]
 ```
-### b.
+
+### b
+
 ```mermaid
 graph TD
 
@@ -277,7 +327,9 @@ Eiit3 --> Eiiit3[5]
 Ei3[T] --> Esi3[F]
 Esi3 --> Esii3[6]
 ```
-### c.
+
+### c
+
 ```mermaid
 graph TD
 
@@ -296,12 +348,12 @@ Ei3 --> Eit1[E]
 Ei3 --> Eit2['*']
 Ei3 --> Eit3[T]
 ```
-### d.
 
+### d
 
 ### Q4
 
 ## Notes
+
 `*` means Kleene star which is zero or more repetition
 `+` means Kleene plus which is one or more repetition
-
