@@ -1,12 +1,15 @@
 # Tutorial 3
 
-## Q1.
-### Grammar:
+## Q1
+
+### Grammar
+
 ```haskell
 RepeatStatement -> KW_REPEAT StatementList KW_UNTIL Condition
 ```
 
-### Parse Method:
+### Parse Method
+
 ```java
 private void parseRepeatStatement() {
     tokens.match(Token.KW_REPEAT);
@@ -15,7 +18,9 @@ private void parseRepeatStatement() {
     parseCondition();
 }
 ```
-## Q2.
+
+## Q2
+
 ```java
 private void parseRepeatStatement(TokenSet recoverSet) {
     parse("RepeatStatement", Token.KW_REPEAT, recoverSet, () -> {
@@ -27,7 +32,8 @@ private void parseRepeatStatement(TokenSet recoverSet) {
 }
 ```
 
-## Q3.
+## Q3
+
 ```java
 private StatementNode parseRepeatStatement(TokenSet recoverSet) {
     return parse("RepeatStatement", Token.KW_REPEAT, recoverSet, () -> {
@@ -41,7 +47,9 @@ private StatementNode parseRepeatStatement(TokenSet recoverSet) {
     });
 }
 ```
-## Q4.
+
+## Q4
+
 ```haskell
 BoolExpr   -> BoolTerm { OR BoolTerm }
 BoolTerm   -> BoolFactor { AND BoolFactor }
@@ -50,9 +58,11 @@ BoolFactor -> NOT BoolFactor
            | TRUE
            | FALSE
 ```
-## Q5.
 
-### Grammar:
+## Q5
+
+### Grammar
+
 ```haskell
 Condition -> LogTerm { ( LOG AND | LOG OR ) LogTerm }
 LogTerm -> LOG NOT LogTerm | RelCondition
