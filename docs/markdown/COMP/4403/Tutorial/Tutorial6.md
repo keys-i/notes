@@ -1,5 +1,3 @@
-# Tutorial 6
-
 ## Q1
 
 ```pascal
@@ -16,29 +14,27 @@ end
 ```
 
 Assembly:
-
 ```asm
-        READ 
-        STORE 3          ; x := read()
-        
-        READ 
-        STORE 4          ; y := read()
-        
-        LOAD 3           ; push x
-        LOAD 4           ; push y
-        LESS             ; push (x < y)
-        
-        BR_FALSE L1      ; if not (x < y) go to else
-        
-        LOAD 4           ; then: max := y
-        STORE 5
-        BR L2
+		READ 
+		STORE 3          ; x := read()
+		  
+		READ 
+		STORE 4          ; y := read()
+		  
+		LOAD 3           ; push x
+		LOAD 4           ; push y
+		LESS             ; push (x < y)
+		  
+		BR_FALSE L1      ; if not (x < y) go to else
+		  
+		LOAD 4           ; then: max := y
+		STORE 5
+		BR L2
 
 L1:     LOAD 3           ; else: max := x
-        STORE 5
-
+		STORE 5 
 L2:     LOAD 5
-        WRITE            ; write max
+		WRITE            ; write max
 ```
 
 ## Q2
@@ -61,32 +57,32 @@ end
 Assembly:
 
 ```asm
-        LOAD_CONST 1
-        STORE 4          ; i := 1
-        
-        LOAD_CONST 0
-        STORE 3          ; x := 1 
+		LOAD_CONST 1
+		STORE 4          ; i := 1
+  
+		LOAD_CONST 0
+		STORE 3          ; x := 1 
 L1:     LOAD 4           ; i
-        LOAD_CONST 5
-        LESS             ; i < 5
-        BR_FALSE L2
-        
-        LOAD 3           ; x
-        LOAD 4           ; i
-        LOAD 4           ; i
-        MUL              ; i*i
-        ADD              ; x+i*i
-        STORE 3          ; x := x+i*i
-      
-        LOAD 4
-        LOAD_CONST 1
-        ADD
-        STORE 4          ; i := i+1
-        
-        BR L1
+		LOAD_CONST 5
+		LESS             ; i < 5
+		BR_FALSE L2
+  
+		LOAD 3           ; x
+		LOAD 4           ; i
+		LOAD 4           ; i
+		MUL              ; i*i
+		ADD              ; x+i*i
+		STORE 3          ; x := x+i*i
+
+		LOAD 4
+		LOAD_CONST 1
+		ADD
+		STORE 4          ; i := i+1
+		
+		BR L1
 
 L2:     LOAD 3
-        WRITE
+		WRITE
 ```
 
 ## Q3
