@@ -35,7 +35,8 @@ Assembly:
   BR L2
 
 L1:     LOAD 3           ; else: max := x
-  STORE 5 
+  STORE 5
+
 L2:     LOAD 5
   WRITE            ; write max
 ```
