@@ -1,0 +1,91 @@
+[data-pretext-editor-engine] {
+  --pretext-surface: color-mix(
+    in srgb,
+    var(--md-default-bg-color) 92%,
+    rgb(101 137 173 / 0.08)
+  );
+  --pretext-border: color-mix(
+    in srgb,
+    var(--md-default-fg-color) 14%,
+    transparent
+  );
+  --pretext-shadow: 0 16px 40px rgb(15 23 42 / 0.08);
+  --pretext-radius: 1.1rem;
+  --pretext-preview-font: 500 1rem/1.65 Georgia, "Times New Roman", serif;
+  display: grid;
+  gap: 1rem;
+  margin-block: 1.5rem;
+}
+
+[data-pretext-editor-engine] [data-pretext-input],
+[data-pretext-editor-engine] [data-pretext-output] {
+  border: 1px solid var(--pretext-border);
+  border-radius: var(--pretext-radius);
+  background:
+    linear-gradient(
+      180deg,
+      rgb(255 255 255 / 0.22),
+      rgb(255 255 255 / 0.06)
+    ),
+    var(--pretext-surface);
+  box-shadow: var(--pretext-shadow);
+}
+
+[data-pretext-editor-engine] [data-pretext-input] {
+  width: 100%;
+  min-height: 16rem;
+  resize: vertical;
+  padding: 1rem 1.05rem;
+  font: 500 0.95rem/1.6 var(--md-code-font-family, "SFMono-Regular", monospace);
+  color: var(--md-default-fg-color);
+}
+
+[data-pretext-editor-engine] [data-pretext-output] {
+  position: relative;
+  min-height: 16rem;
+  overflow: hidden;
+  padding: 1rem 1.05rem;
+  font: var(--pretext-preview-font);
+  line-height: 1.65;
+  color: var(--md-default-fg-color);
+}
+
+[data-pretext-editor-engine] [data-pretext-stats] {
+  margin: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--md-default-fg-color) 72%, transparent);
+}
+
+.pretext-editor-engine__line {
+  position: absolute;
+  white-space: pre;
+  overflow: hidden;
+  text-overflow: clip;
+}
+
+[data-md-color-scheme="slate"] [data-pretext-editor-engine] {
+  --pretext-surface: color-mix(
+    in srgb,
+    var(--md-default-bg-color) 92%,
+    rgb(114 168 213 / 0.14)
+  );
+  --pretext-border: color-mix(
+    in srgb,
+    var(--md-default-fg-color) 22%,
+    transparent
+  );
+  --pretext-shadow: 0 18px 42px rgb(0 0 0 / 0.32);
+}
+
+@media (min-width: 960px) {
+  [data-pretext-editor-engine] {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
+  }
+
+  [data-pretext-editor-engine] [data-pretext-stats] {
+    grid-column: 1 / -1;
+  }
+}

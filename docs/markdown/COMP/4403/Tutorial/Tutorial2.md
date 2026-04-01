@@ -16,7 +16,6 @@ N -> 0 | 1
 All strings are of the form
 $$
 L = \{\,b_1:b_2\cdots:b_k \mid k \ge 1,\; b_i \in \{0,1\}\,\}
-
 $$
 
 ##### Equivalent Regex

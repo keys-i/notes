@@ -1,5 +1,5 @@
 # Site Information
-site_name: My Online Repository
+site_name: Rad's Notes
 site_url: https://keys-i.github.io/notes
 site_dir: public
 docs_dir: ./docs
@@ -78,7 +78,7 @@ markdown_extensions:
   - footnotes # Adds support for footnotes
   - attr_list # Allows adding attributes to elements
   - pymdownx.highlight # Enhances syntax highlighting
-  - pymdownx.superfences # Provides advanced code block fencing
+  - pymdownx.superfences # Provides advanced code block fencing and powers markdown-exec
   - pymdownx.details # Adds collapsible detail/summary blocks
   - pymdownx.magiclink # Automatically turns URLs into clickable links
   - pymdownx.tasklist # Adds support for task lists
@@ -102,16 +102,20 @@ extra_javascript:
   - https://fastly.jsdelivr.net/npm/echarts/dist/echarts.min.js # Charting support via ECharts
   - assets/javascripts/interactive_graph.js # Custom interactive graph script
   - assets/javascripts/obsidian_tags.js # Custom CSS for Obsidian tags
+  - path: assets/javascripts/pretext-editor-engine.mjs
+    type: module # Pretext-powered editor preview engine
 
 # Extra CSS for custom styling
 extra_css:
   - assets/stylesheets/interactive_graph.css # Styling for interactive graph
   - assets/stylesheets/obsidian_tags.css # Obsidian-style tags
+  - assets/stylesheets/pretext-editor-engine.css # Styling for the Pretext editor engine
   # - assets/stylesheets/custom_theme.css  # Optional: Add custom theme styles
 
 # Plugins for added functionality
 plugins:
   - search # Enables search functionality across the site
+  - markdown-exec # Executes fenced code blocks marked with exec="on"
   - callouts
   - obsidian-support
   - obsidian-interactive-graph # Interactive graph functionality for visualizing connections
