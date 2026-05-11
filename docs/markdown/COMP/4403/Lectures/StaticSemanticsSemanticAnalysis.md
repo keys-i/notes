@@ -384,23 +384,3 @@ The compiler version may also include predefined operators in the predefined sym
 | Rule | Requirements | Result | Meaning |
 | --- | --- | --- | --- |
 | *Well formed main program* | $\begin{aligned} \mathrm{predefined} &\vdash \mathrm{WFBlock}(\mathrm{block}) \end{aligned}$ | $\begin{aligned} \mathrm{WFProgram}(\mathrm{block}) \end{aligned}$ | A program is well formed when its top-level block is well formed in the predefined context |
-
-## Semantic Analysis Summary
-
-| Task | Purpose |
-| --- | --- |
-| Build symbol tables | Record constants, types, variables, and procedures |
-| Resolve identifiers | Check that every identifier refers to a valid declaration |
-| Check expression types | Ensure operators receive compatible operands |
-| Check assignments | Ensure the left side is assignable and the right side has the correct type |
-| Check statement guards | Ensure `if` and `while` guards are boolean |
-| Check declarations | Ensure constants, types, variables, and procedures are well formed |
-| Check block scopes | Handle local declarations, shadowing, and nested procedure scopes |
-| Detect cycles | Reject cyclic constant and type definitions |
-| Check main program | Ensure the top-level block is valid in the predefined symbol table |
-
-In short:
-
-> **Parsing checks structure. Static semantics checks meaning.**
-
-A parsed program can have correct syntax but still fail static semantic analysis, for example if it assigns a boolean to an integer variable, calls a non-procedure, uses an undeclared identifier, or creates a cyclic type definition.
