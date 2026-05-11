@@ -8,6 +8,9 @@ site_description: A collection of my projects and notes
 repo_name: keys-i/notes
 repo_url: https://github.com/keys-i/notes
 
+hooks:
+  - hooks/mermaid_superfences.py
+
 # Theme Configuration
 theme:
   name: material
@@ -78,11 +81,7 @@ markdown_extensions:
   - footnotes # Adds support for footnotes
   - attr_list # Allows adding attributes to elements
   - pymdownx.highlight # Enhances syntax highlighting
-  - pymdownx.superfences: # Provides advanced code block fencing and powers markdown-exec
-      custom_fences:
-        - name: mermaid
-          class: mermaid
-          format: !!python/name:mermaid2.fence_mermaid_custom
+  - pymdownx.superfences # Provides advanced code block fencing and powers markdown-exec
   - pymdownx.details # Adds collapsible detail/summary blocks
   - pymdownx.magiclink # Automatically turns URLs into clickable links
   - pymdownx.tasklist # Adds support for task lists
@@ -105,6 +104,7 @@ extra_javascript:
   - https://fastly.jsdelivr.net/npm/jquery/dist/jquery.min.js # jQuery support
   - https://fastly.jsdelivr.net/npm/echarts/dist/echarts.min.js # Charting support via ECharts
   - assets/javascripts/interactive_graph.js # Custom interactive graph script
+  - assets/javascripts/diagram_zoom.js?v=20260512-resolution2 # Pan and zoom controls for large Mermaid diagrams
   - assets/javascripts/obsidian_tags.js # Custom CSS for Obsidian tags
   - path: assets/javascripts/pretext-editor-engine.mjs
     type: module # Pretext-powered editor preview engine
@@ -112,6 +112,7 @@ extra_javascript:
 # Extra CSS for custom styling
 extra_css:
   - assets/stylesheets/interactive_graph.css # Styling for interactive graph
+  - assets/stylesheets/mermaid_zoom.css?v=20260512-resolution2 # Pan and zoom controls for large Mermaid diagrams
   - assets/stylesheets/obsidian_tags.css # Obsidian-style tags
   - assets/stylesheets/pretext-editor-engine.css # Styling for the Pretext editor engine
   # - assets/stylesheets/custom_theme.css  # Optional: Add custom theme styles
