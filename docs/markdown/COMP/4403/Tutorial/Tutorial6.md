@@ -17,26 +17,35 @@ end
 
 Assembly:
 ```asm
-		READ 
-		STORE 3          ; x := read()
+		READ
+    LOAD_CON 3
+		STORE_FRAME      ; x := read()
 		  
 		READ 
-		STORE 4          ; y := read()
+    LOAD_CON 4
+		STORE_FRAME      ; y := read()
 		  
-		LOAD 3           ; push x
-		LOAD 4           ; push y
+    LOAD_CON 3
+		LOAD_FRAME       ; push x
+    LOAD_CON 4
+		LOAD_FRAME       ; push y
 		LESS             ; push (x < y)
 		  
-		BR_FALSE L1      ; if not (x < y) go to else
+		LOAD_CON 9       ; L1 at 27
+    BR_FALSE L1      ; if not (x < y) go to else
 		  
-		LOAD 4           ; then: max := y
-		STORE 5
-		BR L2
+    LOAD_CON 4
+		LOAD_FRAME       ; then: max := y
+		LOAD_CON 5
+    STORE_FRAME
+		BR
 
-L1:     LOAD 3           ; else: max := x
-		STORE 5
+L1:     LOAD_CON 3       ; else: max := x
+		LOAD_FRAME
+    STORE 5
 
-L2:     LOAD 5
+L2:     LOAD_CON 5
+    LOAD_FRAME
 		WRITE            ; write max
 ```
 
@@ -60,31 +69,43 @@ end
 Assembly:
 
 ```asm
-		LOAD_CONST 1
-		STORE 4          ; i := 1
+		LOAD_CON 1
+    LOAD_CON 4
+		STORE_FRAME      ; i := 1
   
-		LOAD_CONST 0
-		STORE 3          ; x := 1 
-L1:     LOAD 4           ; i
+		LOAD_CON 0
+    LOAD_CON 5
+		STORE_FRAME      ; x := 1 
+L1:     LOAD_CON 4           ; i
 		LOAD_CONST 5
 		LESS             ; i < 5
-		BR_FALSE L2
+    LOAD_CON 26
+		BR
   
-		LOAD 3           ; x
-		LOAD 4           ; i
-		LOAD 4           ; i
-		MUL              ; i*i
+		LOAD_CON 3
+    LOAD_FRAME       ; x
+    LOAD_CON 4
+		LOAD_FRAME       ; i
+    LOAD_CON 4
+		LOAD_FRAME       ; i
+		MPY              ; i*i
 		ADD              ; x+i*i
+    LOAD_CON 3
 		STORE 3          ; x := x+i*i
 
-		LOAD 4
-		LOAD_CONST 1
+		LOAD_CON 4
+    LOAD_FRAME
+		LOAD_CON 1
+    LOAD_FRAME
 		ADD
-		STORE 4          ; i := i+1
+    LOAD_CON 4
+		STORE_FRAME     ; i := i+1
 		
-		BR L1
+    LOAD_CON -35    ; loop back to 10
+		BR
 
-L2:     LOAD 3
+L2:     LOAD_CON 3
+    LOAD_FRAME
 		WRITE
 ```
 
