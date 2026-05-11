@@ -2,6 +2,72 @@
     height:300px; 
     width: 100%;
   }
+
+  .md-header__graph-option {
+    display: flex;
+    align-items: center;
+  }
+
+  @media screen and (min-width: 60em) {
+    .md-header__inner {
+      position: relative;
+    }
+
+    .md-header__title {
+      flex: 1 1 auto;
+      min-width: 0;
+      max-width: calc(50% - 17rem);
+    }
+
+    .md-header__button[for="__search"] {
+      display: none;
+    }
+
+    .md-search {
+      position: absolute;
+      left: 0;
+      right: 0;
+      width: min(24rem, calc(100% - 32rem));
+      margin: 0 auto;
+    }
+
+    .md-search__inner {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+    }
+
+    .md-search__overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      display: block;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+    }
+
+    .md-search:focus-within .md-search__overlay,
+    #__search:checked ~ .md-header .md-search__overlay {
+      pointer-events: auto;
+    }
+
+    .md-header__option[data-md-component="palette"] {
+      order: 1;
+      margin-left: auto;
+      padding-left: 0.8rem;
+    }
+
+    .md-header__graph-option {
+      order: 2;
+      margin-left: 0.2rem;
+    }
+
+    .md-header__source {
+      order: 3;
+      margin-left: 0.4rem;
+    }
+  }
   
   #modal_background {
     background-color: var(--md-default-fg-color--lightest); 
