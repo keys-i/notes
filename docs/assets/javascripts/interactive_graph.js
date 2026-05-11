@@ -17,6 +17,75 @@ $('.md-sidebar--secondary').each(function() {
 
 add_graph_div();
 
+var graphScriptUrl = new URL(document.currentScript.src, window.location.href);
+var graphSitePath = graphScriptUrl.pathname.replace(/\/assets\/javascripts\/interactive_graph\.js$/, "");
+var graphNodePathPrefix = "";
+
+function graph_pathname(link) {
+  try {
+    return new URL(link, window.location.href).pathname;
+  } catch (error) {
+    return "";
+  }
+}
+
+function find_graph_node_path_prefix(nodes) {
+  var prefix = null;
+  var hasPrefixRoot = false;
+
+  for (var i = 0; i < nodes.length; i++) {
+    var pathname = graph_pathname(nodes[i].value);
+    var segments = pathname.split("/").filter(Boolean);
+
+    if (segments.length === 0) {
+      continue;
+    }
+
+    if (segments.length === 1) {
+      hasPrefixRoot = true;
+    }
+
+    if (prefix === null) {
+      prefix = segments;
+      continue;
+    }
+
+    var keep = 0;
+    var length = Math.min(prefix.length, segments.length);
+
+    while (keep < length && prefix[keep] === segments[keep]) {
+      keep += 1;
+    }
+
+    prefix = prefix.slice(0, keep);
+  }
+
+  return hasPrefixRoot && prefix && prefix.length > 0 ? "/" + prefix.join("/") : "";
+}
+
+function graph_link_path(link) {
+  if (!link) {
+    return link;
+  }
+
+  try {
+    var url = new URL(link, window.location.href);
+    var pathname = url.pathname;
+
+    if (graphNodePathPrefix && graphNodePathPrefix !== graphSitePath) {
+      if (pathname === graphNodePathPrefix) {
+        pathname = graphSitePath || "/";
+      } else if (pathname.indexOf(graphNodePathPrefix + "/") === 0) {
+        pathname = (graphSitePath || "") + pathname.slice(graphNodePathPrefix.length);
+      }
+    }
+
+    return pathname + url.search + url.hash;
+  } catch (error) {
+    return link;
+  }
+}
+
 function init_graph() {
 var myChart = echarts.init(document.getElementById('graph'), null, {
   renderer: 'canvas',
@@ -34,7 +103,7 @@ myChart.setOption(option);
 // Add click event for nodes
 myChart.on('click', function (params) {
   if (params.dataType == "node") {
-    window.location = params.value;
+    window.location = graph_link_path(params.value);
   }
 });
 
@@ -44,8 +113,9 @@ window.addEventListener('resize', myChart.resize);
 
 var option;
 
-$.getJSON(document.currentScript.src + '/../graph.json', function (graph) {
+$.getJSON(new URL('../graph.json', graphScriptUrl).toString(), function (graph) {
 myChart.hideLoading();
+graphNodePathPrefix = find_graph_node_path_prefix(graph.nodes);
 
 // An offset of 5, so the dot/node is not that small
 graph.nodes.forEach(function (node) {
