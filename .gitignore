@@ -54,7 +54,7 @@ site/
 mkdocs_build/
 
 # Sphinx documentation
-docs/_build/
+notes/_build/
 
 # Jupyter Notebook
 .ipynb_checkpoints
