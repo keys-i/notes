@@ -3,7 +3,8 @@ site_name: Rad's Notes
 site_url: https://keys-i.github.io/notes
 site_dir: public
 docs_dir: notes
-site_description: A collection of my projects and notes
+site_description: COMP4403 compilers and interpreters notes covering grammars, parsing, semantics, execution, runtime systems, tutorials, and assignments.
+site_author: Keys
 
 repo_name: keys-i/notes
 repo_url: https://github.com/keys-i/notes
