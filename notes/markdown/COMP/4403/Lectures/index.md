@@ -1,4 +1,9 @@
-# Lecture notes
+---
+title: COMP4403 Compiler Lecture Notes
+description: COMP4403 lecture notes on grammars, lexical analysis, top-down and bottom-up parsing, static semantics, interpreters, and runtime systems.
+---
+
+# COMP4403 Compiler Lecture Notes
 <!-- [[Foundations]] -->
 <!-- [[TopDownParsing]] -->
 <!-- [[BottomUpParsing]] -->
@@ -7,6 +12,9 @@
 <!-- [[InterpretationExecutionPL0]] -->
 <!-- [[RuntimeSystemsProgramExecution]] -->
 <!-- [[MemoryObjectRuntimeRepresentation]] -->
+
+The lectures follow a compiler pipeline from syntax definition and recognition
+to semantic checking, execution, and memory representation.
 
 1. [Grammars, and Syntax Foundations](Foundations.md)
 2. [Top-down Parsing](TopDownParsing.md)

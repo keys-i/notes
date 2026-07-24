@@ -1,6 +1,14 @@
-# Assignments
+---
+title: COMP4403 Compiler Assignments
+description: COMP4403 compiler assignment notes and resources covering language processing, semantic analysis, interpretation, and code generation.
+---
+
+# COMP4403 Compiler Assignments
 <!-- [[Assignment1]] -->
 <!-- [[Assignment2]] -->
 
-1. [Assignments 1](Assignment1.md)
-2. [Assignments 2](Assignment2.md)
+Assignment resources connect the compiler theory in the lectures and tutorials
+to larger implementation tasks.
+
+1. [Assignment 1](Assignment1.md)
+2. [Assignment 2](Assignment2.md)
