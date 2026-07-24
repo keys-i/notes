@@ -1,28 +1,52 @@
 {% extends "base.html" %}
 {% block extrahead %}
-<!--   <link rel="stylesheet" href="{{config.site_url}}{{ 'assets/stylesheets/main.c296cc61.min.css' | url }}"> -->
-{% if page and page.meta and page.meta.tags %} {% set keywords = page.meta.tags
-%}
-<meta name="keywords" content="{{ page.meta.keywords }}" />
-{% elif config.extra.site_keywords %} {% set keywords =
-config.extra.site_keywords %}
-<meta name="keywords" content="{{ config.extra.site_keywords }}" />
-{% endif %} {% set title = config.site_name %} {% if page and page.title and not
-page.is_homepage %} {% set title = page.title ~ " &middot; " ~ config.site_name
-| striptags %} {% endif %} {% set description = config.site_description %} {% if
-page and page.meta and page.meta.description %} {% set description =
-page.meta.description %} {% endif %} {% set image = config.site_url ~
-'assets/images/fixed/sitelogo.png' %} {% if page and page.meta and
-page.meta.image %} {% set image = config.site_url ~ page.meta.image %} {% endif
-%}
-<meta property="og:type" content="website" />
+{% set title = config.site_name %}
+{% if page and page.title and not page.is_homepage %}
+  {% set title = (page.title | striptags) ~ " · " ~ config.site_name %}
+{% endif %}
+{% set description = config.site_description %}
+{% if page and page.meta and page.meta.description %}
+  {% set description = page.meta.description %}
+{% endif %}
+{% set image = config.site_url ~ 'assets/images/fixed/sitelogo.png' %}
+{% if page and page.meta and page.meta.image %}
+  {% set image = config.site_url ~ page.meta.image %}
+{% endif %}
+{% if not page or page.url == "print_page/" %}
+<meta name="robots" content="noindex,follow" />
+{% else %}
+<meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
+{% endif %}
+<meta property="og:type" content="{{ 'website' if page and page.is_homepage else 'article' }}" />
+<meta property="og:site_name" content="{{ config.site_name }}" />
 <meta property="og:title" content="{{ title }}" />
 <meta property="og:description" content="{{ description }}" />
 <meta property="og:url" content="{{ page.canonical_url }}" />
 <meta property="og:image" content="{{ image }}" />
-<meta property="og:image:type" content="image/png" />
-<meta property="og:image:width" content="256" />
-<meta property="og:image:height" content="256" />
+<meta property="og:image:alt" content="{{ config.site_name }} logo" />
+<meta property="og:locale" content="en_AU" />
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="{{ title }}" />
+<meta name="twitter:description" content="{{ description }}" />
+<meta name="twitter:image" content="{{ image }}" />
+{% if page and page.canonical_url and page.url != "print_page/" %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": {{ ("WebSite" if page.is_homepage else "TechArticle") | tojson }},
+  "name": {{ title | tojson }},
+  "description": {{ description | tojson }},
+  "url": {{ page.canonical_url | tojson }},
+  "image": {{ image | tojson }},
+  "inLanguage": "en-AU",
+  "author": {
+    "@type": "Person",
+    "name": {{ config.site_author | tojson }},
+    "url": "https://github.com/keys-i"
+  }
+}
+</script>
+{% endif %}
 {% endblock %}
 
 <!-- printing pdf -->
