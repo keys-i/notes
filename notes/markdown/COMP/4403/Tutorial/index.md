@@ -1,9 +1,9 @@
 ---
-title: COMP4403 Compiler Tutorials
-description: COMP4403 compiler tutorials with worked exercises on grammars, parsing, static semantics, interpretation, runtime systems, and code generation.
+title: Compiler Tutorials
+description: Compiler tutorials with worked exercises on grammars, parsing, static semantics, interpretation, runtime systems, and code generation.
 ---
 
-# COMP4403 Compiler Tutorials
+# Compiler Tutorials
 
 <!-- [[Tutorial1]] -->
 <!-- [[Tutorial2]] -->
