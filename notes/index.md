@@ -1,7 +1,7 @@
 ---
 title: My Course Notes
 slug: Home
-description: My course notes for COMP and MECH courses, including assignments, tutorials, and lectures.
+description: My course notes for COMP, INFS, and MECH courses, including assignments, tutorials, and lectures.
 ---
 
 # My Course Notes
@@ -12,6 +12,12 @@ description: My course notes for COMP and MECH courses, including assignments, t
 | ----------- | --------------------------------------------------------- |
 | 4403        | [Compilers and Interpreters](markdown/COMP/4403/index.md) |
 | 4702        | [Machine Learning](markdown/COMP/4702/index.md)           |
+
+## INFS
+
+| Course code | Name                                                       |
+| ----------- | ---------------------------------------------------------- |
+| 2200        | [Relational Database Systems](markdown/INFS/2200/index.md) |
 
 ## MECH
 
