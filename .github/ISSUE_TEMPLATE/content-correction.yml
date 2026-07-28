@@ -1,0 +1,37 @@
+name: Content correction
+description: Report an error or unclear section in the course notes
+title: "[Content]: "
+labels: []
+body:
+  - type: input
+    id: page
+    attributes:
+      label: Course and page
+      description: Link to the page or give its repository path.
+      placeholder: COMP4403 — notes/markdown/COMP/4403/Lectures/Foundations.md
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is wrong or unclear?
+      description: Quote only the small section needed to identify it.
+    validations:
+      required: true
+
+  - type: textarea
+    id: correction
+    attributes:
+      label: Suggested correction
+      description: Explain the correction and link any useful source.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: integrity
+    attributes:
+      label: Academic integrity
+      options:
+        - label: This report contains no restricted material or current assessment solution.
+          required: true

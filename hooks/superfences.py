@@ -59,9 +59,16 @@ def on_page_content(html, page, config, **_):
     }
 
     for href in parser.hrefs:
-        target = nodes_by_url.get(page_url(urljoin(page.abs_url, href)))
-        edge = (str(source["id"]), str(target["id"])) if target else None
-        if not target or target is source or edge in edges:
+        target = nodes_by_url.get(
+            page_url(
+                urljoin(page.abs_url, href)
+            )
+        )
+        if not target or target is source:
+            continue
+
+        edge = (str(source["id"]), str(target["id"]))
+        if edge in edges:
             continue
 
         graph.data["links"].append({"source": edge[0], "target": edge[1]})
