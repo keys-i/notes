@@ -37,9 +37,9 @@ avoid unrelated rewrites.
 Run:
 
 ```sh
-poetry run fmt
-poetry run lint
-poetry run mkdocs build --strict
+uv run fmt
+uv run lint
+uv run mkdocs build --strict
 ```
 
 For a visible layout change, also check the affected page on desktop and

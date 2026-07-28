@@ -19,19 +19,19 @@ Personal UQ course notes, published as a
 
 ## Local Use
 
-Requires Python 3.13+ and [Poetry](https://python-poetry.org/).
+Requires Python 3.13+ and [uv](https://docs.astral.sh/uv/).
 
 ```sh
-poetry install
-poetry run mkdocs serve
+uv sync
+uv run serve
 ```
 
 Useful checks:
 
 ```sh
-poetry run lint
-poetry run fmt
-poetry run mkdocs build --strict
+uv run lint
+uv run fmt
+uv run mkdocs build --strict
 ```
 
 ## License

@@ -12,6 +12,8 @@
 {% if page and page.meta and page.meta.image %}
   {% set image = config.site_url ~ page.meta.image %}
 {% endif %}
+<link rel="apple-touch-icon" sizes="180x180" href="{{ 'assets/images/apple-touch-icon.png' | url }}" />
+<link rel="apple-touch-icon-precomposed" sizes="180x180" href="{{ 'assets/images/apple-touch-icon-precomposed.png' | url }}" />
 {% if not page or page.url == "print_page/" %}
 <meta name="robots" content="noindex,follow" />
 {% else %}

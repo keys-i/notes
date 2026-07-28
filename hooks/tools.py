@@ -1,11 +1,11 @@
-"""Poetry command entry points for repository checks."""
+"""Project command entry points."""
 
 from pathlib import Path
 from subprocess import call
 
 
 def clean() -> int:
-    """Delete files ignored by Git, except Poetry's local environment."""
+    """Delete files ignored by Git, except the local environment."""
     paths = (
         path.name for path in Path.cwd().iterdir() if path.name != ".venv"
     )
@@ -19,6 +19,10 @@ def clean() -> int:
             *paths,
         ]
     )
+
+def fmt() -> int:
+    """Format Markdown files with Prettier."""
+    return call(["npx", "--yes", "prettier@3.9.6", "--write", "**/*.md"])
 
 def lint() -> int:
     """Lint Markdown files with markdownlint-cli2."""
@@ -35,7 +39,17 @@ def lint() -> int:
         ],
     )
 
-
-def fmt() -> int:
-    """Format Markdown files with Prettier."""
-    return call(["npx", "--yes", "prettier@3.9.6", "--write", "**/*.md"])
+def serve() -> int:
+    """Serve the site with live reload."""
+    return call(
+        [
+            "mkdocs",
+            "serve",
+            "--livereload",
+            "--open",
+            "-w",
+            "overrides",
+            "-w",
+            "hooks",
+        ]
+    )
