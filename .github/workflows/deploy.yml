@@ -1,4 +1,4 @@
-name: website
+name: Deploying Website
 on:
   pull_request:
   push:
