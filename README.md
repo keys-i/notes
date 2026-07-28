@@ -11,10 +11,10 @@ Personal UQ course notes, published as a
 
 ## Courses
 
-| Course | Subject |
-| --- | --- |
-| [COMP4403](notes/markdown/COMP/4403/) | Compilers and Interpreters |
-| [COMP4702](notes/markdown/COMP/4702/) | Machine Learning |
+| Course                                | Subject                                     |
+| ------------------------------------- | ------------------------------------------- |
+| [COMP4403](notes/markdown/COMP/4403/) | Compilers and Interpreters                  |
+| [COMP4702](notes/markdown/COMP/4702/) | Machine Learning                            |
 | [MECH2700](notes/markdown/MECH/2700/) | Computational Engineering and Data Analysis |
 
 ## Local Use
