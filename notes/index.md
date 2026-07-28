@@ -3,6 +3,10 @@ title: My Course Notes
 description: My course notes for COMP and MECH courses, including assignments, tutorials, and lectures.
 ---
 
+<!-- [[COMP/4702/index]] -->
+<!-- [[COMP/4403/index]] -->
+<!-- [[MECH/2700/index]] -->
+
 # My Course Notes
 
 ## COMP
