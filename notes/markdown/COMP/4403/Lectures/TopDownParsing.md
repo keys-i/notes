@@ -2,10 +2,10 @@
 
 ## BNF and EBNF
 
-#### BNF (Backus-Naur form)
+### BNF (Backus-Naur form)
 
-It lets multiple alternatives for the same nonterminal be written on one line using $\mid$
-Instead of:
+It lets multiple alternatives for the same nonterminal be written on one line
+using $\mid$ Instead of:
 
 $$
 \begin{align}
@@ -34,7 +34,8 @@ It extends BNF with shorthand notation for common patterns.
 
 ## Recursive Descent Parsing
 
-It is a top-down parsing method where the parser is written as a set of recursive methods.
+It is a top-down parsing method where the parser is written as a set of
+recursive methods.
 
 Each **nonterminal** in the grammar gets its own parsing method.
 
@@ -50,11 +51,15 @@ Each **nonterminal** in the grammar gets its own parsing method.
 > parseRelCondition();
 > ```
 
-The parser reads a stream of lexical tokens from left to right. As each method recognises part of the input, it moves the current token forward. When the method finishes, the current token should be the token immediately after the construct it parsed.
+The parser reads a stream of lexical tokens from left to right. As each method
+recognises part of the input, it moves the current token forward. When the
+method finishes, the current token should be the token immediately after the
+construct it parsed.
 
 ## LL(1) Parsing
 
-It is a form of predictive recursive-descent parsing. Recursive-descent parsing works cleanly with this grammar.
+It is a form of predictive recursive-descent parsing. Recursive-descent parsing
+works cleanly with this grammar.
 
 | Part     | Meaning                              |
 | -------- | ------------------------------------ |

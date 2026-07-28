@@ -4,6 +4,7 @@ description: COMP4702 study resources for machine learning theory and practice, 
 ---
 
 # COMP4702 Machine Learning
+
 <!-- [[COMP/4702/Lectures/index]] -->
 <!-- [[COMP/4702/Tutorial/index]] -->
 <!-- [[COMP/4702/Assignment/index]] -->

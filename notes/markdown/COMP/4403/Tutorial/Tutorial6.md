@@ -16,37 +16,38 @@ end
 ```
 
 Assembly:
+
 ```asm
-		READ
+  READ
     LOAD_CON 3
-		STORE_FRAME      ; x := read()
-		  
-		READ 
+  STORE_FRAME      ; x := read()
+
+  READ
     LOAD_CON 4
-		STORE_FRAME      ; y := read()
-		  
+  STORE_FRAME      ; y := read()
+
     LOAD_CON 3
-		LOAD_FRAME       ; push x
+  LOAD_FRAME       ; push x
     LOAD_CON 4
-		LOAD_FRAME       ; push y
-		LESS             ; push (x < y)
-		  
-		LOAD_CON 9       ; L1 at 27
+  LOAD_FRAME       ; push y
+  LESS             ; push (x < y)
+
+  LOAD_CON 9       ; L1 at 27
     BR_FALSE L1      ; if not (x < y) go to else
-		  
+
     LOAD_CON 4
-		LOAD_FRAME       ; then: max := y
-		LOAD_CON 5
+  LOAD_FRAME       ; then: max := y
+  LOAD_CON 5
     STORE_FRAME
-		BR
+  BR
 
 L1:     LOAD_CON 3       ; else: max := x
-		LOAD_FRAME
+  LOAD_FRAME
     STORE 5
 
 L2:     LOAD_CON 5
     LOAD_FRAME
-		WRITE            ; write max
+  WRITE            ; write max
 ```
 
 ## Q2
@@ -69,44 +70,44 @@ end
 Assembly:
 
 ```asm
-		LOAD_CON 1
+  LOAD_CON 1
     LOAD_CON 4
-		STORE_FRAME      ; i := 1
-  
-		LOAD_CON 0
+  STORE_FRAME      ; i := 1
+
+  LOAD_CON 0
     LOAD_CON 5
-		STORE_FRAME      ; x := 1 
+  STORE_FRAME      ; x := 1
 L1:     LOAD_CON 4           ; i
-		LOAD_CONST 5
-		LESS             ; i < 5
+  LOAD_CONST 5
+  LESS             ; i < 5
     LOAD_CON 26
-		BR
-  
-		LOAD_CON 3
+  BR
+
+  LOAD_CON 3
     LOAD_FRAME       ; x
     LOAD_CON 4
-		LOAD_FRAME       ; i
+  LOAD_FRAME       ; i
     LOAD_CON 4
-		LOAD_FRAME       ; i
-		MPY              ; i*i
-		ADD              ; x+i*i
+  LOAD_FRAME       ; i
+  MPY              ; i*i
+  ADD              ; x+i*i
     LOAD_CON 3
-		STORE 3          ; x := x+i*i
+  STORE 3          ; x := x+i*i
 
-		LOAD_CON 4
+  LOAD_CON 4
     LOAD_FRAME
-		LOAD_CON 1
+  LOAD_CON 1
     LOAD_FRAME
-		ADD
+  ADD
     LOAD_CON 4
-		STORE_FRAME     ; i := i+1
-		
+  STORE_FRAME     ; i := i+1
+
     LOAD_CON -35    ; loop back to 10
-		BR
+  BR
 
 L2:     LOAD_CON 3
     LOAD_FRAME
-		WRITE
+  WRITE
 ```
 
 ## Q3
@@ -161,9 +162,9 @@ public Code visitRepeatNode(StatementNode.RepeatNode node) {
 
  code.append(node.getLoopStmt().genCode(this));
  code.append(node.getCondition().genCode(this));
- 
+
  code.genJumpIfFalse(-(code.size() + Code.SIZE_JUMP_IF_FALSE));
- 
+
  endGen("Repeat");
  return code;
 }

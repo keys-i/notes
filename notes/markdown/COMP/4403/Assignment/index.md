@@ -4,6 +4,7 @@ description: Compiler assignment notes and resources covering language processin
 ---
 
 # Compiler Assignments
+
 <!-- [[Assignment1]] -->
 <!-- [[Assignment2]] -->
 

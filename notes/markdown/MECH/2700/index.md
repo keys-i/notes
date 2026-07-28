@@ -4,6 +4,7 @@ description: MECH2700 study resources for computational engineering and data ana
 ---
 
 # MECH2700 Computational Engineering & Data Analysis
+
 <!-- [[MECH/2700/Lectures/index]] -->
 <!-- [[MECH/2700/Tutorial/index]] -->
 <!-- [[MECH/2700/Assignment/index]] -->
