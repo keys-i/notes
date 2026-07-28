@@ -2,11 +2,15 @@
 
 [![website](https://github.com/keys-i/notes/actions/workflows/deploy.yml/badge.svg?cache=clear)](https://github.com/keys-i/notes/actions/workflows/deploy.yml)
 
-Welcome to the documentation for notes, an online repository of resources. This repository serves as a central hub for various materials, including assignments, projects, and more. Here you'll find details on how to set up, build, and deploy the repository's resources and documentation.
+Welcome to the documentation for notes, an online repository of resources. This
+repository serves as a central hub for various materials, including assignments,
+projects, and more. Here you'll find details on how to set up, build, and deploy
+the repository's resources and documentation.
 
 ## Overview
 
-notes uses MkDocs to generate a clean, static site for organizing and displaying resources. MkDocs is a straightforward, project-focused documentation generator.
+notes uses MkDocs to generate a clean, static site for organizing anddisplaying
+resources. MkDocs is a straightforward, project-focused documentation generator.
 
 ## Getting Started
 
@@ -56,7 +60,9 @@ To build the resources and documentation locally:
 
 ## Deployment
 
-notes is set up for automatic deployment to GitHub Pages. Pushes to `main` and `master` build the MkDocs site and publish the generated `public/` directory through GitHub Actions.
+notes is set up for automatic deployment to GitHub Pages. Pushes to `main` and
+`master` build the MkDocs site and publish the generated `public/` directory
+through GitHub Actions.
 
 ### GitHub Actions Workflow
 
@@ -69,7 +75,8 @@ The GitHub Actions workflow includes steps for:
 - Uploading the generated Pages artifact.
 - Deploying the artifact to GitHub Pages.
 
-GitHub Pages should be configured to use **GitHub Actions** as the build and deployment source for this workflow to publish successfully.
+GitHub Pages should be configured to use **GitHub Actions** as the build and
+deployment source for this workflow to publish successfully.
 
 ## Contribution
 
@@ -99,7 +106,8 @@ If you'd like to contribute to notes, here's how:
 
 ## License
 
-This project is licensed under the MIT License. Check out the [LICENSE](LICENSE) file for more information.
+This project is licensed under the MIT License.
+Check out the [LICENSE](LICENSE) file for more information.
 
 ## Acknowledgments
 
