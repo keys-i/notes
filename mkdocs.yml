@@ -11,7 +11,7 @@ repo_url: https://github.com/keys-i/notes
 edit_uri: edit/main/notes/
 
 hooks:
-  - hooks/mermaid_superfences.py
+  - hooks/superfences.py
 
 # Theme Configuration
 theme:

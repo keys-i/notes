@@ -6,7 +6,6 @@ authors = [
     {name = "Keys",email = "70819367+keys-i@users.noreply.github.com"}
 ]
 readme = "README.md"
-package-mode = false
 requires-python = ">=3.13,<4"
 dependencies = [
     "mkdocs (>=1.1.2)",
@@ -26,8 +25,15 @@ dependencies = [
     "mkdocs-print-site-plugin (>=2.8,<3.0)"
 ]
 
+[project.scripts]
+lint = "hooks.tools:lint"
+fmt = "hooks.tools:fmt"
+
 [tool.poetry]
-package-mode = false
+packages = [{include = "hooks"}]
+
+[tool.markdownlint-cli2]
+gitignore = true
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
