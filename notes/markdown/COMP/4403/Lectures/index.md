@@ -4,6 +4,7 @@ description: Compiler lecture notes on grammars, lexical analysis, top-down and 
 ---
 
 # Compiler Lecture Notes
+
 <!-- [[Foundations]] -->
 <!-- [[TopDownParsing]] -->
 <!-- [[BottomUpParsing]] -->

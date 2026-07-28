@@ -1,5 +1,7 @@
 # Bottom-Up Parsing
+
 Week 5
+
 ## Shift/Reduce Parsing
 
 ## LR Parsing

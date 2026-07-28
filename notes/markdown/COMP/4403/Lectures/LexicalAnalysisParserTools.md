@@ -1,5 +1,7 @@
 # Lexical Analysis and Parser Tools
+
 Week 6
+
 ## Lexical Analysis
 
 ## Scanner disambiguation

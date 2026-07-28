@@ -94,7 +94,8 @@ private StatementNode parseRepeatStatement(TokenSet recoverSet) {
 
 File: `src/tree/StatementNode.java`
 
-Note: this is the final version, so the `accept` body is already enabled again for Q2(b).
+Note: this is the final version, so the `accept` body is already enabled again
+for Q2(b).
 
 ```java
 public static class RepeatNode extends StatementNode {
@@ -379,4 +380,5 @@ case OR_OP -> {
 }
 ```
 
-These branches short-circuit because the right-hand side is only evaluated when the left-hand side does not already determine the final result.
+These branches short-circuit because the right-hand side is only evaluated when
+the left-hand side does not already determine the final result.

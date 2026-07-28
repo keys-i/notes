@@ -5,12 +5,14 @@
 A context-free Grammar consists of:
 
 - A finite set, $\Sigma$, of terminal symbols
-- A finite nonempty set of non-terminal symbols (disjoint from the terminal symbols)
-- A finite nonempty set of productions of the form $A \rightarrow \alpha$, where $A$ is a non-terminal symbol, and $\alpha$ is a possibly empty sequence of symbols, each of which is either a terminal or non-terminal symbol.
+- A finite nonempty set of non-terminal symbols (disjoint from the terminal
+  symbols)
+- A finite nonempty set of productions of the form $A \rightarrow \alpha$, where
+  $A$ is a non-terminal symbol, and $\alpha$ is a possibly empty sequence of
+  symbols, each of which is either a terminal or non-terminal symbol.
 - A start symbol that must be a non-terminal symbol
 
-> [!note] Example
-> The context-free grammar
+> [!note] Example The context-free grammar
 >
 > ```haskell
 > E -> E Op E
@@ -24,14 +26,21 @@ A context-free Grammar consists of:
 > has:
 >
 > - start symbol $\texttt{E}$
-> - terminals $\{\texttt{"("}, \texttt{")"}, \texttt{number}, \texttt{"+"}, \texttt{"-"}, \texttt{"*"}\}$
+> - terminals
+>
+>   $$
+>   \{\texttt{"("}, \texttt{")"}, \texttt{number},
+>   \texttt{"+"}, \texttt{"-"}, \texttt{"*"}\}
+>   $$
+>
 > - non-terminals $\{\texttt{E}, \texttt{Op}\}$
 
 ### Derivation Sequences
 
 #### Directly Derives
 
-if $N \to \gamma$ is a production, then in any sequence $\alpha\;N\;\beta$, we can replace $N$ with $\gamma$ to obtain $\alpha\;\gamma\;\beta$, written as:
+if $N \to \gamma$ is a production, then in any sequence $\alpha\;N\;\beta$, we
+can replace $N$ with $\gamma$ to obtain $\alpha\;\gamma\;\beta$, written as:
 
 $$
 \alpha\;N\;\beta \Rightarrow \alpha \gamma \beta
@@ -39,13 +48,15 @@ $$
 
 #### Derives
 
-We say that a sequence of terminal and non-terminal symbols $\alpha$ **derives** a sequence $\beta$, written
+We say that a sequence of terminal and non-terminal symbols $\alpha$ **derives**
+a sequence $\beta$, written
 
 $$
 \alpha \overset{*}{\Rightarrow} \beta
 $$
 
-if $\beta$ can be obtained from $\alpha$ by applying zero or more direct derivation steps. Equivalently, there exists a finite sequence
+if $\beta$ can be obtained from $\alpha$ by applying zero or more direct
+derivation steps. Equivalently, there exists a finite sequence
 
 $$
 \gamma_0, \gamma_1, \gamma_2, \dots, \gamma_n
@@ -54,7 +65,8 @@ $$
 such that
 
 $$
-\alpha = \gamma_0 \Rightarrow \gamma_1 \Rightarrow \cdots \Rightarrow \gamma_n = \beta
+\alpha = \gamma_0 \Rightarrow \gamma_1 \Rightarrow \cdots
+\Rightarrow \gamma_n = \beta
 $$
 
 Because zero steps are allowed, every sequence derives itself:
@@ -69,8 +81,8 @@ A nullable sequence is written as:
 
 $$
 \begin{aligned}
-	\alpha &\overset{*}{\Rightarrow} \epsilon \\
-	\alpha &\overset{*}{\Rightarrow}
+ \alpha &\overset{*}{\Rightarrow} \epsilon \\
+ \alpha &\overset{*}{\Rightarrow}
 \end{aligned}
 $$
 
@@ -78,14 +90,19 @@ Some rules for nullable:
 
 - $\epsilon$ is nullable
 - any terminal symbol is **not** nullable
-- a sequence of the form $S_1\;S_2\;\cdots\;S_n$ is nullable if all of the constructs $S_1,\cdots,S_n$ are nullable
-- a set of alternatives $S_1\mid\cdots\mid S_n$ is nullable if at least one of the alternatives is nullable
+- a sequence of the form $S_1\;S_2\;\cdots\;S_n$ is nullable if all of the
+  constructs $S_1,\cdots,S_n$ are nullable
+- a set of alternatives $S_1\mid\cdots\mid S_n$ is nullable if at least one of
+  the alternatives is nullable
 - EBNF constructs for optionals and repetition are nullable
-- a non-terminal $N$ is nullable if there is a production $N$ with a nullable right side
+- a non-terminal $N$ is nullable if there is a production $N$ with a nullable
+  right side
 
 ### Language
 
-The **language** $\mathcal{L}(G)$ of a grammar $G$ is the set of all finite sequences of terminal symbols that can be derived from the start symbol using the grammar's productions:
+The **language** $\mathcal{L}(G)$ of a grammar $G$ is the set of all finite
+sequences of terminal symbols that can be derived from the start symbol using
+the grammar's productions:
 
 $$
 \mathcal{L}(G) = \{t \in \mathrm{seq}\,\Sigma\mid S\overset{*}{\Rightarrow}t\}
@@ -103,24 +120,25 @@ $$
 
 #### Sentential Form
 
-A **sentential form** is a sequence of terminal and non-terminal symbols $\alpha$ such that
+A **sentential form** is a sequence of terminal and non-terminal symbols
+$\alpha$ such that
 
 $$
 S\overset{*}{\Rightarrow}\alpha
 $$
 
-> [!note]
-> hence, All sentences are also sentential forms
+> [!note] hence, All sentences are also sentential forms
 
 ## Parse trees
 
 A derivation of a sentence determines a corresponding **parse tree**.
 
-- Each direct derivation step using a production $N \to \alpha$ adds a subtree with root $N$ and children given by the symbols in $\alpha$.
+- Each direct derivation step using a production $N \to \alpha$ adds a subtree
+  with root $N$ and children given by the symbols in $\alpha$.
 - By applying the derivation steps in sequence, the full parse tree is built.
 
-    > [!note]
-    > Different derivation sequences can produce the same parse tree, because the nonterminals may be expanded in different orders.
+  > [!note] Different derivation sequences can produce the same parse tree,
+  > because the nonterminals may be expanded in different orders.
 
 ### Example
 
@@ -155,7 +173,7 @@ Es1 --> Nsi1[2]
 | **Ambiguous for a sentence** | A grammar G is ambiguous for a sentence t \in L(G) if t has more than one parse tree.                            |
 | **Ambiguous grammar**        | A grammar G is ambiguous if there exists some sentence t \in L(G) for which G produces more than one parse tree. |
 
-**Example**
+#### Example
 
 ```haskell
 E -> E Op E |“(” E “)” | number
@@ -222,9 +240,11 @@ E -> E "*" E
 E -> N
 ```
 
-operator precedence is not enforced. As a result, the sentence $1+2*3$ is ambiguous: it can be parsed as either $1+(2*3)$ or $(1+2)*3$.
+operator precedence is not enforced. As a result, the sentence $1+2*3$ is
+ambiguous: it can be parsed as either $1+(2*3)$ or $(1+2)*3$.
 
-To give \* higher precedence than + and remove this ambiguity, we rewrite the grammar as
+To give \* higher precedence than + and remove this ambiguity, we rewrite the
+grammar as
 
 ```haskell
 E -> E "+" T | T
@@ -232,7 +252,8 @@ T -> T "*" F | F
 F -> N
 ```
 
-In this grammar, multiplication binds more tightly than addition, and both operators are left-associative.
+In this grammar, multiplication binds more tightly than addition, and both
+operators are left-associative.
 
 #### Overriding Operator Precedence
 
@@ -266,7 +287,9 @@ F3 --> N3[3]
 
 ## Chomsky Hierarchy of Grammars
 
-Non-terminal symbols are written in uppercase, terminal symbols in lowercase, Greek letters denote possibly empty sequences of terminals and nonterminals, and $\epsilon$ denotes the empty sequence.
+Non-terminal symbols are written in uppercase, terminal symbols in lowercase,
+Greek letters denote possibly empty sequences of terminals and nonterminals, and
+$\epsilon$ denotes the empty sequence.
 
 | Type | Name              | Example                                      | Equivalent model          |
 | ---- | ----------------- | -------------------------------------------- | ------------------------- |

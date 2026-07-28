@@ -17,9 +17,9 @@ lexpSeq' -> lexp lexpSeq' | ϵ
 FIRST
 
 ```haskell
-FIRST(lexp) = {NUM, ID, LPAREN} 
+FIRST(lexp) = {NUM, ID, LPAREN}
 FIRST(atom) = {NUM, ID}
-FIRST(list) = {LPAREN}  
+FIRST(list) = {LPAREN}
 FIRST(lexpSeq) = {NUM, ID, LPAREN}
 FIRST(lexpSeq') = {NUM, ID, LPAREN, ϵ}
 ```
@@ -40,16 +40,22 @@ LL(1), since:
 
 - $\text{FIRST(atom)} \cap \text{FIRST(list)} = \varnothing$
 - ${\text{NUM},\text{ID}}$ are disjoint
-- $\text{FIRST(lexp)} \cap \text{FOLLOW(lexpSeq')} = {\text{NUM},\text{ID},\text{LPAREN}} \cap {\text{RPAREN}} = \varnothing$
+- The FIRST and FOLLOW sets are disjoint:
+
+  $$
+  \text{FIRST(lexp)} \cap \text{FOLLOW(lexpSeq')}
+  = {\text{NUM},\text{ID},\text{LPAREN}}
+  \cap {\text{RPAREN}} = \varnothing
+  $$
 
 ### (d.)
 
 $$
-\begin{aligned}  
-\text{lexp} &\to \text{atom} \mid \text{list}\  
-\text{atom} &\to \text{NUM} \mid \text{ID}\  
-\text{list} &\to \text{LPAREN}\ \text{lexp}\ {\text{lexp}}\ \text{RPAREN}  
-\end{aligned}  
+\begin{aligned}
+\text{lexp} &\to \text{atom} \mid \text{list}\
+\text{atom} &\to \text{NUM} \mid \text{ID}\
+\text{list} &\to \text{LPAREN}\ \text{lexp}\ {\text{lexp}}\ \text{RPAREN}
+\end{aligned}
 $$
 
 ### (e.)
@@ -138,74 +144,90 @@ private LList parseList() {
 ### (a)
 
 $$
-\begin{aligned}  
+\begin{aligned}
 \text{Type} &\to \text{INT}\ \text{Type'}\  \newline
-\text{Type'} &\to \text{LBRACKET}\ \text{RBRACKET}\ \text{Type'} \mid \varepsilon  
-\end{aligned}  
+\text{Type'} &\to \text{LBRACKET}\ \text{RBRACKET}\ \text{Type'} \mid \varepsilon
+\end{aligned}
 $$
 
 ### (b.)
 
 $$
-\begin{aligned}  
+\begin{aligned}
 \text{VarList} &\to \text{Ident}\ \text{VarList'}\  \newline
-\text{VarList'} &\to \text{COMMA}\ \text{Ident}\ \text{VarList'} \mid \varepsilon  
-\end{aligned}  
+\text{VarList'} &\to \text{COMMA}\ \text{Ident}\ \text{VarList'} \mid \varepsilon
+\end{aligned}
 $$
 
-Full grammar:  
+Full grammar:
+
 $$
-\begin{aligned}  
+\begin{aligned}
 \text{Declaration} &\to \text{Type}\ \text{VarList}\ \newline
 \text{Type} &\to \text{INT}\ \text{Type'}\  \newline
-\text{Type'} &\to \text{LBRACKET}\ \text{RBRACKET}\ \text{Type'} \mid \varepsilon\ \newline
+\text{Type'} &\to \text{LBRACKET}\ \text{RBRACKET}
+  \ \text{Type'} \mid \varepsilon\ \newline
 \text{VarList} &\to \text{Ident}\ \text{VarList'}\  \newline
-\text{VarList'} &\to \text{COMMA}\ \text{Ident}\ \text{VarList'} \mid \varepsilon\ \newline
-\text{Ident} &\to \text{ID}  
-\end{aligned}  
+\text{VarList'} &\to \text{COMMA}\ \text{Ident}
+  \ \text{VarList'} \mid \varepsilon\ \newline
+\text{Ident} &\to \text{ID}
+\end{aligned}
 $$
 
 ### (c.)
 
 FIRST
+
 $$
-\begin{aligned}  
+\begin{aligned}
 \text{FIRST(Declaration)} &= {\text{INT}}\  \newline
 \text{FIRST(Type)} &= {\text{INT}}\  \newline
 \text{FIRST(Type')} &= {\text{LBRACKET}, \varepsilon}\ \newline
 \text{FIRST(VarList)} &= {\text{ID}}\  \newline
 \text{FIRST(VarList')} &= {\text{COMMA}, \varepsilon}\  \newline
-\text{FIRST(Ident)} &= {\text{ID}}  
-\end{aligned}  
+\text{FIRST(Ident)} &= {\text{ID}}
+\end{aligned}
 $$
 
 FOLLOW
+
 $$
-\begin{aligned}  
+\begin{aligned}
 \text{FOLLOW(Declaration)} &= {$}\  \newline
 \text{FOLLOW(Type)} &= {\text{ID}}\  \newline
 \text{FOLLOW(Type')} &= {\text{ID}}\  \newline
 \text{FOLLOW(VarList)} &= {$}\  \newline
 \text{FOLLOW(VarList')} &= {$}\  \newline
-\text{FOLLOW(Ident)} &= {\text{COMMA}, $}  
-\end{aligned}  
+\text{FOLLOW(Ident)} &= {\text{COMMA}, $}
+\end{aligned}
 $$
 
 ### (d.)
 
 LL(1), since:
 
-- $\text{FIRST(LBRACKET RBRACKET Type')} \cap \text{FOLLOW(Type')} = {\text{LBRACKET}} \cap {\text{ID}} = \varnothing$
-- $\text{FIRST(COMMA Ident VarList')} \cap \text{FOLLOW(VarList')} = {\text{COMMA}} \cap {\$} = \varnothing$
+- The FIRST and FOLLOW sets are disjoint:
+
+  $$
+  \text{FIRST(LBRACKET RBRACKET Type')} \cap \text{FOLLOW(Type')}
+  = {\text{LBRACKET}} \cap {\text{ID}} = \varnothing
+  $$
+
+- The FIRST and FOLLOW sets are disjoint:
+
+  $$
+  \text{FIRST(COMMA Ident VarList')} \cap \text{FOLLOW(VarList')}
+  = {\text{COMMA}} \cap {\$} = \varnothing
+  $$
 
 ### (e.)
 
 $$
-\begin{aligned}  
+\begin{aligned}
 \text{Declaration} &\to \text{Type}\ \text{VarList}\  \newline
 \text{Type} &\to \text{INT}\ {\text{LBRACKET}\ \text{RBRACKET}}\  \newline
 \text{VarList} &\to \text{Ident}\ {\text{COMMA}\ \text{Ident}}\  \newline
-\text{Ident} &\to \text{ID}  
+\text{Ident} &\to \text{ID}
 \end{aligned}
 $$
 

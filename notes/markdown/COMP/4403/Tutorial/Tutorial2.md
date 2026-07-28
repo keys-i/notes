@@ -14,6 +14,7 @@ N -> 0 | 1
 ##### Language
 
 All strings are of the form
+
 $$
 L = \{\,b_1:b_2\cdots:b_k \mid k \ge 1,\; b_i \in \{0,1\}\,\}
 $$
@@ -34,6 +35,7 @@ N -> 0 | 1
 ##### Language
 
 All strings are of the form
+
 $$
 L = \{\; w \mid w \in \{0,1\}^*\;\}
 $$
@@ -54,6 +56,7 @@ N -> 0 | 1
 ##### Language
 
 All strings are of the form
+
 $$
 L=\{\; w \mid w \in \{0,1\}^+ \;\}
 $$
@@ -74,6 +77,7 @@ N -> 0 | 1
 ##### Language
 
 All strings are of the form
+
 $$
 L=\{\; w \mid w \in \{0,1\}^* \;\}
 $$
@@ -220,11 +224,12 @@ end
 A -> A A | "(" A ")" | ϵ
 ```
 
-##### Language
+#### Language
 
 All strings are of the form
+
 $$
-L=\{\; w \mid w \in \{(,)\}^* \text{ and } w \text{ is balanced} \;\}  
+L=\{\; w \mid w \in \{(,)\}^* \text{ and } w \text{ is balanced} \;\}
 $$
 
 ##### Equivalent Regex

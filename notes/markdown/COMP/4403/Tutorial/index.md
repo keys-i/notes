@@ -22,4 +22,4 @@ exercises.
 4. [Tutorial 4](Tutorial4.md)
 5. [Tutorial 5](Tutorial5.md)
 6. [Tutorial 6](Tutorial6.md)
-9. [Tutorial 9](Tutorial9.md)
+7. [Tutorial 9](Tutorial9.md)
