@@ -1,6 +1,13 @@
 """Poetry command entry points for repository checks."""
 
+from pathlib import Path
 from subprocess import call
+
+
+def clean() -> int:
+    """Delete files ignored by Git, except Poetry's local environment."""
+    paths = (path.name for path in Path.cwd().iterdir() if path.name != ".venv")
+    return call(["git", "clean", "-fdX", "--", ".git", *paths])
 
 
 def lint() -> int:

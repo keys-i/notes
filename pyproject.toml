@@ -26,6 +26,7 @@ dependencies = [
 ]
 
 [project.scripts]
+clean = "hooks.tools:clean"
 lint = "hooks.tools:lint"
 fmt = "hooks.tools:fmt"
 
@@ -34,6 +35,11 @@ packages = [{include = "hooks"}]
 
 [tool.markdownlint-cli2]
 gitignore = true
+
+[tool.markdownlint-cli2.config]
+MD013 = { line_length = 80, code_blocks = false, tables = false }
+MD024 = false
+MD025 = { front_matter_title = "" }
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
