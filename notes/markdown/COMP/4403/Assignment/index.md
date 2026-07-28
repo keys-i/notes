@@ -5,9 +5,6 @@ description: Compiler assignment notes and resources covering language processin
 
 # Compiler Assignments
 
-<!-- [[Assignment1]] -->
-<!-- [[Assignment2]] -->
-
 Assignment resources connect the compiler theory in the lectures and tutorials
 to larger implementation tasks.
 

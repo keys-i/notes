@@ -5,15 +5,6 @@ description: Compiler lecture notes on grammars, lexical analysis, top-down and 
 
 # Compiler Lecture Notes
 
-<!-- [[Foundations]] -->
-<!-- [[TopDownParsing]] -->
-<!-- [[BottomUpParsing]] -->
-<!-- [[LexicalAnalysisParserTools]] -->
-<!-- [[StaticSemanticsSemanticAnalysis]] -->
-<!-- [[InterpretationExecutionPL0]] -->
-<!-- [[RuntimeSystemsProgramExecution]] -->
-<!-- [[MemoryObjectRuntimeRepresentation]] -->
-
 The lectures follow a compiler pipeline from syntax definition and recognition
 to semantic checking, execution, and memory representation.
 

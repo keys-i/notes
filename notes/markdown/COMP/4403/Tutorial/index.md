@@ -5,14 +5,6 @@ description: Compiler tutorials with worked exercises on grammars, parsing, stat
 
 # Compiler Tutorials
 
-<!-- [[Tutorial1]] -->
-<!-- [[Tutorial2]] -->
-<!-- [[Tutorial3]] -->
-<!-- [[Tutorial4]] -->
-<!-- [[Tutorial5]] -->
-<!-- [[Tutorial6]] -->
-<!-- [[Tutorial9]] -->
-
 These tutorials apply the lecture concepts through compiler and interpreter
 exercises.
 
