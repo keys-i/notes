@@ -4,9 +4,9 @@ description: MECH2700 study resources for computational engineering and data ana
 ---
 
 # MECH2700 Computational Engineering & Data Analysis
-<!-- [[Lectures/index]] -->
-<!-- [[Tutorial/index]] -->
-<!-- [[Assignment/index]] -->
+<!-- [[markdown/MECH/2700/Lectures/index]] -->
+<!-- [[markdown/MECH/2700/Tutorial/index]] -->
+<!-- [[markdown/MECH/2700/Assignment/index]] -->
 
 Use these notes to move from mathematical modelling and numerical foundations
 through differential equations, optimisation, and computational engineering.

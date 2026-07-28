@@ -4,9 +4,9 @@ description: COMP4702 study resources for machine learning theory and practice, 
 ---
 
 # COMP4702 Machine Learning
-<!-- [[Lectures/index]] -->
-<!-- [[Tutorial/index]] -->
-<!-- [[Assignment/index]] -->
+<!-- [[[markdown/COMP/4702/Lectures/index]] -->
+<!-- [[[markdown/COMP/4702/Tutorial/index]] -->
+<!-- [[[markdown/COMP/4702/Assignment/index]] -->
 
 Use these notes to move from mathematical and statistical foundations through
 supervised and unsupervised learning to neural networks and generative models.
