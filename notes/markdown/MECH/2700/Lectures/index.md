@@ -12,3 +12,4 @@ The lectures develop the mathematical and computational foundations for
 modelling, analysing, and solving engineering problems.
 
 1. [W1](W1.md)
+2. [W2](W2.md)
