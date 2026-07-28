@@ -1,3 +1,7 @@
+---
+slug: A2
+---
+
 # Assignment 2
 
 > rough notes based on spec

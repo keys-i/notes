@@ -1,3 +1,7 @@
+---
+slug: Semantics
+---
+
 # Static Semantics and Semantic Analysis
 
 Static semantics checks whether the parsed AST is meaningful before execution.

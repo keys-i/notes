@@ -1,5 +1,6 @@
 ---
 title: Computational Engineering Assignments
+slug: Assignments
 description: Computational engineering assignment notes and resources covering numerical methods, Python implementation, results, and analysis.
 ---
 

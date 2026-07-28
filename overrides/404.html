@@ -1,0 +1,87 @@
+{% extends "main.html" %}
+
+{% block content %}
+<style>
+  .md-sidebar {
+    display: none;
+  }
+
+  .koala-404 {
+    display: grid;
+    justify-items: center;
+    min-height: 65vh;
+    padding: 2rem 1rem;
+    text-align: center;
+  }
+
+  .koala-404__eyebrow {
+    color: var(--md-accent-fg-color);
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+
+  .koala-404 h1 {
+    margin: .25rem 0;
+    font-size: clamp(2rem, 7vw, 4rem);
+  }
+
+  .koala-404__koala {
+    display: block;
+    max-width: 30rem;
+    margin: 1.5rem auto 1rem;
+    overflow: hidden;
+    border-radius: 1.5rem;
+    box-shadow: 0 1rem 3rem rgba(0, 0, 0, .18);
+    transition: transform .2s ease, box-shadow .2s ease;
+  }
+
+  .koala-404__koala:hover,
+  .koala-404__koala:focus-visible {
+    outline: .2rem solid var(--md-accent-fg-color);
+    outline-offset: .3rem;
+    box-shadow: 0 1.25rem 3.5rem rgba(0, 0, 0, .24);
+    transform: translateY(-.35rem) rotate(-1deg);
+  }
+
+  .koala-404__koala img {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .koala-404__koala img {
+      animation: koala-wave 3s ease-in-out infinite;
+    }
+  }
+
+  @keyframes koala-wave {
+    50% { transform: scale(1.015); }
+  }
+</style>
+
+<section class="koala-404" aria-labelledby="koala-404-title">
+  <p class="koala-404__eyebrow">404 · Lost in the gum trees</p>
+  <h1 id="koala-404-title">This page went walkabout.</h1>
+  <p>Good news: this happy little local knows the way home.</p>
+
+  <a
+    class="koala-404__koala"
+    href="{{ config.site_url }}"
+    aria-label="Return to the {{ config.site_name }} home page"
+  >
+    <img
+      src="{{ config.site_url }}assets/images/happy-koala-404.webp"
+      width="960"
+      height="960"
+      alt="A cheerful koala waving from a eucalyptus branch"
+    />
+  </a>
+
+  <p>
+    Tap the koala or
+    <a href="{{ config.site_url }}">head back to {{ config.site_name }}</a>.
+  </p>
+</section>
+{% endblock %}

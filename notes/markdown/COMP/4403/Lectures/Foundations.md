@@ -1,3 +1,7 @@
+---
+slug: Grammars
+---
+
 # Grammars, and Syntax Foundations
 
 ## Context-free Grammar

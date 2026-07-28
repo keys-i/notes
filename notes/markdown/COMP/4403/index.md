@@ -1,5 +1,6 @@
 ---
 title: COMP4403 Compilers and Interpreters
+slug: COMP4403
 description: COMP4403 study resources for compiler design, language interpretation, parsing, semantic analysis, runtime systems, tutorials, and assignments.
 ---
 

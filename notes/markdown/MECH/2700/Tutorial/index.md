@@ -1,5 +1,6 @@
 ---
 title: Computational Engineering Tutorials
+slug: Tutorials
 description: Computational engineering tutorials with worked exercises on numerical methods, modelling, differential equations, optimisation, and Python.
 ---
 

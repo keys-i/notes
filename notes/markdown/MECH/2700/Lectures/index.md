@@ -1,5 +1,6 @@
 ---
 title: Computational Engineering Lecture Notes
+slug: Lectures
 description: Computational engineering lecture notes on numerical methods, interpolation, linear systems, differential equations, data fitting, optimisation, and simulation.
 ---
 

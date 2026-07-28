@@ -1,5 +1,6 @@
 ---
 title: Compiler Tutorials
+slug: Tutorials
 description: Compiler tutorials with worked exercises on grammars, parsing, static semantics, interpretation, runtime systems, and code generation.
 ---
 

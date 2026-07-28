@@ -1,5 +1,6 @@
 ---
 title: Machine Learning Lecture Notes
+slug: Lectures
 description: Machine learning lecture notes on classification, regression, optimisation, neural networks, deep learning, clustering, dimensionality reduction, and generative models.
 ---
 

@@ -1,3 +1,7 @@
+---
+slug: T5
+---
+
 # Tutorial 5
 
 ## Q1

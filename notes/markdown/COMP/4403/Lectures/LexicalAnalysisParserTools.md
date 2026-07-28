@@ -1,3 +1,7 @@
+---
+slug: Lexer
+---
+
 # Lexical Analysis and Parser Tools
 
 Week 6

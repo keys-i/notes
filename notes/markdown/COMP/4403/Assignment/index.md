@@ -1,5 +1,6 @@
 ---
 title: Compiler Assignments
+slug: Assignments
 description: Compiler assignment notes and resources covering language processing, semantic analysis, interpretation, and code generation.
 ---
 
