@@ -27,11 +27,13 @@ dependencies = [
 
 [project.scripts]
 clean = "hooks.tools:clean"
-lint = "hooks.tools:lint"
 fmt = "hooks.tools:fmt"
+lint = "hooks.tools:lint"
+serve = "hooks.tools:serve"
 
-[tool.poetry]
-packages = [{include = "hooks"}]
+[tool.uv.build-backend]
+module-name = "hooks"
+module-root = ""
 
 [tool.markdownlint-cli2]
 gitignore = true
@@ -42,5 +44,5 @@ MD024 = false
 MD025 = { front_matter_title = "" }
 
 [build-system]
-requires = ["poetry-core>=2.0.0,<3.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["uv_build>=0.11.32,<0.12.0"]
+build-backend = "uv_build"

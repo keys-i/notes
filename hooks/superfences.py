@@ -1,10 +1,12 @@
 """Configure local MkDocs behavior."""
 
+import re
 from html.parser import HTMLParser
 from types import SimpleNamespace
 from urllib.parse import urljoin, urlsplit
 
 from mermaid2 import fence_mermaid_custom
+from mkdocs.plugins import event_priority
 
 
 class LinkCollector(HTMLParser):
@@ -44,6 +46,16 @@ def on_config(config):
     return config
 
 
+@event_priority(-50)
+def on_page_markdown(markdown, **_):
+    """Make example callouts collapsible by default."""
+    return re.sub(
+        r"(?m)^([ \t]*)!!! example(?=[ \t]|$)",
+        r"\1??? example",
+        markdown,
+    )
+
+
 def on_page_content(html, page, config, **_):
     """Add standard Markdown links to the interactive graph."""
     graph = config.plugins["obsidian-interactive-graph"]
@@ -80,6 +92,11 @@ def on_page_content(html, page, config, **_):
 
 
 if __name__ == "__main__":    
+    assert (
+        on_page_markdown('!!! example "Summary line"\n\tDetail below.')
+        == '??? example "Summary line"\n\tDetail below.'
+    )
+
     nodes = {
         "source": {"id": 0, "url": "/source/", "symbolSize": 0},
         "target": {"id": 1, "url": "/target/", "symbolSize": 0},
