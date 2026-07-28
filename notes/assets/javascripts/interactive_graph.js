@@ -117,15 +117,25 @@ $.getJSON(new URL('graph.json', graphScriptUrl).toString(), function (graph) {
 myChart.hideLoading();
 graphNodePathPrefix = find_graph_node_path_prefix(graph.nodes);
 var graphColourHue = Math.floor(Math.random() * 360);
+var graphRootDepth = graphNodePathPrefix.split("/").filter(Boolean).length;
+var largestNodeSize = 0;
 
-// An offset of 5, so the dot/node is not that small
+// Size by edge count, with each path level reducing its influence.
 graph.nodes.forEach(function (node) {
-  var depth = graph_pathname(node.value).split("/").filter(Boolean).length;
-  node.symbolSize += 5;
+  var depth = graph_pathname(node.value).split("/").filter(Boolean).length - graphRootDepth;
+  node.symbolSize = 5 + (node.symbolSize * 3) / (depth + 1);
+  largestNodeSize = Math.max(largestNodeSize, node.symbolSize);
   node.itemStyle = {
     color: "hsl(" + ((graphColourHue + depth * 42) % 360) + ", 62%, 55%)"
   };
 });
+
+var rootNode = graph.nodes.find(function (node) {
+  return graph_pathname(node.value).replace(/\/+$/, "") === graphNodePathPrefix;
+});
+if (rootNode) {
+  rootNode.symbolSize = largestNodeSize + 1;
+}
 
 // Special feature for long node titles
 graph.nodes.forEach(function (node) {
