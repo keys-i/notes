@@ -26,4 +26,4 @@ jobs:
       - name: Check Markdown formatting
         run: npx --yes prettier@3.9.6 --check "**/*.md"
       - name: Lint Markdown
-        run: npx --yes markdownlint-cli2@0.23.1 "**/*.md"
+        run: npx --yes markdownlint-cli2@0.23.1 --config pyproject.toml --configPointer /tool/markdownlint-cli2 "**/*.md"
