@@ -1,0 +1,43 @@
+name: Site bug
+description: Report a problem with navigation, rendering, search, or the build
+title: "[Site bug]: "
+labels: []
+body:
+  - type: input
+    id: page
+    attributes:
+      label: Affected page
+      description: Provide the page URL or repository path.
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened?
+      description: Describe the problem and what you expected instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open …
+        2. Select …
+        3. See …
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Browser and device
+      placeholder: Firefox 128 on macOS
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Additional context
+      description: Add a screenshot or sanitized error output if useful.
