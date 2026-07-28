@@ -116,10 +116,15 @@ var option;
 $.getJSON(new URL('graph.json', graphScriptUrl).toString(), function (graph) {
 myChart.hideLoading();
 graphNodePathPrefix = find_graph_node_path_prefix(graph.nodes);
+var graphColourHue = Math.floor(Math.random() * 360);
 
 // An offset of 5, so the dot/node is not that small
 graph.nodes.forEach(function (node) {
+  var depth = graph_pathname(node.value).split("/").filter(Boolean).length;
   node.symbolSize += 5;
+  node.itemStyle = {
+    color: "hsl(" + ((graphColourHue + depth * 42) % 360) + ", 62%, 55%)"
+  };
 });
 
 // Special feature for long node titles
