@@ -1,5 +1,6 @@
 ---
 title: Machine Learning Tutorials
+slug: Tutorials
 description: Machine learning tutorials with worked exercises on classification, regression, optimisation, neural networks, clustering, and dimensionality reduction.
 ---
 

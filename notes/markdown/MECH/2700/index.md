@@ -1,5 +1,6 @@
 ---
 title: MECH2700 Computational Engineering & Data Analysis
+slug: MECH2700
 description: MECH2700 study resources for computational engineering and data analysis, including numerical methods, modelling, differential equations, optimisation, and Python.
 ---
 

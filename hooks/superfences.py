@@ -2,11 +2,14 @@
 
 import re
 from html.parser import HTMLParser
+from pathlib import Path
 from types import SimpleNamespace
 from urllib.parse import urljoin, urlsplit
 
 from mermaid2 import fence_mermaid_custom
 from mkdocs.plugins import event_priority
+
+pages = {}
 
 
 class LinkCollector(HTMLParser):
@@ -46,6 +49,10 @@ def on_config(config):
     return config
 
 
+def on_pre_build(**_):
+    pages.clear()
+
+
 @event_priority(-50)
 def on_page_markdown(markdown, **_):
     """Make example callouts collapsible by default."""
@@ -54,6 +61,15 @@ def on_page_markdown(markdown, **_):
         r"\1??? example",
         markdown,
     )
+
+
+def on_page_context(context, page, config, **_):
+    """Collect page metadata for llms.txt."""
+    url = urljoin(f"{config.site_url.rstrip('/')}/", page.url)
+    title = " ".join(str(page.title).split())
+    description = " ".join(str(page.meta.get("description") or "").split())
+    pages[url] = (title, description)
+    return context
 
 
 def on_page_content(html, page, config, **_):
@@ -91,7 +107,38 @@ def on_page_content(html, page, config, **_):
     return html
 
 
-if __name__ == "__main__":    
+def on_post_build(config, **_):
+    """Write crawler and LLM discovery files."""
+    site_dir = Path(config.site_dir)
+    base_url = f"{config.site_url.rstrip('/')}/"
+    sitemap_url = urljoin(base_url, "sitemap.xml")
+
+    if not (site_dir / "sitemap.xml").is_file():
+        raise RuntimeError("MkDocs did not generate sitemap.xml")
+
+    (site_dir / "robots.txt").write_text(
+        f"User-agent: *\nAllow: /\n\nSitemap: {sitemap_url}\n",
+        encoding="utf-8",
+    )
+
+    links = []
+    for url, (title, description) in sorted(pages.items()):
+        title = title.replace("[", r"\[").replace("]", r"\]")
+        suffix = f": {description}" if description else ""
+        links.append(f"- [{title}]({url}){suffix}")
+
+    (site_dir / "llms.txt").write_text(
+        f"# {config.site_name}\n\n"
+        f"> {' '.join(config.site_description.split())}\n\n"
+        "## Notes\n\n"
+        f"{'\n'.join(links)}\n",
+        encoding="utf-8",
+    )
+
+
+if __name__ == "__main__":
+    from tempfile import TemporaryDirectory
+
     assert (
         on_page_markdown('!!! example "Summary line"\n\tDetail below.')
         == '??? example "Summary line"\n\tDetail below.'
@@ -115,3 +162,31 @@ if __name__ == "__main__":
         config,
     )
     assert graph.data["links"] == [{"source": "0", "target": "1"}]
+
+    with TemporaryDirectory() as directory:
+        config = SimpleNamespace(
+            site_dir=directory,
+            site_url="https://example.com/docs",
+            site_name="Docs",
+            site_description="Useful docs",
+        )
+        Path(directory, "sitemap.xml").touch()
+        on_pre_build()
+        on_page_context(
+            {},
+            SimpleNamespace(
+                url="",
+                title="Home",
+                meta={"description": "Start here"},
+            ),
+            config,
+        )
+        on_post_build(config)
+        assert Path(directory, "robots.txt").read_text() == (
+            "User-agent: *\nAllow: /\n\n"
+            "Sitemap: https://example.com/docs/sitemap.xml\n"
+        )
+        assert Path(directory, "llms.txt").read_text() == (
+            "# Docs\n\n> Useful docs\n\n## Notes\n\n"
+            "- [Home](https://example.com/docs/): Start here\n"
+        )

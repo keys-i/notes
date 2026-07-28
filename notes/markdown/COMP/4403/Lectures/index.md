@@ -1,5 +1,6 @@
 ---
 title: Compiler Lecture Notes
+slug: Lectures
 description: Compiler lecture notes on grammars, lexical analysis, top-down and bottom-up parsing, static semantics, interpreters, and runtime systems.
 ---
 

@@ -1,3 +1,7 @@
+---
+slug: Bottom-up
+---
+
 # Bottom-Up Parsing
 
 Week 5

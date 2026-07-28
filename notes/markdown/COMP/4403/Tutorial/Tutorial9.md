@@ -1,3 +1,7 @@
+---
+slug: T9
+---
+
 # Tutorial 9
 
 ## Q1

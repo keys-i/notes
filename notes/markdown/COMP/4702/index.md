@@ -1,5 +1,6 @@
 ---
 title: COMP4702 Machine Learning
+slug: COMP4702
 description: COMP4702 study resources for machine learning theory and practice, including classification, regression, optimisation, neural networks, unsupervised learning, and generative models.
 ---
 

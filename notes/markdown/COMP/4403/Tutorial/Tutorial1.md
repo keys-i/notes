@@ -1,3 +1,7 @@
+---
+slug: T1
+---
+
 # Tutorial 1
 
 ```pascal
