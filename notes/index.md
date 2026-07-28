@@ -1,28 +1,28 @@
 ---
-title: COMP4403 Compilers and Interpreters Notes
-description: Study COMP4403 compilers and interpreters with clear notes on grammars, parsing, static semantics, execution, runtime systems, tutorials, and assignments.
+title: My Course Notes
+description: My course notes for COMP and MECH courses, including assignments, tutorials, and lectures.
 ---
 
-# COMP4403 Compilers and Interpreters Notes
+# My Course Notes
 
-Rad's Notes is an open study guide to compiler construction and programming
-language implementation. It covers how source text becomes tokens, syntax
-trees, checked programs, and executable behaviour.
+## COMP
 
-## Start here
+### [COMP4403 - Compilers and Interpreters](markdown/COMP/4403/index.md)
 
-- [COMP4403 course overview](markdown/COMP/4403/index.md)
-- [Compiler lecture notes](markdown/COMP/4403/Lectures/index.md)
-- [Compiler tutorials](markdown/COMP/4403/Tutorial/index.md)
-- [Compiler assignments](markdown/COMP/4403/Assignment/index.md)
+- [Assignments](markdown/COMP/4403/Assignment/index.md)
+- [Tutorials](markdown/COMP/4403/Tutorial/index.md)
+- [Lectures](markdown/COMP/4403/Lectures/index.md)
 
-## Core compiler topics
+### [COMP4702 - Machine Learning](markdown/COMP/4702/index.md)
 
-- [Grammars and syntax foundations](markdown/COMP/4403/Lectures/Foundations.md)
-- [Top-down parsing](markdown/COMP/4403/Lectures/TopDownParsing.md)
-- [Bottom-up parsing](markdown/COMP/4403/Lectures/BottomUpParsing.md)
-- [Lexical analysis and parser tools](markdown/COMP/4403/Lectures/LexicalAnalysisParserTools.md)
-- [Static semantics and semantic analysis](markdown/COMP/4403/Lectures/StaticSemanticsSemanticAnalysis.md)
-- [Interpretation and execution of PL0](markdown/COMP/4403/Lectures/InterpretationExecutionPL0.md)
-- [Runtime systems and program execution](markdown/COMP/4403/Lectures/RuntimeSystemsProgramExecution.md)
-- [Memory and object runtime representation](markdown/COMP/4403/Lectures/MemoryObjectRuntimeRepresentation.md)
+- [Assignments](markdown/COMP/4702/Assignment/index.md)
+- [Tutorials](markdown/COMP/4702/Tutorial/index.md)
+- [Lectures](markdown/COMP/4702/Lectures/index.md)
+
+## MECH
+
+### [MECH2700 - Computational Engineering & Data Analysis](markdown/MECH/2700/index.md)
+
+- [Assignments](markdown/MECH/2700/Assignment/index.md)
+- [Tutorials](markdown/MECH/2700/Tutorial/index.md)
+- [Lectures](markdown/MECH/2700/Lectures/index.md)
