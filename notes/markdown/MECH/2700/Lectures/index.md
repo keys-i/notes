@@ -7,3 +7,7 @@ description: Computational engineering lecture notes on numerical methods, inter
 
 The lectures develop the mathematical and computational foundations for
 modelling, analysing, and solving engineering problems.
+
+<!-- [[W1]] -->
+
+1. [W1](W1.md)
