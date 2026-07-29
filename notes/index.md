@@ -1,5 +1,6 @@
 ---
 title: My Course Notes
+slug: Home
 description: My course notes for COMP and MECH courses, including assignments, tutorials, and lectures.
 ---
 

@@ -84,7 +84,7 @@ markdown_extensions:
   - toc:
       title: "On this page"
       permalink: "#"
-      toc_depth: 2
+      toc_depth: 3
 
   - pymdownx.arithmatex # For mathematical formulas
   - pymdownx.tilde # Enables strikethroughs
@@ -96,7 +96,7 @@ markdown_extensions:
 extra_javascript:
   - "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-MML-AM_CHTML" # Math rendering
   - https://fastly.jsdelivr.net/npm/jquery/dist/jquery.min.js # jQuery support
-  - https://fastly.jsdelivr.net/npm/echarts/dist/echarts.min.js # Charting support via ECharts
+  - https://fastly.jsdelivr.net/npm/echarts@6.1.0/dist/echarts.min.js # Charting support via ECharts
   - assets/javascripts/interactive_graph.js # Custom interactive graph script
   - assets/javascripts/diagram_zoom.js?v=20260512-resolution2 # Pan and zoom controls for large Mermaid diagrams
   - assets/javascripts/obsidian_tags.js # Custom CSS for Obsidian tags

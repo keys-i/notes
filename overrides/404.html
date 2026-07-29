@@ -1,87 +1,2563 @@
 {% extends "main.html" %}
+{% set site_root = config.site_url.rstrip('/') ~ '/' %}
+
+{% block htmltitle %}
+  <title>404 · Page not found · {{ config.site_name }}</title>
+{% endblock %}
+
+{% block extrahead %}
+  <meta name="robots" content="noindex,follow" />
+  <meta name="theme-color" content="#0719aa" />
+  <style>html,body{background:#0719aa}</style>
+  <link
+    rel="preload"
+    as="image"
+    type="image/webp"
+    href="{{ site_root }}assets/images/game/koala/neutral.webp"
+  />
+  <link
+    rel="preload"
+    as="image"
+    type="image/webp"
+    href="{{ site_root }}assets/images/game/koala/scared.webp"
+  />
+  <link
+    rel="preload"
+    as="image"
+    type="image/webp"
+    href="{{ site_root }}assets/images/game/koala/happy.webp"
+  />
+  <link
+    rel="preload"
+    as="image"
+    type="image/webp"
+    href="{{ site_root }}assets/images/game/koala/crying.webp"
+  />
+  <link
+    rel="preload"
+    as="image"
+    type="image/webp"
+    href="{{ site_root }}assets/images/game/goal.webp"
+  />
+{% endblock %}
+
+{% block fonts %}{% endblock %}
+{% block analytics %}{% endblock %}
+{% block header %}{% endblock %}
+{% block site_nav %}{% endblock %}
+{% block footer %}{% endblock %}
+{% block config %}{% endblock %}
+{% block scripts %}{% endblock %}
 
 {% block content %}
 <style>
-  .md-sidebar {
+  :root {
+    --koala-blue: #0719aa;
+    --koala-deep: #000319;
+    --koala-panel: #061273;
+    --koala-wall: #1743f5;
+    --koala-ink: #000;
+    --koala-paper: #f4f6ff;
+    --koala-yellow: #f2ff3d;
+    --koala-coral: #ff6f61;
+    --koala-green: #52e092;
+  }
+
+  .md-header,
+  .md-footer,
+  .md-sidebar,
+  .md-top {
     display: none;
   }
 
-  .koala-404 {
-    display: grid;
-    justify-items: center;
-    min-height: 65vh;
-    padding: 2rem 1rem;
-    text-align: center;
+  .md-main,
+  .md-main__inner,
+  .md-content,
+  .md-content__inner {
+    max-width: none;
+    margin: 0;
+    padding: 0;
   }
 
-  .koala-404__eyebrow {
-    color: var(--md-accent-fg-color);
+  .md-content__inner::before {
+    display: none;
+  }
+
+  .koala-os {
+    --koala-scan-size: 8px;
+    --koala-scan-opacity: .24;
+    --koala-roll-opacity: .015;
+    --koala-vignette-opacity: .14;
+    --koala-roll-speed: 10s;
+    position: relative;
+    display: grid;
+    min-height: 100svh;
+    overflow-x: hidden;
+    color: var(--koala-paper);
+    background: var(--koala-blue);
+    font-family: "Lucida Console", Monaco, Consolas, ui-monospace, monospace;
+    grid-template-rows: auto 1fr auto;
+    text-shadow: 0 0 .18rem rgb(215 255 234 / .24);
+  }
+
+  .koala-os[data-damage="1"] {
+    --koala-scan-size: 6px;
+    --koala-scan-opacity: .42;
+    --koala-roll-opacity: .04;
+    --koala-vignette-opacity: .18;
+    --koala-roll-speed: 8s;
+  }
+
+  .koala-os[data-damage="2"] {
+    --koala-scan-size: 5px;
+    --koala-scan-opacity: .62;
+    --koala-roll-opacity: .07;
+    --koala-vignette-opacity: .24;
+    --koala-roll-speed: 6s;
+  }
+
+  .koala-os[data-damage="3"] {
+    --koala-scan-size: 4px;
+    --koala-scan-opacity: .85;
+    --koala-roll-opacity: .1;
+    --koala-vignette-opacity: .3;
+    --koala-roll-speed: 4s;
+  }
+
+  .koala-os::before {
+    position: absolute;
+    z-index: 20;
+    inset: 0;
+    background:
+      linear-gradient(
+        transparent calc(100% - 1px),
+        rgb(202 255 224 / .11)
+      ) 0 0 / 100% var(--koala-scan-size) repeat,
+      linear-gradient(
+        90deg,
+        rgb(255 255 255 / .025) 0 1px,
+        transparent 1px 3px
+      ) 0 0 / 3px 100% repeat;
+    content: "";
+    mix-blend-mode: screen;
+    opacity: var(--koala-scan-opacity);
+    pointer-events: none;
+    transition: opacity .25s linear;
+  }
+
+  .koala-os::after {
+    position: absolute;
+    z-index: 19;
+    inset: 0;
+    background:
+      radial-gradient(
+        ellipse at center,
+        transparent 54%,
+        rgb(0 0 20 / var(--koala-vignette-opacity)) 100%
+      ),
+      linear-gradient(
+        transparent 0 42%,
+        rgb(210 255 230 / var(--koala-roll-opacity)) 49%,
+        transparent 56%
+      ) 0 -180% / 100% 180% no-repeat;
+    box-shadow: inset 0 0 3rem rgb(0 0 16 / var(--koala-vignette-opacity));
+    content: "";
+    pointer-events: none;
+  }
+
+  .koala-os a {
+    color: inherit;
+  }
+
+  .koala-os__bar,
+  .koala-os__footer {
+    z-index: 6;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: .9rem clamp(1rem, 2.5vw, 2.5rem);
+    font-size: .68rem;
     font-weight: 700;
-    letter-spacing: .08em;
+    letter-spacing: .12em;
+    line-height: 1.25;
     text-transform: uppercase;
   }
 
-  .koala-404 h1 {
-    margin: .25rem 0;
-    font-size: clamp(2rem, 7vw, 4rem);
+  .koala-os__bar {
+    align-items: flex-start;
   }
 
-  .koala-404__koala {
-    display: block;
-    max-width: 30rem;
-    margin: 1.5rem auto 1rem;
-    overflow: hidden;
-    border-radius: 1.5rem;
-    box-shadow: 0 1rem 3rem rgba(0, 0, 0, .18);
-    transition: transform .2s ease, box-shadow .2s ease;
+  .koala-os__footer {
+    align-items: flex-end;
   }
 
-  .koala-404__koala:hover,
-  .koala-404__koala:focus-visible {
-    outline: .2rem solid var(--md-accent-fg-color);
-    outline-offset: .3rem;
-    box-shadow: 0 1.25rem 3.5rem rgba(0, 0, 0, .24);
-    transform: translateY(-.35rem) rotate(-1deg);
+  .koala-os__signal {
+    display: inline-flex;
+    align-items: center;
+    gap: .55rem;
   }
 
-  .koala-404__koala img {
-    display: block;
+  .koala-os__signal::before {
+    content: "█";
+  }
+
+  .koala-os__signal,
+  .koala-os__bar span:last-child,
+  .koala-os__footer strong {
+    color: var(--koala-paper);
+  }
+
+  .koala-os__grid {
+    z-index: 1;
+    display: grid;
+    align-items: center;
     width: 100%;
-    height: auto;
+    max-width: 104rem;
+    margin: auto;
+    padding: clamp(1rem, 3vw, 3rem);
+    grid-template-columns: minmax(13rem, .82fr) minmax(30rem, 46rem) minmax(13rem, .9fr);
+    gap: clamp(1rem, 3vw, 3.5rem);
   }
 
-  @media (prefers-reduced-motion: no-preference) {
-    .koala-404__koala img {
-      animation: koala-wave 3s ease-in-out infinite;
+  .koala-trace {
+    align-self: stretch;
+    overflow: hidden;
+    padding: 1rem 0;
+    font-size: clamp(.62rem, .85vw, .75rem);
+    letter-spacing: .045em;
+    line-height: 1.55;
+    text-transform: uppercase;
+  }
+
+  .koala-trace p {
+    margin: 0 0 1rem;
+  }
+
+  .koala-trace__title {
+    display: flex;
+    justify-content: space-between;
+    width: max-content;
+    max-width: 100%;
+    margin-bottom: 1rem;
+    padding: .16rem .35rem;
+    border: 1px solid var(--koala-yellow);
+    color: var(--koala-paper);
+    background: var(--koala-panel);
+    box-shadow: inset 0 0 .45rem rgb(23 67 245 / .5);
+    font-weight: 800;
+    gap: 1rem;
+  }
+
+  .koala-trace__dim {
+    opacity: .62;
+  }
+
+  .koala-trace__dump {
+    margin-top: 1.8rem;
+    font: inherit;
+    opacity: .48;
+    white-space: pre-wrap;
+  }
+
+  .koala-trace__dump--nt {
+    margin-top: 0;
+    opacity: .88;
+  }
+
+  .koala-trace__alert {
+    display: inline-block;
+    padding: .08rem .35rem;
+    border: 1px solid var(--koala-yellow);
+    color: var(--koala-paper);
+    background: var(--koala-panel);
+    font-weight: 900;
+  }
+
+  .koala-trace__steps {
+    margin: 0;
+    padding: 0;
+    counter-reset: escape;
+    list-style: none;
+  }
+
+  .koala-trace__steps li {
+    display: grid;
+    margin-bottom: .8rem;
+    grid-template-columns: 2rem 1fr;
+  }
+
+  .koala-trace__steps li::before {
+    display: inline-grid;
+    width: 1.55rem;
+    border: 1px solid var(--koala-yellow);
+    color: var(--koala-paper);
+    background: var(--koala-panel);
+    content: "0" counter(escape);
+    counter-increment: escape;
+    font-weight: 900;
+    place-items: center;
+  }
+
+  .koala-game {
+    min-width: 0;
+    width: min(100%, 40rem, calc((100svh - 15rem) * 1.4));
+    justify-self: center;
+  }
+
+  .koala-game__heading {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: .75rem;
+    color: var(--koala-paper);
+  }
+
+  .koala-game__heading h1 {
+    position: relative;
+    margin: 0;
+    color: inherit;
+    font: 950 clamp(3.1rem, 7vw, 7.2rem)/.72 ui-monospace, SFMono-Regular, Menlo, monospace;
+    letter-spacing: -.14em;
+    text-shadow: .045em 0 var(--koala-yellow), -.045em 0 var(--koala-paper);
+  }
+
+  .koala-game__heading h1::before,
+  .koala-game__heading h1::after {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    color: var(--koala-paper);
+    content: attr(data-text);
+    pointer-events: none;
+  }
+
+  .koala-game__heading h1::before {
+    color: var(--koala-paper);
+    clip-path: inset(18% 0 54%);
+    transform: translateX(.06em);
+  }
+
+  .koala-game__heading h1::after {
+    clip-path: inset(64% 0 12%);
+    transform: translateX(-.08em);
+  }
+
+  .koala-game__heading p {
+    max-width: 12rem;
+    margin: 0;
+    font-size: clamp(.62rem, 1vw, .78rem);
+    font-weight: 800;
+    letter-spacing: .08em;
+    line-height: 1.3;
+    text-align: right;
+    text-transform: uppercase;
+  }
+
+  .koala-game__eyebrow {
+    display: block;
+    margin-bottom: .4rem;
+    font-size: .62rem;
+    font-weight: 900;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+  }
+
+  .koala-score {
+    display: grid;
+    padding: .45rem .65rem;
+    border: 1px solid var(--koala-yellow);
+    color: var(--koala-paper);
+    background: var(--koala-panel);
+    box-shadow: inset 0 0 .8rem rgb(23 67 245 / .55);
+    font-size: clamp(.58rem, 1.2vw, .72rem);
+    font-weight: 900;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    grid-template-columns: 1fr auto 1fr;
+    gap: .6rem;
+  }
+
+  .koala-score span:last-child {
+    text-align: right;
+  }
+
+  .koala-board {
+    position: relative;
+    aspect-ratio: 21 / 15;
+    overflow: hidden;
+    border: 1px solid var(--koala-paper);
+    background: var(--koala-deep);
+    box-shadow: 0 0 0 1px var(--koala-deep);
+    outline: none;
+    touch-action: manipulation;
+  }
+
+  .koala-board:focus-visible {
+    outline: .3rem solid var(--koala-yellow);
+    outline-offset: .25rem;
+  }
+
+  .koala-board::before,
+  .koala-board::after {
+    position: absolute;
+    z-index: 6;
+    pointer-events: none;
+  }
+
+  .koala-board::before {
+    top: 45%;
+    left: 50%;
+    padding: .4rem .65rem;
+    border: 1px solid var(--koala-yellow);
+    color: var(--koala-paper);
+    background: var(--koala-panel);
+    font: 950 clamp(.55rem, 1.8vw, .9rem)/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
+    letter-spacing: .12em;
+    opacity: 0;
+    text-align: center;
+    transform: translate(-50%, -50%);
+    white-space: pre;
+  }
+
+  .koala-board::after {
+    inset: 10%;
+    color: var(--koala-paper);
+    font: 950 clamp(.8rem, 2.5vw, 1.4rem)/2 ui-monospace, SFMono-Regular, Menlo, monospace;
+    letter-spacing: .7em;
+    opacity: 0;
+    text-align: center;
+    white-space: pre;
+  }
+
+  .koala-maze {
+    display: grid;
+    width: 100%;
+    height: 100%;
+    grid-template-columns: repeat(21, 1fr);
+  }
+
+  .koala-maze__cell {
+    position: relative;
+    min-width: 0;
+  }
+
+  .koala-maze__cell--wall {
+    border: 0;
+    background: #0b237f;
+    box-shadow:
+      inset 0 0 0 1px rgb(79 119 211 / .72),
+      inset 0 0 0 2px rgb(0 3 25 / .42);
+  }
+
+  .koala-maze__cell--route {
+    z-index: 1;
+    background: var(--koala-wall);
+    box-shadow:
+      inset 0 0 0 1px rgb(157 187 255 / .92),
+      inset 0 0 0 2px rgb(0 3 25 / .42);
+  }
+
+  .koala-maze__cell--route::before {
+    position: absolute;
+    inset: 0;
+    border: 0 solid #89f8ff;
+    content: "";
+    filter: drop-shadow(0 0 .12rem rgb(73 235 255 / .9));
+    pointer-events: none;
+  }
+
+  .koala-maze__cell--route-north::before {
+    border-top-width: 1px;
+  }
+
+  .koala-maze__cell--route-east::before {
+    border-right-width: 1px;
+  }
+
+  .koala-maze__cell--route-south::before {
+    border-bottom-width: 1px;
+  }
+
+  .koala-maze__cell--route-west::before {
+    border-left-width: 1px;
+  }
+
+  .koala-maze__cell--pellet::after {
+    position: absolute;
+    width: 22%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: var(--koala-paper);
+    content: "";
+    inset: 39%;
+  }
+
+  .koala-maze__cell--pellet.is-eaten::after {
+    display: none;
+  }
+
+  .koala-maze__cell--power::after {
+    display: grid;
+    width: 62%;
+    border: 1px solid var(--koala-yellow);
+    color: var(--koala-paper);
+    background: var(--koala-panel);
+    font: 950 clamp(.3rem, 1vw, .6rem)/1 ui-monospace, monospace;
+    inset: 19%;
+    place-items: center;
+  }
+
+  .koala-maze__cell--vegemite::after {
+    width: 68%;
+    height: 78%;
+    border: 1px solid var(--koala-paper);
+    border-radius: 12% 12% 24% 24%;
+    background:
+      linear-gradient(
+        var(--koala-yellow) 0 18%,
+        #3b160c 19% 100%
+      );
+    content: "";
+    inset: 11% 16%;
+  }
+
+  .koala-maze__cell--vegemite::before {
+    position: absolute;
+    z-index: 1;
+    top: 42%;
+    left: 23%;
+    display: grid;
+    width: 54%;
+    height: 29%;
+    border: 1px solid var(--koala-yellow);
+    border-radius: 50%;
+    color: var(--koala-paper);
+    background: var(--koala-blue);
+    content: "V";
+    font: 950 clamp(.24rem, .7vw, .42rem)/1 ui-monospace, monospace;
+    place-items: center;
+  }
+
+  .koala-maze__cell--vegemite.is-eaten::before {
+    display: none;
+  }
+
+  .koala-maze__cell--meat-pie::after {
+    border: 1px solid var(--koala-paper);
+    border-radius: 50%;
+    content: "×";
+  }
+
+  .koala-maze__cell--bonus::after {
+    width: 72%;
+    height: 72%;
+    background: transparent;
+    content: "";
+    inset: 14%;
+  }
+
+  .koala-maze__cell--avocado::after {
+    border: 1px solid #d9ffb5;
+    border-radius: 48% 48% 58% 58% / 42% 42% 68% 68%;
+    background:
+      radial-gradient(circle at 50% 66%, #80431d 0 18%, transparent 20%),
+      radial-gradient(ellipse at 50% 55%, #c9f28a 0 58%, #277746 60% 100%);
+    transform: rotate(-8deg);
+  }
+
+  .koala-maze__cell--banana::after {
+    border: clamp(.11rem, .45vw, .2rem) solid var(--koala-yellow);
+    border-top-color: transparent;
+    border-left-color: transparent;
+    border-radius: 50%;
+    filter: drop-shadow(0 0 .12rem rgb(242 255 61 / .65));
+    transform: rotate(28deg);
+  }
+
+  .koala-maze__cell--cherries::after {
+    border-radius: 0;
+    background:
+      radial-gradient(circle at 28% 69%, #ff5449 0 21%, transparent 23%),
+      radial-gradient(circle at 72% 69%, #d91e36 0 21%, transparent 23%),
+      linear-gradient(65deg, transparent 43%, #78d765 44% 50%, transparent 51%) 18% 5% / 42% 58% no-repeat,
+      linear-gradient(-65deg, transparent 43%, #78d765 44% 50%, transparent 51%) 82% 5% / 42% 58% no-repeat;
+  }
+
+  .koala-maze__cell--home {
+    z-index: 2;
+    overflow: visible;
+    background: transparent;
+    filter: drop-shadow(0 0 .42rem rgb(107 220 255 / .78));
+    transform: scale(1.72);
+  }
+
+  .koala-maze__cell--home img {
+    position: absolute;
+    inset: -18%;
+    width: 136%;
+    max-width: none;
+    height: 136%;
+    object-fit: cover;
+    clip-path: polygon(9% 14%, 25% 8%, 40% 12%, 55% 5%, 70% 12%, 92% 9%, 88% 27%, 96% 43%, 90% 61%, 95% 82%, 74% 88%, 58% 96%, 39% 90%, 17% 94%, 11% 73%, 4% 57%, 10% 39%);
+  }
+
+  .koala-actor {
+    position: absolute;
+    z-index: 3;
+    width: calc(100% / 21);
+    aspect-ratio: 1;
+    transition: left .2s linear, top .2s linear, transform .16s ease;
+  }
+
+  .koala-player {
+    display: grid;
+    border: 0;
+    overflow: hidden;
+    background: transparent;
+    cursor: help;
+    place-items: center;
+    text-decoration: none;
+  }
+
+  .koala-player::before {
+    position: absolute;
+    inset: -42%;
+    content: "";
+  }
+
+  .koala-player:not(.is-home):hover {
+    z-index: 4;
+    transform: scale(1.12) rotate(-3deg);
+  }
+
+  .koala-player.is-home {
+    cursor: pointer;
+  }
+
+  .koala-player.is-home:hover {
+    z-index: 4;
+    transform: scale(1.28) rotate(-5deg);
+  }
+
+  .koala-player:focus-visible {
+    z-index: 4;
+    outline: .2rem solid var(--koala-yellow);
+    outline-offset: .12rem;
+  }
+
+  .koala-player img {
+    display: block;
+    grid-area: 1 / 1;
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    object-fit: contain;
+    pointer-events: none;
+    transition: opacity .08s linear;
+  }
+
+  .koala-player__scared,
+  .koala-player__happy,
+  .koala-player__dead {
+    opacity: 0;
+  }
+
+  .koala-player:not(.is-home):is(:hover, :focus-visible) .koala-player__neutral,
+  .koala-board:is(.is-caught, .is-lost) .koala-player__neutral {
+    opacity: 0;
+  }
+
+  .koala-player:not(.is-home):is(:hover, :focus-visible) .koala-player__scared,
+  .koala-board.is-caught .koala-player__scared,
+  .koala-player.is-home .koala-player__happy {
+    opacity: 1;
+  }
+
+  .koala-board.is-lost .koala-player__dead {
+    opacity: 1;
+  }
+
+  .koala-player.is-home .koala-player__neutral,
+  .koala-player.is-home .koala-player__scared,
+  .koala-board:is(.is-caught, .is-lost) .koala-player__happy,
+  .koala-board.is-lost .koala-player__scared {
+    opacity: 0;
+  }
+
+  .koala-player::after {
+    position: absolute;
+    z-index: 2;
+    top: 35%;
+    left: 50%;
+    display: none;
+    color: var(--koala-paper);
+    content: "×  ×";
+    font: 950 34%/1 ui-monospace, monospace;
+    letter-spacing: .12em;
+    text-shadow: 0 0 2px var(--koala-deep);
+    transform: translateX(-50%);
+    white-space: nowrap;
+  }
+
+  .koala-board.is-lost .koala-player::after {
+    display: block;
+  }
+
+  .koala-ghost {
+    width: calc(100% / 21);
+    border: 0;
+    overflow: visible;
+    background: transparent;
+    filter: drop-shadow(0 0 .16rem rgb(0 0 0 / .8));
+    transform-origin: center;
+    will-change: left, top;
+  }
+
+  .koala-threat--dingo {
+    transition:
+      left .3s cubic-bezier(.22, .75, .18, 1),
+      top .3s cubic-bezier(.22, .75, .18, 1),
+      transform .16s ease;
+  }
+
+  .koala-threat--eagle {
+    transition:
+      left .62s cubic-bezier(.18, .8, .2, 1),
+      top .62s cubic-bezier(.18, .8, .2, 1),
+      transform .16s ease;
+  }
+
+  .koala-threat--eagle.is-swooping {
+    transition-duration: .3s, .3s, .16s;
+  }
+
+  .koala-ghost svg {
+    display: block;
+    width: 125%;
+    max-width: none;
+    height: 125%;
+    overflow: visible;
+    transform: translate(-10%, -10%);
+  }
+
+  .koala-ghost::after {
+    position: absolute;
+    top: -48%;
+    right: -26%;
+    display: grid;
+    width: 1.05rem;
+    aspect-ratio: 1;
+    border: 1px solid var(--koala-paper);
+    border-radius: 50%;
+    color: var(--koala-paper);
+    background: var(--koala-blue);
+    content: "!";
+    font: 950 .72rem/1 ui-monospace, monospace;
+    opacity: 0;
+    place-items: center;
+    transform: scale(.5);
+  }
+
+  .koala-threat__body {
+    fill: var(--ghost-colour);
+    stroke: var(--koala-paper);
+    stroke-linejoin: round;
+    stroke-width: 2.5;
+  }
+
+  .koala-threat__muzzle {
+    fill: #e6dcc9;
+    stroke: var(--koala-ink);
+    stroke-width: 1.5;
+  }
+
+  .koala-threat__eye {
+    fill: var(--koala-paper);
+    stroke: var(--koala-ink);
+    stroke-width: 1.4;
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+
+  .koala-threat__pupil,
+  .koala-threat__nose {
+    fill: var(--koala-ink);
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+
+  .koala-threat__mouth {
+    fill: none;
+    stroke: var(--koala-ink);
+    stroke-linecap: round;
+    stroke-width: 2.2;
+  }
+
+  .koala-threat__beak {
+    fill: var(--koala-yellow);
+    stroke: var(--koala-ink);
+    stroke-linejoin: round;
+    stroke-width: 1.5;
+  }
+
+  .koala-ghost > span {
+    position: absolute;
+    top: 92%;
+    left: 50%;
+    padding: .03rem .12rem;
+    color: var(--koala-paper);
+    background: var(--koala-deep);
+    font-size: clamp(.18rem, .5vw, .32rem);
+    font-weight: 950;
+    letter-spacing: -.04em;
+    line-height: 1;
+    transform: translateX(-50%);
+    white-space: nowrap;
+  }
+
+  .koala-board.is-caught {
+    animation: koala-error .24s steps(2, jump-none) 2;
+  }
+
+  .koala-board.is-powered .koala-ghost {
+    color: var(--koala-paper);
+    --ghost-colour: #2449e8 !important;
+    filter: drop-shadow(0 0 .3rem rgb(242 255 61 / .72));
+  }
+
+  .koala-board.is-powered .koala-ghost::after {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  .koala-board.is-powered .koala-ghost > span {
+    border: 1px solid var(--koala-yellow);
+    color: var(--koala-paper);
+    background: var(--koala-panel);
+  }
+
+  .koala-board.is-powered .koala-threat__eye {
+    transform: scale(1.28);
+  }
+
+  .koala-board.is-powered .koala-threat__pupil {
+    transform: translateY(-18%) scale(.72);
+  }
+
+  .koala-board.is-powered .koala-threat__mouth {
+    stroke: var(--koala-yellow);
+    stroke-dasharray: 2 2;
+  }
+
+  .koala-board .koala-ghost.is-regenerating {
+    opacity: .78;
+    filter: drop-shadow(0 0 .35rem rgb(242 255 61 / .9));
+  }
+
+  .koala-board .koala-ghost.is-regenerating::after {
+    content: "+";
+    opacity: 1;
+    transform: scale(.9);
+  }
+
+  .koala-board .koala-ghost.is-regenerating > span {
+    border: 1px solid var(--koala-yellow);
+    color: var(--koala-paper);
+    background: var(--koala-panel);
+  }
+
+  .koala-board.is-power-burst:not(.is-won)::after {
+    inset: 0;
+    background:
+      radial-gradient(
+        circle at var(--burst-x) var(--burst-y),
+        transparent 0 4%,
+        rgb(242 255 61 / .92) 4.5% 6%,
+        transparent 6.5% 10%,
+        rgb(255 255 255 / .64) 10.5% 12%,
+        transparent 12.5%
+      );
+    content: "";
+    opacity: 1;
+  }
+
+  .koala-board.is-won {
+    border-color: var(--koala-yellow);
+    box-shadow: 0 0 0 2px var(--koala-yellow);
+  }
+
+  .koala-board.is-won::before {
+    content: "ROUTE RESTORED";
+    opacity: 1;
+  }
+
+  .koala-board.is-won::after {
+    content: "✦  +  ✦\A +  ✦  +\A✦  +  ✦";
+    opacity: .9;
+  }
+
+  .koala-board.is-won .koala-ghost {
+    opacity: .22;
+  }
+
+  .koala-board.is-lost {
+    border-color: var(--koala-coral);
+    background: #080000;
+    box-shadow:
+      0 0 0 2px var(--koala-coral),
+      inset 0 0 3rem rgb(0 0 0 / .9);
+  }
+
+  .koala-board.is-lost::before {
+    z-index: 8;
+    top: 50%;
+    left: 0;
+    width: 100%;
+    padding: .65rem 0;
+    border-block: 1px solid rgb(255 255 255 / .16);
+    color: var(--koala-paper);
+    background: rgb(0 0 0 / .76);
+    content: "WASTED";
+    font-size: clamp(1.3rem, 5vw, 2.8rem);
+    letter-spacing: .08em;
+    opacity: 1;
+    text-shadow:
+      .04em .04em 0 #6b0000,
+      0 0 .45rem rgb(255 0 0 / .55);
+    transform: translateY(-50%);
+  }
+
+  .koala-board.is-lost::after {
+    z-index: 7;
+    inset: 0;
+    background:
+      radial-gradient(circle, transparent 18%, rgb(0 0 0 / .86) 100%),
+      linear-gradient(rgb(161 0 0 / .45), transparent 38%);
+    content: "";
+    opacity: .78;
+  }
+
+  .koala-board.is-lost .koala-maze {
+    filter: grayscale(1) contrast(1.18) brightness(.52);
+    opacity: .5;
+  }
+
+  .koala-board.is-lost .koala-player__dead {
+    filter: grayscale(.82) contrast(1.2);
+  }
+
+  .koala-controls {
+    display: none;
+    width: min(100%, 18rem);
+    margin: 1rem auto 0;
+    grid-template-columns: repeat(3, 1fr);
+    gap: .3rem;
+  }
+
+  .koala-controls button {
+    min-height: 2.75rem;
+    border: 2px solid var(--koala-paper);
+    color: var(--koala-paper);
+    background: transparent;
+    cursor: pointer;
+    font: 900 .72rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+    letter-spacing: .06em;
+    touch-action: manipulation;
+  }
+
+  .koala-controls button:hover,
+  .koala-controls button:focus-visible {
+    color: var(--koala-paper);
+    background: var(--koala-panel);
+    outline: .2rem solid var(--koala-yellow);
+    outline-offset: .1rem;
+  }
+
+  .koala-controls__up {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .koala-controls__left {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .koala-controls__reset {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  .koala-controls__right {
+    grid-column: 3;
+    grid-row: 2;
+  }
+
+  .koala-controls__down {
+    grid-column: 2;
+    grid-row: 3;
+  }
+
+  .koala-game__status,
+  .koala-game__hint {
+    margin: .7rem 0 0;
+    font-size: .68rem;
+    letter-spacing: .06em;
+    line-height: 1.45;
+    text-align: center;
+    text-transform: uppercase;
+  }
+
+  .koala-game__status {
+    width: fit-content;
+    max-width: 100%;
+    min-height: 1.45em;
+    margin-inline: auto;
+    padding: .12rem .35rem;
+    border: 1px solid var(--koala-yellow);
+    color: var(--koala-paper);
+    background: var(--koala-panel);
+    font-weight: 900;
+  }
+
+  .koala-home {
+    display: inline-block;
+    padding: .08rem .28rem;
+    border: 1px solid var(--koala-yellow);
+    color: var(--koala-paper);
+    background: var(--koala-panel);
+    text-decoration: none;
+  }
+
+  .koala-home:hover,
+  .koala-home:focus-visible {
+    color: var(--koala-paper);
+    background: var(--koala-wall);
+    outline: .2rem solid var(--koala-yellow);
+  }
+
+  @keyframes koala-error {
+    50% { filter: invert(1); transform: translateX(.2rem); }
+  }
+
+  @media (min-width: 901px) {
+    .koala-os {
+      height: 100svh;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .koala-os__bar,
+    .koala-os__footer {
+      padding-block: .55rem;
+    }
+
+    .koala-os__grid {
+      min-height: 0;
+      padding-block: .5rem;
+    }
+
+    .koala-trace {
+      padding-block: .35rem;
+      line-height: 1.42;
+    }
+
+    .koala-trace p {
+      margin-bottom: .65rem;
+    }
+
+    .koala-trace__dump {
+      margin-top: 1rem;
+    }
+
+    .koala-game__heading {
+      margin-bottom: .45rem;
+    }
+
+    .koala-game__heading h1 {
+      font-size: clamp(3rem, 5vw, 5.7rem);
+    }
+
+    .koala-score {
+      padding-block: .32rem;
+    }
+
+    .koala-game__status,
+    .koala-game__hint {
+      margin-top: .35rem;
+      line-height: 1.3;
     }
   }
 
-  @keyframes koala-wave {
-    50% { transform: scale(1.015); }
+  @media (max-width: 900px) {
+    .koala-os__grid {
+      grid-template-columns: minmax(0, 38rem);
+      justify-content: center;
+    }
+
+    .koala-game {
+      width: min(100%, 38rem);
+    }
+
+    .koala-trace {
+      display: none;
+    }
+  }
+
+  @media (max-width: 900px) and (hover: none) and (pointer: coarse) {
+    .koala-controls {
+      display: grid;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .koala-os__bar span:nth-child(2),
+    .koala-os__footer span {
+      display: none;
+    }
+
+    .koala-os__grid {
+      padding: 1rem;
+    }
+
+    .koala-board {
+      box-shadow: 0 0 0 1px var(--koala-deep);
+    }
+
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .koala-os[data-damage="1"]::after,
+    .koala-os[data-damage="2"]::after,
+    .koala-os[data-damage="3"]::after {
+      animation: koala-phosphor-roll var(--koala-roll-speed) linear infinite;
+    }
+
+    .koala-game__heading h1::before {
+      animation: koala-title-glitch-a 2.8s steps(1, jump-none) infinite;
+    }
+
+    .koala-game__heading h1::after {
+      animation: koala-title-glitch-b 3.4s steps(1, jump-none) infinite;
+    }
+
+    .koala-os__signal::before,
+    .koala-maze__cell--power::after {
+      animation: koala-pulse 1.8s steps(2, jump-none) infinite;
+    }
+
+    .koala-maze__cell--home {
+      animation: koala-tree-breathe 1.9s ease-in-out infinite;
+    }
+
+    .koala-threat--dingo {
+      animation: koala-dingo-prowl .42s ease-in-out infinite alternate;
+    }
+
+    .koala-threat--eagle {
+      animation: koala-eagle-circle 1.45s ease-in-out infinite;
+    }
+
+    .koala-threat--eagle.is-swooping {
+      animation: koala-eagle-swoop .34s ease-in-out infinite alternate;
+    }
+
+    .koala-board.is-powered .koala-ghost {
+      animation: koala-predator-tremor .14s steps(2, jump-none) infinite;
+    }
+
+    .koala-board.is-powered.is-power-warning .koala-ghost:not(.is-devoured) {
+      animation: koala-predator-warning .24s steps(2, jump-none) infinite;
+    }
+
+    .koala-board.is-power-burst:not(.is-won)::after {
+      animation: koala-power-burst .62s ease-out both;
+    }
+
+    .koala-maze__cell--wall.is-power-flash {
+      z-index: 2;
+      animation: koala-wall-flash .68s steps(3, jump-none) var(--wall-flash-delay) both;
+    }
+
+    .koala-board.is-caught .koala-player {
+      animation: koala-fright .42s steps(2, jump-none);
+    }
+
+    .koala-board.is-caught .koala-ghost {
+      animation: koala-ghost-lunge .24s ease-out 2 alternate;
+    }
+
+    .koala-board.is-won::before {
+      animation: koala-state-banner 1.15s steps(2, jump-none) both;
+    }
+
+    .koala-board.is-won::after {
+      animation: koala-packet-burst 1.25s ease-out both;
+    }
+
+    .koala-board.is-won .koala-player {
+      animation: koala-victory .72s cubic-bezier(.2, .8, .2, 1);
+    }
+
+    .koala-board.is-won .koala-maze__cell--home {
+      animation: koala-tree-win .72s ease-out 2 alternate;
+    }
+
+    .koala-board.is-won .koala-ghost {
+      animation: koala-ghost-retreat .48s ease-in both;
+    }
+
+    .koala-board.is-lost .koala-player {
+      animation: koala-defeat .9s cubic-bezier(.2, .8, .2, 1) both;
+    }
+
+    .koala-board.is-lost .koala-ghost {
+      animation: koala-ghost-victory .32s steps(2, jump-none) 3;
+    }
+
+    .koala-board.is-lost::before {
+      animation: koala-wasted-banner 1.2s cubic-bezier(.16, 1, .3, 1) both;
+    }
+
+    .koala-board.is-lost::after {
+      animation: koala-wasted-vignette 1.35s ease-out both;
+    }
+
+    .koala-board.is-lost {
+      animation: koala-wasted-hit .45s steps(2, jump-none);
+    }
+
+    .koala-board .koala-ghost.is-devoured {
+      animation: koala-predator-devoured .34s ease-in both;
+    }
+
+    .koala-board .koala-ghost.is-regenerating {
+      animation: koala-predator-regenerate .5s steps(2, jump-none) infinite;
+    }
+
+    @keyframes koala-pulse {
+      50% { opacity: .3; }
+    }
+
+    @keyframes koala-phosphor-roll {
+      from { background-position: center, 0 -180%; }
+      to { background-position: center, 0 180%; }
+    }
+
+    @keyframes koala-title-glitch-a {
+      0%, 91%, 100% { transform: translateX(.06em); }
+      92% { transform: translate(.16em, -.04em); }
+      94% { transform: translate(-.11em, .03em); }
+    }
+
+    @keyframes koala-title-glitch-b {
+      0%, 86%, 100% { transform: translateX(-.08em); }
+      87% { transform: translate(.2em, .04em); }
+      90% { transform: translate(-.15em, -.03em); }
+    }
+
+    @keyframes koala-tree-breathe {
+      50% {
+        filter:
+          brightness(1.12)
+          drop-shadow(0 0 .72rem rgb(107 220 255 / .95));
+      }
+    }
+
+    @keyframes koala-dingo-prowl {
+      to { transform: translate(4%, -3%) rotate(1deg) scale(1.03, .98); }
+    }
+
+    @keyframes koala-eagle-circle {
+      0%, 100% { transform: translate(-5%, 2%) rotate(-3deg); }
+      50% { transform: translate(5%, -12%) rotate(3deg) scale(1.06); }
+    }
+
+    @keyframes koala-eagle-swoop {
+      to { transform: translateY(12%) rotate(4deg) scale(1.12, .9); }
+    }
+
+    @keyframes koala-predator-tremor {
+      0% { transform: translate(-7%, 2%) rotate(-4deg); }
+      100% { transform: translate(7%, -2%) rotate(4deg); }
+    }
+
+    @keyframes koala-predator-warning {
+      0% { filter: brightness(1); transform: translateX(-7%); }
+      100% { filter: brightness(2.2); transform: translateX(7%); }
+    }
+
+    @keyframes koala-power-burst {
+      0% { opacity: 0; transform: scale(.72); }
+      18% { opacity: 1; }
+      100% { opacity: 0; transform: scale(1.32); }
+    }
+
+    @keyframes koala-predator-devoured {
+      30% { filter: brightness(2.4); transform: scale(1.22); }
+      100% { filter: brightness(3); opacity: 0; transform: scale(.06) rotate(28deg); }
+    }
+
+    @keyframes koala-predator-regenerate {
+      50% { filter: brightness(2); opacity: .35; transform: scale(.72); }
+    }
+
+    @keyframes koala-wall-flash {
+      0%, 100% {
+        background: var(--koala-wall);
+      }
+      34%, 68% {
+        background: var(--koala-yellow);
+        box-shadow:
+          inset 0 0 0 1px var(--koala-paper),
+          0 0 .65rem var(--koala-yellow);
+        transform: scale(1.08);
+      }
+    }
+
+    @keyframes koala-fright {
+      25% { transform: translateX(-18%) rotate(-8deg) scale(.92); }
+      55% { transform: translateX(12%) rotate(5deg) scale(1.04); }
+    }
+
+    @keyframes koala-ghost-lunge {
+      to { transform: scale(1.32); }
+    }
+
+    @keyframes koala-state-banner {
+      0% { opacity: 0; transform: translate(-50%, -25%) scale(.72); }
+      18%, 72% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+      100% { opacity: 0; transform: translate(-50%, -90%) scale(1.06); }
+    }
+
+    @keyframes koala-packet-burst {
+      0% { opacity: 0; transform: scale(.6); }
+      22% { opacity: 1; }
+      100% { opacity: 0; transform: scale(1.22) rotate(3deg); }
+    }
+
+    @keyframes koala-victory {
+      35% { transform: translateY(-38%) rotate(-12deg) scale(1.24); }
+      65% { transform: translateY(8%) rotate(7deg) scale(.94); }
+    }
+
+    @keyframes koala-tree-win {
+      50% {
+        filter: brightness(1.4) saturate(1.3);
+        transform: scale(1.72);
+        box-shadow:
+          0 0 0 2px var(--koala-paper),
+          0 0 1.2rem #6bdcff,
+          0 0 2rem rgb(121 201 91 / .8);
+      }
+    }
+
+    @keyframes koala-ghost-retreat {
+      to { opacity: 0; transform: scale(.5); }
+    }
+
+    @keyframes koala-defeat {
+      22% { transform: translateY(-10%) rotate(-8deg) scale(1.15); }
+      to { opacity: 1; transform: translateY(24%) rotate(17deg) scale(.86); }
+    }
+
+    @keyframes koala-ghost-victory {
+      50% { transform: translateY(-16%) scale(1.14); }
+    }
+
+    @keyframes koala-wasted-hit {
+      0%, 34% { box-shadow: inset 0 0 0 99rem rgb(255 0 0 / .5); }
+      35%, 100% { box-shadow: 0 0 0 2px var(--koala-coral); }
+    }
+
+    @keyframes koala-wasted-banner {
+      0%, 24% { opacity: 0; transform: translateY(-50%) scale(1.5); }
+      46%, 100% { opacity: 1; transform: translateY(-50%) scale(1); }
+    }
+
+    @keyframes koala-wasted-vignette {
+      0% { opacity: 0; }
+      18% { opacity: .95; }
+      100% { opacity: .78; }
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .koala-actor,
+    .koala-controls button {
+      transition: none;
+    }
+
+    .koala-board.is-caught {
+      animation: none;
+    }
+
+    .koala-maze__cell--wall.is-power-flash {
+      background: var(--koala-yellow);
+    }
+
+    .koala-board .koala-ghost.is-devoured {
+      opacity: 0;
+    }
   }
 </style>
 
-<section class="koala-404" aria-labelledby="koala-404-title">
-  <p class="koala-404__eyebrow">404 · Lost in the gum trees</p>
-  <h1 id="koala-404-title">This page went walkabout.</h1>
-  <p>Good news: this happy little local knows the way home.</p>
+<section class="koala-os" id="koala-os" data-damage="0" aria-labelledby="koala-404-title">
+  <header class="koala-os__bar">
+    <span class="koala-os__signal">Koala.OS [Version 4.04.2600]</span>
+    <span>PAGE_FAULT_IN_NONPAGED_ROUTE</span>
+    <span>*** STOP: 0x00000404</span>
+  </header>
 
-  <a
-    class="koala-404__koala"
-    href="{{ config.site_url }}"
-    aria-label="Return to the {{ config.site_name }} home page"
-  >
-    <img
-      src="{{ config.site_url }}assets/images/happy-koala-404.webp"
-      width="960"
-      height="960"
-      alt="A cheerful koala waving from a eucalyptus branch"
-    />
-  </a>
+  <div class="koala-os__grid">
+    <aside class="koala-trace" aria-label="Windows NT 3.1 style stop diagnostic">
+      <p class="koala-trace__title"><span>Windows NT 3.1</span><span>STOP 0x404</span></p>
+      <pre class="koala-trace__dump koala-trace__dump--nt" aria-hidden="true">*** STOP: 0x00000404
+ROUTE_NOT_FOUND
 
-  <p>
-    Tap the koala or
-    <a href="{{ config.site_url }}">head back to {{ config.site_name }}</a>.
-  </p>
+eax=00000404 ebx=00000000
+ecx=FFFFF404 edx=00000000
+eip=801B9DA5 esp=FF69BB8C
+cr0=80050039 cr2=E1053002
+
+Dll Base  DateStmp - Name
+80100000  2C921D20 - ntoskrnl.exe
+80400000  2C7D4B45 - route.sys
+
+Address dword dump  Build [v3.10.404]
+FF69BBC8 80115F67 00000404
+FF69BC34 80112BEB FFFFF404
+
+The system has been shut down.
+Press R to restart the route.</pre>
+    </aside>
+
+    <div class="koala-game">
+      <div class="koala-game__heading">
+        <div>
+          <span class="koala-game__eyebrow">Recovery sector · 404 arcade map</span>
+          <h1 id="koala-404-title" data-text="404">404</h1>
+        </div>
+        <p>Route missing.<br />Koala process online.</p>
+      </div>
+
+      <div class="koala-score" aria-live="polite">
+        <span>Score <strong id="koala-score">0000</strong></span>
+        <span>Moves <strong id="koala-moves">000</strong></span>
+        <span>Lives <strong id="koala-lives">♥♥♥</strong></span>
+      </div>
+
+      <div
+        class="koala-board"
+        id="koala-board"
+        tabindex="0"
+        aria-label="Hard koala arcade maze built around a literal 404 made from blue collision bricks. The zero is the regeneration pen where the dingo and wedge-tailed eagle begin and return after being eaten. Collect Vegemite, meat pie, avocado, banana, and cherries, then reach the clear-sky eucalyptus escape using arrow keys, W A S D, or the mobile controls."
+      >
+        <div
+          class="koala-maze"
+          id="koala-maze"
+          data-tree-src="{{ site_root }}assets/images/game/goal.webp"
+          aria-hidden="true"
+        ></div>
+        <a
+          class="koala-actor koala-player"
+          id="koala-player"
+          role="button"
+          tabindex="0"
+          aria-disabled="true"
+          data-home-url="{{ site_root }}"
+          style="left: 4.7619%; top: 6.6667%"
+          aria-label="The koala is looking for home. Reach the eucalyptus tree to unlock it."
+        >
+          <img
+            class="koala-player__neutral"
+            src="{{ site_root }}assets/images/game/koala/neutral.webp"
+            width="1254"
+            height="1254"
+            alt=""
+            aria-hidden="true"
+          />
+          <img
+            class="koala-player__scared"
+            src="{{ site_root }}assets/images/game/koala/scared.webp"
+            width="1254"
+            height="1254"
+            alt=""
+            aria-hidden="true"
+          />
+          <img
+            class="koala-player__happy"
+            src="{{ site_root }}assets/images/game/koala/happy.webp"
+            width="1254"
+            height="1254"
+            alt=""
+            aria-hidden="true"
+          />
+          <img
+            class="koala-player__dead"
+            src="{{ site_root }}assets/images/game/koala/crying.webp"
+            width="1254"
+            height="1254"
+            alt=""
+            aria-hidden="true"
+          />
+        </a>
+        <span
+          class="koala-actor koala-ghost koala-threat--dingo"
+          style="left: 42.8571%; top: 46.6667%; --ghost-colour: var(--koala-coral)"
+          aria-hidden="true"
+        >
+          <svg viewBox="0 0 64 64" focusable="false">
+            <path class="koala-threat__body" d="M8 5 23 17q9-7 18 0L56 5l-5 24q7 9 1 21-8 11-20 11T12 50q-6-12 1-21Z" />
+            <path class="koala-threat__muzzle" d="M18 37q14-9 28 0l-5 16q-9 8-18 0Z" />
+            <circle class="koala-threat__eye" cx="23" cy="31" r="5" />
+            <circle class="koala-threat__eye" cx="41" cy="31" r="5" />
+            <circle class="koala-threat__pupil" cx="24" cy="32" r="2.2" />
+            <circle class="koala-threat__pupil" cx="40" cy="32" r="2.2" />
+            <circle class="koala-threat__nose" cx="32" cy="43" r="4" />
+            <path class="koala-threat__mouth" d="M26 49q6 6 12 0" />
+          </svg>
+          <span>DINGO.EXE</span>
+        </span>
+        <span
+          class="koala-actor koala-ghost koala-threat--eagle"
+          style="left: 52.3810%; top: 46.6667%; --ghost-colour: var(--koala-yellow)"
+          aria-hidden="true"
+        >
+          <svg viewBox="0 0 64 64" focusable="false">
+            <path class="koala-threat__body" d="M3 20Q12 4 27 17l5-8 5 8Q52 4 61 20 49 20 44 33L38 48 32 59 26 48 20 33Q15 21 3 20Z" />
+            <path class="koala-threat__muzzle" d="M24 22q8-8 16 0l-3 17q-5 7-10 0Z" />
+            <circle class="koala-threat__eye" cx="28" cy="28" r="4" />
+            <circle class="koala-threat__eye" cx="36" cy="28" r="4" />
+            <circle class="koala-threat__pupil" cx="29" cy="29" r="1.8" />
+            <circle class="koala-threat__pupil" cx="35" cy="29" r="1.8" />
+            <path class="koala-threat__beak" d="m32 31 7 5-7 5-7-5Z" />
+            <path class="koala-threat__mouth" d="M28 44q4-4 8 0" />
+          </svg>
+          <span>EAGLE.SYS</span>
+        </span>
+      </div>
+
+      <div class="koala-controls" role="group" aria-label="Maze controls">
+        <button class="koala-controls__up" type="button" data-move="0,-1" aria-label="Move up">↑</button>
+        <button class="koala-controls__left" type="button" data-move="-1,0" aria-label="Move left">←</button>
+        <button class="koala-controls__reset" id="koala-reset" type="button" aria-label="Restart game">↻</button>
+        <button class="koala-controls__right" type="button" data-move="1,0" aria-label="Move right">→</button>
+        <button class="koala-controls__down" type="button" data-move="0,1" aria-label="Move down">↓</button>
+      </div>
+
+      <p class="koala-game__status" id="koala-status" aria-live="polite">
+        Move to boot recovery. Dingo and eagle processes deploy from the 0.
+      </p>
+      <p class="koala-game__hint">
+        Arrow keys / WASD · R to reset — boosts send predators back to the 0; eucalyptus unlocks the koala.
+      </p>
+      <noscript>
+        JavaScript is offline — use the return-home link below.
+      </noscript>
+    </div>
+
+    <aside class="koala-trace" aria-label="Crash dialects and escape instructions">
+      <p class="koala-trace__title"><span>Recovery console</span><span>04/04</span></p>
+      <ol class="koala-trace__steps">
+        <li>Cross the arcade memory map</li>
+        <li>Eat Vegemite, pie, and fruit</li>
+        <li>Expect respawns from the 0</li>
+        <li>Reach the sky-lit eucalyptus</li>
+      </ol>
+      <p class="koala-trace__dim">
+        Other kernels report the same missing vnode differently.
+      </p>
+      <pre class="koala-trace__dump" aria-hidden="true">XP .... DRIVER_IRQL_NOT_LESS
+NT 3.1  TRAP 0000000E
+LINUX .. KERNEL PANIC:
+         NOT SYNCING
+BSD .... PANIC: VNODE MISSING
+CORE ... ROUTE_DUMP IN PROGRESS
+FUN.AI . DINGO / EAGLE CHASE</pre>
+    </aside>
+  </div>
+
+  <footer class="koala-os__footer">
+    <strong>&gt; 404 PAGE NOT FOUND</strong>
+    <span>&gt; LOST ROUTE DUMP: <strong id="koala-dump">0%</strong></span>
+    <a class="koala-home" href="{{ site_root }}">&gt; PRESS ENTER TO REBOOT HOME</a>
+  </footer>
 </section>
+
+<script>
+  (function () {
+    "use strict";
+
+    var rows = 15;
+    var columns = 21;
+    var maze = [];
+    var board = document.getElementById("koala-board");
+    var grid = document.getElementById("koala-maze");
+    var playerElement = document.getElementById("koala-player");
+    var scoreElement = document.getElementById("koala-score");
+    var movesElement = document.getElementById("koala-moves");
+    var livesElement = document.getElementById("koala-lives");
+    var statusElement = document.getElementById("koala-status");
+    var dumpElement = document.getElementById("koala-dump");
+    var osElement = document.getElementById("koala-os");
+    var playerStart;
+    var home;
+    var ghostStarts = [];
+    var pelletStarts = [];
+    var powerUps = new Map();
+    var bonusValues = {
+      a: ["AVOCADO", 100],
+      b: ["BANANA", 150],
+      c: ["CHERRIES", 200]
+    };
+    var ghostElements = Array.from(document.querySelectorAll(".koala-ghost"));
+    var wallCells = [];
+    var directions = [[1, 0], [0, 1], [-1, 0], [0, -1]];
+    var routeWalls = new Set();
+    [
+      {
+        x: 2,
+        rows: ["#..#.", "#..#.", "#..#.", "#####", "...#.", "...#.", "...#."]
+      },
+      {
+        x: 8,
+        rows: ["#####", "#...#", "#...#", "#...#", "#...#", "#...#", "##.##"]
+      },
+      {
+        x: 14,
+        rows: ["#..#.", "#..#.", "#..#.", "#####", "...#.", "...#.", "...#."]
+      }
+    ].forEach(function (digit) {
+      digit.rows.forEach(function (row, y) {
+        row.split("").forEach(function (cell, x) {
+          if (cell === "#") routeWalls.add(key(digit.x + x, 4 + y));
+        });
+      });
+    });
+    var corners;
+    var mazeSeed;
+    var mazeGeneration = 0;
+    var huntRandom;
+    var player;
+    var ghosts;
+    var ghostPrevious;
+    var pellets;
+    var score;
+    var lives;
+    var turn;
+    var running;
+    var panicTicks;
+    var ghostTick;
+    var ghostTimer;
+    var wallFlashTimer;
+    var powerBurstTimer;
+    var predatorRespawnTimers = [];
+    var devouredPredators = new Set();
+    var ghostsStarted;
+    var graceTicks;
+    var lastDirection;
+
+    function key(x, y) {
+      return x + "," + y;
+    }
+
+    function damageLevel(remainingLives) {
+      return Math.max(0, Math.min(3, 3 - remainingLives));
+    }
+
+    function seededRandom(seed) {
+      var value = seed >>> 0;
+      return function () {
+        value += 0x6D2B79F5;
+        var mixed = value;
+        mixed = Math.imul(mixed ^ mixed >>> 15, mixed | 1);
+        mixed ^= mixed + Math.imul(mixed ^ mixed >>> 7, mixed | 61);
+        return ((mixed ^ mixed >>> 14) >>> 0) / 4294967296;
+      };
+    }
+
+    function openIn(map, x, y) {
+      return map[y] && map[y][x] !== "#";
+    }
+
+    function distancesFor(map, origin) {
+      var distances = new Map([[key(origin.x, origin.y), 0]]);
+      var queue = [{ x: origin.x, y: origin.y }];
+
+      for (var cursor = 0; cursor < queue.length; cursor += 1) {
+        var current = queue[cursor];
+        directions.forEach(function (direction) {
+          var next = {
+            x: current.x + direction[0],
+            y: current.y + direction[1]
+          };
+          var nextKey = key(next.x, next.y);
+          if (openIn(map, next.x, next.y) && !distances.has(nextKey)) {
+            distances.set(nextKey, distances.get(key(current.x, current.y)) + 1);
+            queue.push(next);
+          }
+        });
+      }
+
+      return distances;
+    }
+
+    function buildMaze(seed) {
+      var random = seededRandom(seed);
+      var cells = Array.from({ length: rows }, function () {
+        return Array(columns).fill("#");
+      });
+      var excluded = new Set([
+        key(9, 5),
+        key(11, 5),
+        key(9, 7),
+        key(11, 7),
+        key(9, 9),
+        key(11, 9)
+      ]);
+      routeWalls.forEach(function (wall) {
+        var position = wall.split(",").map(Number);
+        if (position[0] % 2 && position[1] % 2) excluded.add(wall);
+      });
+      var visited = new Set([key(1, 1)]);
+      var stack = [{ x: 1, y: 1 }];
+      cells[1][1] = ".";
+
+      while (stack.length) {
+        var current = stack[stack.length - 1];
+        var neighbours = directions.map(function (direction) {
+          return {
+            x: current.x + direction[0] * 2,
+            y: current.y + direction[1] * 2
+          };
+        }).filter(function (next) {
+          var middle = key(
+            (current.x + next.x) / 2,
+            (current.y + next.y) / 2
+          );
+          return next.x > 0 && next.x < columns - 1 &&
+            next.y > 0 && next.y < rows - 1 &&
+            !excluded.has(key(next.x, next.y)) &&
+            !routeWalls.has(middle) &&
+            !visited.has(key(next.x, next.y));
+        });
+
+        if (!neighbours.length) {
+          stack.pop();
+          continue;
+        }
+
+        var next = neighbours[Math.floor(random() * neighbours.length)];
+        cells[(current.y + next.y) / 2][(current.x + next.x) / 2] = ".";
+        cells[next.y][next.x] = ".";
+        visited.add(key(next.x, next.y));
+        stack.push(next);
+      }
+
+      var shortcuts = [];
+      while (shortcuts.length < 14) {
+        var bestShortcut = null;
+        var bestShortcutScore = -Infinity;
+        for (var y = 1; y < rows - 1; y += 1) {
+          for (var x = 1; x < columns - 1; x += 1) {
+            if (cells[y][x] !== "#" || routeWalls.has(key(x, y))) continue;
+            var exits = directions.filter(function (direction) {
+              return cells[y + direction[1]][x + direction[0]] !== "#";
+            }).length;
+            if (exits < 2) continue;
+            var spacing = shortcuts.length
+              ? Math.min.apply(null, shortcuts.map(function (shortcut) {
+                  return Math.abs(shortcut.x - x) + Math.abs(shortcut.y - y);
+                }))
+              : 8;
+            var shortcutScore = exits * 6 + Math.min(spacing, 8) + random() * 2;
+            if (shortcutScore > bestShortcutScore) {
+              bestShortcut = { x: x, y: y };
+              bestShortcutScore = shortcutScore;
+            }
+          }
+        }
+        if (!bestShortcut) break;
+        cells[bestShortcut.y][bestShortcut.x] = ".";
+        shortcuts.push(bestShortcut);
+      }
+
+      routeWalls.forEach(function (wall) {
+        var position = wall.split(",").map(Number);
+        cells[position[1]][position[0]] = "#";
+      });
+
+      for (var penY = 5; penY <= 9; penY += 1) {
+        for (var penX = 9; penX <= 11; penX += 1) cells[penY][penX] = " ";
+      }
+      cells[7][9] = "G";
+      cells[7][11] = "G";
+      cells[10][10] = ".";
+      cells[11][10] = ".";
+      cells[1][1] = "P";
+      cells[rows - 2][columns - 2] = "H";
+
+      var distances = distancesFor(cells, { x: 1, y: 1 });
+      var candidates = [];
+      cells.forEach(function (row, cellY) {
+        row.forEach(function (cell, cellX) {
+          var distance = distances.get(key(cellX, cellY)) || 0;
+          if (cell === "." && distance > 7) {
+            candidates.push({
+              x: cellX,
+              y: cellY,
+              distance: distance + random() * .25
+            });
+          }
+        });
+      });
+      candidates.sort(function (a, b) { return b.distance - a.distance; });
+
+      var pickups = [];
+      candidates.forEach(function (candidate) {
+        if (
+          pickups.length < 5 &&
+          pickups.every(function (pickup) {
+            return Math.abs(pickup.x - candidate.x) +
+              Math.abs(pickup.y - candidate.y) >= 5;
+          })
+        ) {
+          pickups.push(candidate);
+        }
+      });
+      candidates.forEach(function (candidate) {
+        if (
+          pickups.length < 5 &&
+          !pickups.some(function (pickup) {
+            return pickup.x === candidate.x && pickup.y === candidate.y;
+          })
+        ) {
+          pickups.push(candidate);
+        }
+      });
+      ["v", "m", "a", "b", "c"].forEach(function (symbol, index) {
+        cells[pickups[index].y][pickups[index].x] = symbol;
+      });
+
+      return cells.map(function (row) { return row.join(""); });
+    }
+
+    function mazeMetrics(candidate) {
+      var metrics = {
+        cycles: 0,
+        deadEnds: 0,
+        fourWays: 0,
+        junctions: 0,
+        pathLength: distancesFor(candidate, { x: 1, y: 1 })
+          .get(key(columns - 2, rows - 2)) || 0
+      };
+      var links = 0;
+      var nodes = 0;
+      candidate.forEach(function (row, y) {
+        row.split("").forEach(function (cell, x) {
+          if (cell === "#") return;
+          nodes += 1;
+          if (openIn(candidate, x + 1, y)) links += 1;
+          if (openIn(candidate, x, y + 1)) links += 1;
+          if (x >= 9 && x <= 11 && y >= 5 && y <= 9) return;
+          var exits = directions.filter(function (direction) {
+            return openIn(candidate, x + direction[0], y + direction[1]);
+          }).length;
+          if (exits === 1) metrics.deadEnds += 1;
+          if (exits >= 3) metrics.junctions += 1;
+          if (exits === 4) metrics.fourWays += 1;
+        });
+      });
+      metrics.cycles = links - nodes + 1;
+      return metrics;
+    }
+
+    function validateMaze(candidate, minimumPath, maximumPath) {
+      if (
+        candidate.length !== rows ||
+        candidate.some(function (row) { return row.length !== columns; }) ||
+        !Array.from(routeWalls).every(function (wall) {
+          var position = wall.split(",").map(Number);
+          return candidate[position[1]][position[0]] === "#";
+        }) ||
+        candidate[7].slice(9, 12) !== "G G" ||
+        candidate[10][10] === "#" ||
+        candidate[11][10] === "#"
+      ) {
+        return false;
+      }
+
+      var joined = candidate.join("");
+      var required = ["P", "H", "v", "m", "a", "b", "c"];
+      if (
+        required.some(function (symbol) {
+          return joined.split(symbol).length - 1 !== 1;
+        }) ||
+        joined.split("G").length - 1 !== 2
+      ) {
+        return false;
+      }
+
+      var distances = distancesFor(candidate, { x: 1, y: 1 });
+      var pathLength = distances.get(key(columns - 2, rows - 2)) || 0;
+      return distances.size === joined.replace(/#/g, "").length &&
+        pathLength >= minimumPath &&
+        pathLength <= maximumPath;
+    }
+
+    function generateMaze(seed) {
+      var best;
+      var bestScore = -Infinity;
+
+      for (var attempt = 0; attempt < 24; attempt += 1) {
+        var attemptSeed = (
+          seed + Math.imul(attempt, 0x9E3779B9)
+        ) >>> 0;
+        var candidate = buildMaze(attemptSeed);
+        if (!validateMaze(candidate, 30, 52)) continue;
+        var metrics = mazeMetrics(candidate);
+        var score = metrics.junctions * 12 +
+          metrics.fourWays * 8 +
+          metrics.cycles * 5 -
+          metrics.deadEnds * 10 -
+          Math.abs(metrics.pathLength - 40) * 3;
+        if (score > bestScore) {
+          best = candidate;
+          bestScore = score;
+        }
+      }
+
+      return best || buildMaze(seed);
+    }
+
+    function renderMaze() {
+      var fragment = document.createDocumentFragment();
+      var titles = {
+        v: "Vegemite overclock",
+        m: "Meat pie super boost",
+        a: "Avocado bonus",
+        b: "Banana bonus",
+        c: "Cherries bonus"
+      };
+
+      maze.forEach(function (row, y) {
+        row.split("").forEach(function (cell, x) {
+          var tile = document.createElement("span");
+          tile.className = "koala-maze__cell";
+          if (cell === "#") {
+            tile.classList.add("koala-maze__cell--wall");
+            if (routeWalls.has(key(x, y))) {
+              tile.classList.add("koala-maze__cell--route");
+              if (!routeWalls.has(key(x, y - 1))) {
+                tile.classList.add("koala-maze__cell--route-north");
+              }
+              if (!routeWalls.has(key(x + 1, y))) {
+                tile.classList.add("koala-maze__cell--route-east");
+              }
+              if (!routeWalls.has(key(x, y + 1))) {
+                tile.classList.add("koala-maze__cell--route-south");
+              }
+              if (!routeWalls.has(key(x - 1, y))) {
+                tile.classList.add("koala-maze__cell--route-west");
+              }
+            }
+          }
+          if (cell === "." || cell === "v" || cell === "m" || bonusValues[cell]) {
+            tile.classList.add("koala-maze__cell--pellet");
+            tile.dataset.pellet = key(x, y);
+          }
+          if (cell === "v" || cell === "m") {
+            tile.classList.add(
+              "koala-maze__cell--power",
+              cell === "v"
+                ? "koala-maze__cell--vegemite"
+                : "koala-maze__cell--meat-pie"
+            );
+            tile.dataset.power = cell === "v" ? "vegemite" : "meat-pie";
+          }
+          if (bonusValues[cell]) {
+            tile.classList.add(
+              "koala-maze__cell--bonus",
+              "koala-maze__cell--" + {
+                a: "avocado",
+                b: "banana",
+                c: "cherries"
+              }[cell]
+            );
+            tile.dataset.bonus = bonusValues[cell][0].toLowerCase();
+          }
+          if (titles[cell]) tile.title = titles[cell];
+          if (cell === "H") {
+            var tree = document.createElement("img");
+            tile.classList.add("koala-maze__cell--home");
+            tile.title = "Clear-sky eucalyptus escape";
+            tree.src = grid.dataset.treeSrc;
+            tree.width = 512;
+            tree.height = 512;
+            tree.alt = "";
+            tile.appendChild(tree);
+          }
+          fragment.appendChild(tile);
+        });
+      });
+      grid.replaceChildren(fragment);
+    }
+
+    function configureMaze(seed) {
+      mazeSeed = seed >>> 0;
+      maze = generateMaze(mazeSeed);
+      playerStart = undefined;
+      home = undefined;
+      ghostStarts = [];
+      pelletStarts = [];
+      powerUps = new Map();
+
+      maze.forEach(function (row, y) {
+        row.split("").forEach(function (cell, x) {
+          if (cell === "P") playerStart = { x: x, y: y };
+          if (cell === "G") ghostStarts.push({ x: x, y: y });
+          if (cell === "H") home = { x: x, y: y };
+          if (cell === "." || cell === "v" || cell === "m" || bonusValues[cell]) {
+            pelletStarts.push(key(x, y));
+          }
+          if (cell === "v") powerUps.set(key(x, y), "vegemite");
+          if (cell === "m") powerUps.set(key(x, y), "meat pie");
+        });
+      });
+
+      renderMaze();
+      wallCells = Array.from(grid.querySelectorAll(
+        ".koala-maze__cell--wall:not(.koala-maze__cell--route)"
+      ));
+      corners = [
+        { x: 1, y: 1 },
+        { x: columns - 2, y: 1 },
+        { x: columns - 2, y: rows - 2 },
+        { x: 1, y: rows - 2 }
+      ];
+      huntRandom = seededRandom(mazeSeed ^ 0xD1A60);
+      board.dataset.mazeSeed = mazeSeed;
+    }
+
+    var pageParams = new URLSearchParams(window.location.search);
+    var seedValue = pageParams.get("maze");
+    var initialSeed = seedValue !== null && /^\d+$/.test(seedValue)
+      ? Number(seedValue) >>> 0
+      : (Date.now() ^ 0x404) >>> 0;
+    configureMaze(initialSeed);
+    var initialMazeMetrics = mazeMetrics(maze);
+
+    console.assert(
+      validateMaze(maze, 30, 52) &&
+      initialMazeMetrics.cycles >= 36 &&
+      initialMazeMetrics.junctions >= 50 &&
+      (
+        !pageParams.has("dev") ||
+        Array.from({ length: 24 }, function (_, index) {
+          return validateMaze(generateMaze(index * 404 + 17), 30, 52);
+        }).every(Boolean)
+      ) &&
+      playerStart && home &&
+      dumpElement && movesElement && osElement &&
+      damageLevel(3) === 0 &&
+      damageLevel(0) === 3 &&
+      playerElement.querySelector(".koala-player__dead") &&
+      grid.children.length === rows * columns &&
+      ghostStarts.length === ghostElements.length &&
+      ghostStarts.every(function (ghost, index) {
+        return ghost.x === 9 + index * 2 && ghost.y === 7;
+      }) &&
+      wallCells.length >= 12 &&
+      routeWalls.size === 47 &&
+      grid.querySelectorAll(".koala-maze__cell--route").length === routeWalls.size &&
+      powerUps.size === 2 &&
+      document.querySelectorAll("[data-bonus]").length === 3,
+      "Koala maze self-check failed"
+    );
+
+    function isOpen(x, y) {
+      return openIn(maze, x, y);
+    }
+
+    function routeDistances(origin) {
+      return distancesFor(maze, origin);
+    }
+
+    function place(element, position) {
+      element.style.left = (position.x * 100 / columns) + "%";
+      element.style.top = (position.y * 100 / maze.length) + "%";
+    }
+
+    function drawActors() {
+      place(playerElement, player);
+      ghosts.forEach(function (ghost, index) {
+        if (!devouredPredators.has(index)) place(ghostElements[index], ghost);
+      });
+    }
+
+    function lockHome() {
+      playerElement.removeAttribute("href");
+      playerElement.classList.remove("is-home");
+      playerElement.setAttribute("role", "button");
+      playerElement.setAttribute("aria-disabled", "true");
+      playerElement.setAttribute(
+        "aria-label",
+        "The koala is looking for home. Reach the eucalyptus tree to unlock it."
+      );
+    }
+
+    function unlockHome() {
+      playerElement.href = playerElement.dataset.homeUrl;
+      playerElement.classList.add("is-home");
+      playerElement.removeAttribute("role");
+      playerElement.removeAttribute("aria-disabled");
+      playerElement.setAttribute(
+        "aria-label",
+        "The koala found eucalyptus and is extremely happy. Click to return home."
+      );
+    }
+
+    function updateScore() {
+      scoreElement.textContent = String(score).padStart(4, "0");
+      movesElement.textContent = String(turn).padStart(3, "0");
+      livesElement.textContent = "♥".repeat(lives);
+      osElement.dataset.damage = damageLevel(lives);
+      dumpElement.textContent = Math.round(
+        (pelletStarts.length - pellets.size) * 100 / pelletStarts.length
+      ) + "%";
+    }
+
+    function clearWallFlashes() {
+      window.clearTimeout(wallFlashTimer);
+      wallFlashTimer = 0;
+      wallCells.forEach(function (wall) {
+        wall.classList.remove("is-power-flash");
+      });
+    }
+
+    function flashRandomWalls() {
+      clearWallFlashes();
+      void grid.offsetWidth;
+      wallCells.slice().sort(function () {
+        return Math.random() - .5;
+      }).slice(0, 12).forEach(function (wall, index) {
+        wall.style.setProperty("--wall-flash-delay", (index * 32) + "ms");
+        wall.classList.add("is-power-flash");
+      });
+      wallFlashTimer = window.setTimeout(clearWallFlashes, 1100);
+    }
+
+    function triggerPowerBurst() {
+      window.clearTimeout(powerBurstTimer);
+      board.classList.remove("is-power-burst");
+      board.style.setProperty("--burst-x", ((player.x + .5) * 100 / columns) + "%");
+      board.style.setProperty("--burst-y", ((player.y + .5) * 100 / maze.length) + "%");
+      void board.offsetWidth;
+      board.classList.add("is-power-burst");
+      powerBurstTimer = window.setTimeout(function () {
+        board.classList.remove("is-power-burst");
+      }, 650);
+    }
+
+    function devourPredator(index) {
+      var element = ghostElements[index];
+      window.clearTimeout(predatorRespawnTimers[index]);
+      devouredPredators.add(index);
+      element.classList.remove("is-devoured");
+      void element.offsetWidth;
+      element.classList.add("is-devoured");
+      predatorRespawnTimers[index] = window.setTimeout(function () {
+        element.classList.remove("is-devoured");
+        element.classList.add("is-regenerating");
+        place(element, ghostStarts[index]);
+        predatorRespawnTimers[index] = window.setTimeout(function () {
+          devouredPredators.delete(index);
+          element.classList.remove("is-regenerating");
+        }, 850);
+      }, 360);
+    }
+
+    function clearPredatorEffects() {
+      window.clearTimeout(powerBurstTimer);
+      predatorRespawnTimers.forEach(function (timer) {
+        window.clearTimeout(timer);
+      });
+      predatorRespawnTimers = [];
+      devouredPredators.clear();
+      ghostElements.forEach(function (element) {
+        element.classList.remove(
+          "is-devoured",
+          "is-regenerating",
+          "is-swooping",
+          "is-tracking"
+        );
+        delete element.dataset.motion;
+      });
+      board.classList.remove("is-power-burst", "is-power-warning");
+    }
+
+    function resetPositions() {
+      player = { x: playerStart.x, y: playerStart.y };
+      ghosts = ghostStarts.map(function (ghost) {
+        return { x: ghost.x, y: ghost.y };
+      });
+      ghostPrevious = ghostStarts.map(function (ghost) {
+        return { x: ghost.x, y: ghost.y };
+      });
+      drawActors();
+    }
+
+    function loseLife() {
+      lives -= 1;
+      updateScore();
+      board.classList.add("is-caught");
+      window.setTimeout(function () {
+        board.classList.remove("is-caught");
+      }, 500);
+
+      if (lives === 0) {
+        running = false;
+        stopGhosts();
+        board.classList.add("is-lost");
+        lockHome();
+        playerElement.setAttribute(
+          "aria-label",
+          "The koala is defeated and extremely sad. Press R or reset to try again."
+        );
+        dumpElement.textContent = "FAILED";
+        statusElement.textContent = "WASTED — ALL KOALA LIVES LOST. PRESS R OR RESET.";
+        return;
+      }
+
+      statusElement.textContent = "DINGO OR EAGLE CAUGHT YOU — " + lives + " LIVES REMAIN.";
+      graceTicks = 3;
+      resetPositions();
+    }
+
+    function resolveCollision() {
+      var caughtGhosts = [];
+      ghosts.forEach(function (ghost, index) {
+        if (
+          !devouredPredators.has(index) &&
+          ghost.x === player.x &&
+          ghost.y === player.y
+        ) {
+          caughtGhosts.push(index);
+        }
+      });
+
+      if (caughtGhosts.length === 0) return false;
+
+      if (panicTicks > 0) {
+        caughtGhosts.forEach(function (index) {
+          devourPredator(index);
+          ghosts[index] = {
+            x: ghostStarts[index].x,
+            y: ghostStarts[index].y
+          };
+          ghostPrevious[index] = {
+            x: ghostStarts[index].x,
+            y: ghostStarts[index].y
+          };
+        });
+        score += caughtGhosts.length * 200;
+        updateScore();
+        statusElement.textContent = "PREDATOR EATEN — +" +
+          (caughtGhosts.length * 200) + "; REGENERATING IN THE 0.";
+        return false;
+      }
+
+      loseLife();
+      return true;
+    }
+
+    function eagleIsSwooping(playerDistances) {
+      var eagle = ghosts[1];
+      var distance = playerDistances.get(key(eagle.x, eagle.y)) || Infinity;
+      return distance <= 6 ||
+        (
+          distance <= 10 &&
+          (eagle.x === player.x || eagle.y === player.y)
+        );
+    }
+
+    function ghostTarget(index, playerDistances) {
+      if (index === 1) {
+        return eagleIsSwooping(playerDistances)
+          ? { x: player.x, y: player.y }
+          : corners[(Math.floor(ghostTick / 5) + 1) % corners.length];
+      }
+
+      var direction = lastDirection;
+      var target = { x: player.x, y: player.y };
+      var steps = ghostTick % 14 >= 11 ? 1 : 3;
+
+      while (steps > 0 && isOpen(target.x + direction.x, target.y + direction.y)) {
+        target.x += direction.x;
+        target.y += direction.y;
+        steps -= 1;
+      }
+
+      return target;
+    }
+
+    function ghostMoveScore(
+      targetDistance,
+      playerDistance,
+      reversing,
+      reserved,
+      powered,
+      crowded,
+      jitter
+    ) {
+      var value = powered ? playerDistance * 5 : -targetDistance * 2;
+      if (crowded && playerDistance < 3) value -= (3 - playerDistance) * 7;
+      if (reversing) value -= 3;
+      if (reserved) value -= 8;
+      return value + jitter;
+    }
+
+    console.assert(
+      ghostMoveScore(1, 5, false, false, false, false, 0) >
+        ghostMoveScore(4, 5, false, false, false, false, 0) &&
+      ghostMoveScore(4, 6, false, false, true, false, 0) >
+        ghostMoveScore(4, 2, false, false, true, false, 0),
+      "Koala ghost heuristic self-check failed"
+    );
+
+    function moveGhost(ghost, index, playerDistances, reserved) {
+      var choices = directions.map(function (direction) {
+        return { x: ghost.x + direction[0], y: ghost.y + direction[1] };
+      }).filter(function (position) {
+        return isOpen(position.x, position.y);
+      });
+
+      var targetDistances = routeDistances(ghostTarget(index, playerDistances));
+      var crowded = ghosts.some(function (other, otherIndex) {
+        return otherIndex !== index &&
+          playerDistances.get(key(other.x, other.y)) <= 2;
+      });
+      var previous = ghostPrevious[index];
+
+      choices = choices.map(function (choice) {
+        var choiceKey = key(choice.x, choice.y);
+        return {
+          position: choice,
+          score: ghostMoveScore(
+            targetDistances.get(choiceKey),
+            playerDistances.get(choiceKey),
+            choice.x === previous.x && choice.y === previous.y,
+            reserved.has(choiceKey),
+            panicTicks > 0,
+            crowded,
+            huntRandom() * 1.5
+          )
+        };
+      }).sort(function (a, b) {
+        return b.score - a.score;
+      });
+
+      var oldX = ghost.x;
+      var oldY = ghost.y;
+      ghostPrevious[index] = { x: oldX, y: oldY };
+      ghost.x = choices[0].position.x;
+      ghost.y = choices[0].position.y;
+      ghostElements[index].dataset.motion = ghost.x < oldX
+        ? "left"
+        : ghost.x > oldX
+          ? "right"
+          : ghost.y < oldY
+            ? "up"
+            : "down";
+      reserved.add(key(ghost.x, ghost.y));
+    }
+
+    function moveGhosts() {
+      if (!running || document.hidden) return;
+      if (graceTicks > 0) {
+        graceTicks -= 1;
+        return;
+      }
+
+      ghostTick += 1;
+      var playerDistances = routeDistances(player);
+      var swooping = eagleIsSwooping(playerDistances);
+      var reserved = new Set();
+      ghostElements[0].classList.toggle(
+        "is-tracking",
+        (playerDistances.get(key(ghosts[0].x, ghosts[0].y)) || Infinity) <= 8
+      );
+      ghostElements[1].classList.toggle("is-swooping", swooping);
+      ghosts.forEach(function (ghost, index) {
+        if (
+          !devouredPredators.has(index) &&
+          (index === 0 || swooping || ghostTick % 2 === 0)
+        ) {
+          moveGhost(ghost, index, playerDistances, reserved);
+        }
+      });
+      var wasPowered = panicTicks > 0;
+      panicTicks = Math.max(0, panicTicks - 1);
+      board.classList.toggle("is-powered", panicTicks > 0);
+      board.classList.toggle("is-power-warning", panicTicks > 0 && panicTicks <= 5);
+      drawActors();
+      if (resolveCollision()) return;
+      if (wasPowered && panicTicks === 0) {
+        statusElement.textContent = "BOOST EXPIRED — DINGO + EAGLE RESUMED PATROL.";
+      }
+    }
+
+    function startGhosts() {
+      if (ghostsStarted || !running) return;
+      ghostsStarted = true;
+      ghostTimer = window.setInterval(moveGhosts, 320);
+    }
+
+    function stopGhosts() {
+      window.clearInterval(ghostTimer);
+      ghostTimer = 0;
+      ghostsStarted = false;
+    }
+
+    function movePlayer(dx, dy) {
+      if (!running) return;
+
+      var x = player.x + dx;
+      var y = player.y + dy;
+      if (!isOpen(x, y)) {
+        statusElement.textContent = "WALL DETECTED — TRY ANOTHER ROUTE.";
+        return;
+      }
+
+      startGhosts();
+      player = { x: x, y: y };
+      lastDirection = { x: dx, y: dy };
+      turn += 1;
+      drawActors();
+
+      var pellet = key(x, y);
+      var boost = powerUps.get(pellet);
+      var bonus = bonusValues[maze[y][x]];
+      var collected = pellets.delete(pellet);
+      if (collected) {
+        score += boost ? 75 : bonus ? bonus[1] : 10;
+        if (boost) {
+          panicTicks = boost === "meat pie" ? 28 : 22;
+          board.classList.add("is-powered");
+          board.classList.remove("is-power-warning");
+          flashRandomWalls();
+          triggerPowerBurst();
+        }
+        document.querySelector('[data-pellet="' + pellet + '"]').classList.add("is-eaten");
+        updateScore();
+      }
+
+      if (resolveCollision()) return;
+
+      if (player.x === home.x && player.y === home.y) {
+        running = false;
+        stopGhosts();
+        board.classList.add("is-won");
+        unlockHome();
+        dumpElement.textContent = "100%";
+        statusElement.textContent = "EUCALYPTUS HOME FOUND — CLICK THE SAFE KOALA TO REBOOT.";
+      } else if (pellets.size === 0) {
+        statusElement.textContent = "ALL SIGNALS RECOVERED — NOW REACH THE EUCALYPTUS TREE.";
+      } else if (boost) {
+        statusElement.textContent = boost.toUpperCase() +
+          " OVERCLOCK — 404 BRICKS SURGING; PREDATORS FRIGHTENED.";
+      } else if (collected && bonus) {
+        statusElement.textContent = bonus[0] + " BONUS — +" + bonus[1] + ".";
+      } else {
+        statusElement.textContent = panicTicks > 0
+          ? "PREDATORS FLEEING — " + panicTicks + " TICKS."
+          : "DINGO + EAGLE ARE HUNTING — SIGNALS LEFT: " + pellets.size;
+      }
+    }
+
+    function resetGame(regenerate) {
+      stopGhosts();
+      clearWallFlashes();
+      clearPredatorEffects();
+      if (regenerate !== false) {
+        mazeGeneration += 1;
+        configureMaze((
+          initialSeed + Math.imul(mazeGeneration, 0x9E3779B9)
+        ) >>> 0);
+      }
+      score = 0;
+      lives = 3;
+      turn = 0;
+      running = true;
+      panicTicks = 0;
+      ghostTick = 0;
+      graceTicks = 0;
+      lastDirection = { x: 1, y: 0 };
+      pellets = new Set(pelletStarts);
+      board.classList.remove("is-won", "is-caught", "is-powered", "is-lost");
+      lockHome();
+      document.querySelectorAll("[data-pellet]").forEach(function (pellet) {
+        pellet.classList.remove("is-eaten");
+      });
+      resetPositions();
+      updateScore();
+      statusElement.textContent =
+        "MOVE TO BOOT RECOVERY. DINGO + EAGLE WILL DEPLOY FROM THE 0.";
+    }
+
+    document.querySelectorAll("[data-move]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        var movement = button.dataset.move.split(",").map(Number);
+        movePlayer(movement[0], movement[1]);
+      });
+    });
+
+    document.getElementById("koala-reset").addEventListener("click", resetGame);
+
+    playerElement.addEventListener("click", function (event) {
+      if (!playerElement.classList.contains("is-home")) {
+        event.preventDefault();
+        statusElement.textContent = "KOALA NEEDS EUCALYPTUS — REACH THE TREE FIRST.";
+      }
+    });
+
+    playerElement.addEventListener("keydown", function (event) {
+      if (
+        !playerElement.classList.contains("is-home") &&
+        (event.key === "Enter" || event.key === " ")
+      ) {
+        event.preventDefault();
+        playerElement.click();
+      }
+    });
+
+    window.addEventListener("keydown", function (event) {
+      if (event.code === "KeyR") {
+        event.preventDefault();
+        resetGame();
+        return;
+      }
+
+      var moves = {
+        ArrowUp: [0, -1],
+        KeyW: [0, -1],
+        ArrowLeft: [-1, 0],
+        KeyA: [-1, 0],
+        ArrowDown: [0, 1],
+        KeyS: [0, 1],
+        ArrowRight: [1, 0],
+        KeyD: [1, 0]
+      };
+      var movement = moves[event.code];
+      if (!movement) return;
+      event.preventDefault();
+      movePlayer(movement[0], movement[1]);
+    });
+
+    resetGame(false);
+  }());
+</script>
 {% endblock %}
