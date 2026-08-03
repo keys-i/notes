@@ -75,10 +75,18 @@ var powerBurstTimer;
 var predatorRespawnTimers = [];
 var winTimers = [];
 var winLayer;
+var thanosVeil;
+var slowUntil = 0;
+var nextMoveAt = 0;
+var grayStacks = 0;
+var auraTimer;
+var eyeQueues = [];
 var devoured = new Set();
 var ghostsStarted;
 var graceTicks;
 var lastDirection;
+var ntPanel = document.querySelector(".trace--nt");
+var ghostPen;
 
 function point(coordinates) {
   return { x: coordinates[0], y: coordinates[1] };
@@ -87,6 +95,21 @@ function point(coordinates) {
 function key(x, y) {
   return x + "," + y;
 }
+
+ghostPen = new Set(
+  settings.landmark.ghosts.map(function (ghost) {
+    return key(ghost[0], ghost[1]);
+  })
+);
+// Door cell inside the 0 stays predator-only; barrier sits one block down.
+ghostPen.add(key(
+  settings.landmark.pen_exit[0][0],
+  settings.landmark.ghosts[0][1]
+));
+ghostPen.add(key(
+  settings.landmark.pen_exit[0][0],
+  settings.landmark.ghosts[0][1] + 1
+));
 
 function damageLevel(remainingLives) {
   return Math.max(0, Math.min(3, settings.play.lives - remainingLives));
@@ -144,8 +167,26 @@ function seedHex(salt) {
   ).toString(16).padStart(8, "0");
 }
 
+function predatorState(index) {
+  var element = ghostElements[index];
+  if (!element) return "OFFLINE";
+  if (element.classList.contains("devoured")) return "EYES";
+  if (element.classList.contains("regenerating")) return "REGEN";
+  if (element.classList.contains("recovered")) return "RECOVER";
+  if (element.classList.contains("swooping")) return "SWOOP";
+  if (element.classList.contains("tracking")) return "TRACK";
+  return panicTicks > 0 ? "SCARED" : "RUN";
+}
+
+function actorCell(actor) {
+  actor = actor || playerOrigin;
+  return String(actor.x).padStart(2, "0") + "," + String(actor.y).padStart(2, "0");
+}
+
 function ntDump(position) {
   position = position || player || playerOrigin;
+  var dingo = (ghosts && ghosts[0]) || ghostStarts[0] || playerOrigin;
+  var eagle = (ghosts && ghosts[1]) || ghostStarts[1] || playerOrigin;
   return [
     "*** STOP: 0x00000019 (0x00000003, 0x" +
       hex32(1, position).toUpperCase() + ",",
@@ -154,15 +195,19 @@ function ntDump(position) {
     "BAD_POOL_HEADER",
     "",
     "PROCESS_NAME: kradkrnl.ko  PID: 404",
-    "maze0 cell=" + String(position.x).padStart(2, "0") + "," +
-      String(position.y).padStart(2, "0") +
-      " turn=" + String(turn || 0).padStart(3, "0"),
-    "eax=" + hex32(4, position) + " ebx=" + hex32(5, position) +
-      " ecx=" + hex32(6, position),
-    "edx=" + hex32(7, position) + " esi=" + hex32(8, position) +
-      " edi=" + hex32(9, position),
-    "eip=" + hex32(10, position) + " esp=" + hex32(11, position) +
-      " ebp=" + hex32(12, position) + " p4=0002",
+    "kradkrnl.ko cell=" + actorCell(position) +
+      " turn=" + String(turn || 0).padStart(3, "0") +
+      " state=KOALA",
+    "dingo.exe   cell=" + actorCell(dingo) +
+      " state=" + predatorState(0),
+    "eagle.sys   cell=" + actorCell(eagle) +
+      " state=" + predatorState(1),
+    "eax=" + hex32(4, position) + " ebx=" + hex32(5, dingo) +
+      " ecx=" + hex32(6, eagle),
+    "edx=" + hex32(7, position) + " esi=" + hex32(8, dingo) +
+      " edi=" + hex32(9, eagle),
+    "eip=" + hex32(10, position) + " esp=" + hex32(11, dingo) +
+      " ebp=" + hex32(12, eagle) + " p4=0002",
     "nv up ei ng nz na po nc",
     "cr0=80050039 cr2=" + hex32(13, position) +
       " cr3=00030000 cr4=00000000 irql:0",
@@ -171,41 +216,70 @@ function ntDump(position) {
     "gdtl=03ff idtr=80036400 idtl=07ff tr=0028 ldtr=0000",
     "",
     "Dll Base  DateStmp - Name",
-    moduleBase(0x80100000, 15, position) + "  2c921d20 - ntoskrnl.exe",
+    moduleBase(0x80100000, 15, position) + "  2c921d20 - kroskrnl.sys",
     moduleBase(0x80010000, 16, position) + "  02360942 - atdisk.sys",
-    moduleBase(0x801e6000, 17, position) + "  2c42f49a - fastfat.sys",
-    moduleBase(0x80400000, 18, position) + "  2c7d4b45 - hal.dll",
-    moduleBase(0x80001000, 19, position) + "  2c87e0ab - ftdisk.sys",
-    moduleBase(0x80200000, 20, position) + "  " + seedHex(20) + " - pacman.ko",
-    moduleBase(0x80300000, 21, position) + "  " + seedHex(21) + " - koala.ko",
-    moduleBase(0x80400000, 22, position) + "  " + seedHex(22) + " - vrbik.ko",
+    moduleBase(0x80200000, 20, dingo) + "  " + seedHex(20) + " - dingo.exe",
+    moduleBase(0x80300000, 21, eagle) + "  " + seedHex(21) + " - eagle.sys",
+    moduleBase(0x80400000, 22, position) + "  " + seedHex(22) + " - koala.ko",
     moduleBase(0x80500000, 23, position) + "  " + seedHex(23) + " - kradkrnl.ko",
     "",
     "Address dword dump  Build [v1.528]",
     "- Name",
     hex32(27, position) + " " + hex32(28, position) + " " +
       hex32(29, position) + " " + hex32(30, position) +
-      " - kradkrnl.ko",
-    hex32(31, position) + " " + hex32(32, position) + " " +
-      hex32(33, position) + " " + hex32(34, position) +
-      " - pacman.ko",
-    hex32(35, position) + " " + hex32(36, position) + " " +
-      hex32(37, position) + " " + hex32(38, position) +
-      " - koala.ko",
-    hex32(39, position) + " " + hex32(40, position) + " " +
-      hex32(41, position) + " " + hex32(42, position) +
-      " - vrbik.ko",
-    hex32(43, position) + " " + hex32(44, position) + " " +
-      hex32(45, position) + " " + hex32(46, position) +
-      " - ntoskrnl.exe"
+      " - kradkrnl.ko @" + actorCell(position),
+    hex32(31, dingo) + " " + hex32(32, dingo) + " " +
+      hex32(33, dingo) + " " + hex32(34, dingo) +
+      " - dingo.exe @" + actorCell(dingo) + " " + predatorState(0),
+    hex32(35, eagle) + " " + hex32(36, eagle) + " " +
+      hex32(37, eagle) + " " + hex32(38, eagle) +
+      " - eagle.sys @" + actorCell(eagle) + " " + predatorState(1),
+    hex32(39, position) + " " + hex32(40, dingo) + " " +
+      hex32(41, eagle) + " " + hex32(42, position) +
+      " - routecache.ko"
   ].join("\n");
 }
 
+function predatorNear(actor) {
+  return Math.abs(actor.x - player.x) + Math.abs(actor.y - player.y) <= 1;
+}
+
 function updateCrashTelemetry() {
-  var state = settings.seed + ":" + key(player.x, player.y) + ":" + turn;
+  var dingo = (ghosts && ghosts[0]) || ghostStarts[0] || playerOrigin;
+  var eagle = (ghosts && ghosts[1]) || ghostStarts[1] || playerOrigin;
+  var nearDingo = predatorNear(dingo) && !devoured.has(0);
+  var nearEagle = predatorNear(eagle) && !devoured.has(1);
+  var state = [
+    settings.seed,
+    key(player.x, player.y),
+    key(dingo.x, dingo.y),
+    key(eagle.x, eagle.y),
+    turn,
+    predatorState(0),
+    predatorState(1),
+    nearDingo ? 1 : 0,
+    nearEagle ? 1 : 0
+  ].join(":");
   if (crashState === state) return;
   crashState = state;
-  stopElement.textContent = ntDump();
+  var dump = document.createDocumentFragment();
+  ntDump().split("\n").forEach(function (line, index) {
+    if (index) dump.append("\n");
+    var span = document.createElement("span");
+    span.textContent = line;
+    if (nearDingo && line.indexOf("dingo.exe") >= 0) {
+      span.className = "threat-flash threat-flash--dingo";
+    }
+    if (nearEagle && line.indexOf("eagle.sys") >= 0) {
+      span.className = "threat-flash threat-flash--eagle";
+    }
+    dump.append(span);
+  });
+  stopElement.replaceChildren(dump);
+  if (ntPanel) {
+    ntPanel.classList.toggle("alert-dingo", nearDingo);
+    ntPanel.classList.toggle("alert-eagle", nearEagle);
+  }
 }
 
 function shuffle(values, random) {
@@ -224,6 +298,33 @@ function inLandmarkHalo(x, y) {
 function openIn(map, x, y) {
   var cell = map[y] && map[y][x];
   return Boolean(cell && cell !== "#");
+}
+
+function playerMayEnter(map, x, y) {
+  return openIn(map, x, y) && !ghostPen.has(key(x, y));
+}
+
+function shortestPath(map, origin, goal) {
+  var parents = new Map([[key(origin.x, origin.y), null]]);
+  var queue = [{ x: origin.x, y: origin.y }];
+  var goalKey = key(goal.x, goal.y);
+  for (var cursor = 0; cursor < queue.length; cursor += 1) {
+    var current = queue[cursor];
+    if (key(current.x, current.y) === goalKey) break;
+    neighboursIn(map, current).forEach(function (next) {
+      var nextKey = key(next.x, next.y);
+      if (parents.has(nextKey)) return;
+      parents.set(nextKey, current);
+      queue.push(next);
+    });
+  }
+  if (!parents.has(goalKey)) return [];
+  var path = [];
+  for (var node = goal; node; node = parents.get(key(node.x, node.y))) {
+    path.push({ x: node.x, y: node.y });
+  }
+  path.reverse();
+  return path.slice(1);
 }
 
 function stepIn(map, position, direction) {
@@ -293,7 +394,7 @@ function openBranches(cells, origin, branches) {
   });
 }
 
-function braidMaze(cells, random) {
+function braidMaze(cells, random, seed) {
   var candidates = [];
   for (var y = 1; y < rows - 1; y += 1) {
     for (var x = 1; x < columns - 1; x += 1) {
@@ -306,15 +407,17 @@ function braidMaze(cells, random) {
       }
       var horizontal = openIn(cells, x - 1, y) && openIn(cells, x + 1, y);
       var vertical = openIn(cells, x, y - 1) && openIn(cells, x, y + 1);
-      if (horizontal !== vertical) candidates.push([x, y]);
+      if (horizontal || vertical) candidates.push([x, y]);
     }
   }
 
+  var braid = settings.heuristic.braid;
+  var target = settings.map.minimum_cycles + braid.extra_min +
+    (mixSeed(seed) % braid.extra_span);
   shuffle(candidates, random);
   for (
     var index = 0;
-    index < candidates.length &&
-      cycleCount(cells) < settings.map.minimum_cycles;
+    index < candidates.length && cycleCount(cells) < target;
     index += 1
   ) {
     cells[candidates[index][1]][candidates[index][0]] = ".";
@@ -482,7 +585,8 @@ function buildMaze(seed, selectedTunnelRow) {
   openBranches(cells, homeOrigin, [[-1, 0], [0, -1]]);
   braidMaze(
     cells,
-    seededRandom(seed, settings.random.streams.loops)
+    seededRandom(seed, settings.random.streams.loops),
+    seed
   );
 
   if (selectedTunnelRow >= 0) {
@@ -495,6 +599,13 @@ function buildMaze(seed, selectedTunnelRow) {
   for (var y = landmarkBounds.top; y <= landmarkBounds.bottom; y += 1) {
     for (var x = landmarkBounds.left; x <= landmarkBounds.right; x += 1) {
       if (cells[y][x] === ".") cells[y][x] = "+";
+      // Keep pen free of ordinary blue maze walls.
+      if (
+        cells[y][x] === "#" &&
+        !routeWalls.has(key(x, y))
+      ) {
+        cells[y][x] = "+";
+      }
     }
   }
   cells[playerOrigin.y][playerOrigin.x] = "P";
@@ -512,10 +623,43 @@ function buildMaze(seed, selectedTunnelRow) {
     positions,
     seededRandom(seed, settings.random.streams.symbols)
   );
+  stampRandomisers(
+    cells,
+    seededRandom(seed, settings.random.streams.effects),
+    seed
+  );
 
   return cells.map(function (row) {
     return row.join("");
   });
+}
+
+function besideWall(cells, x, y) {
+  return directions.some(function (direction) {
+    var nx = x + direction[0];
+    var ny = y + direction[1];
+    return cells[ny] && cells[ny][nx] === "#";
+  });
+}
+
+function stampRandomisers(cells, random, seed) {
+  var homeDistances = distancesFor(cells, homeOrigin);
+  var candidates = [];
+  cells.forEach(function (row, y) {
+    row.forEach(function (cell, x) {
+      if (cell !== "." && cell !== "+") return;
+      if (inLandmarkHalo(x, y) || ghostPen.has(key(x, y))) return;
+      if (!besideWall(cells, x, y)) return;
+      var distance = homeDistances.get(key(x, y));
+      if (!(distance > 3)) return;
+      candidates.push([x, y]);
+    });
+  });
+  shuffle(candidates, random);
+  var count = 1 + mixSeed(seed ^ 0x52414E44) % 2;
+  for (var index = 0; index < count && index < candidates.length; index += 1) {
+    cells[candidates[index][1]][candidates[index][0]] = "R";
+  }
 }
 
 function routeOptions(candidate, origin, target) {
@@ -526,19 +670,66 @@ function routeOptions(candidate, origin, target) {
   }).length;
 }
 
+function pathShape(candidate, origin, goal) {
+  var parents = new Map([[key(origin.x, origin.y), null]]);
+  var queue = [{ x: origin.x, y: origin.y }];
+  var goalKey = key(goal.x, goal.y);
+  for (var cursor = 0; cursor < queue.length; cursor += 1) {
+    var current = queue[cursor];
+    if (key(current.x, current.y) === goalKey) break;
+    neighboursIn(candidate, current).forEach(function (next) {
+      var nextKey = key(next.x, next.y);
+      if (parents.has(nextKey)) return;
+      parents.set(nextKey, current);
+      queue.push(next);
+    });
+  }
+  if (!parents.has(goalKey)) {
+    return { turns: 0, longestStraight: 0 };
+  }
+  var path = [];
+  for (var node = goal; node; node = parents.get(key(node.x, node.y))) {
+    path.push(node);
+  }
+  path.reverse();
+  var turns = 0;
+  var straight = 1;
+  var longest = 1;
+  for (var index = 2; index < path.length; index += 1) {
+    var prior = path[index - 2];
+    var mid = path[index - 1];
+    var next = path[index];
+    var dx0 = mid.x - prior.x;
+    var dy0 = mid.y - prior.y;
+    var dx1 = next.x - mid.x;
+    var dy1 = next.y - mid.y;
+    if (dx0 !== dx1 || dy0 !== dy1) {
+      turns += 1;
+      straight = 1;
+    } else {
+      straight += 1;
+      if (straight > longest) longest = straight;
+    }
+  }
+  return { turns: turns, longestStraight: longest };
+}
+
 function mazeMetrics(candidate) {
   var distances = distancesFor(candidate, playerOrigin);
+  var shape = pathShape(candidate, playerOrigin, homeOrigin);
   var metrics = {
     deadEnds: 0,
     fourWays: 0,
     homeOptions: routeOptions(candidate, homeOrigin, playerOrigin),
     junctions: 0,
+    longestStraight: shape.longestStraight,
     nodes: 0,
     playerOptions: routeOptions(candidate, playerOrigin, homeOrigin),
     powerDistance: 0,
     pickupQuadrants: new Set(),
     reachable: distances.size,
-    pathLength: distances.get(key(homeOrigin.x, homeOrigin.y)) || 0
+    pathLength: distances.get(key(homeOrigin.x, homeOrigin.y)) || 0,
+    turns: shape.turns
   };
   var links = 0;
   var powers = [];
@@ -567,6 +758,7 @@ function mazeMetrics(candidate) {
     });
   });
   metrics.cycles = links - metrics.nodes + 1;
+  metrics.chambers = chamberPenalty(candidate);
   if (powers.length === 2) {
     metrics.powerDistance = Math.abs(powers[0].x - powers[1].x) +
       Math.abs(powers[0].y - powers[1].y);
@@ -574,7 +766,103 @@ function mazeMetrics(candidate) {
   return metrics;
 }
 
-function validateMaze(candidate) {
+function chamberPenalty(candidate) {
+  var penalty = 0;
+  settings.heuristic.chambers.forEach(function (shape) {
+    var width = shape.width;
+    var height = shape.height;
+    var weight = shape.weight;
+    for (var y = 1; y <= rows - 1 - height; y += 1) {
+      for (var x = 1; x <= columns - 1 - width; x += 1) {
+        var open = true;
+        for (var dy = 0; dy < height && open; dy += 1) {
+          for (var dx = 0; dx < width; dx += 1) {
+            if (
+              !openIn(candidate, x + dx, y + dy) ||
+              inLandmarkHalo(x + dx, y + dy) ||
+              candidate[y + dy][x + dx] === "T"
+            ) {
+              open = false;
+              break;
+            }
+          }
+        }
+        if (open) penalty += weight;
+      }
+    }
+  });
+  return penalty;
+}
+
+function jitteredWeight(base, span, lane, mix) {
+  return base + ((mix >>> lane) % Math.max(1, span | 0));
+}
+
+function mazeHeuristic(metrics, seed, hasTunnel) {
+  var heuristic = settings.heuristic;
+  var rewards = heuristic.rewards;
+  var penalties = heuristic.penalties;
+  var combos = heuristic.combos;
+  var mix = mixSeed(seed ^ heuristic.seed_mix);
+  var idealWeight = heuristic.path_ideal_min_weight +
+    heuristic.path_ideal_max_weight;
+  var ideal = (
+    settings.map.minimum_path * heuristic.path_ideal_min_weight +
+    settings.map.maximum_path * heuristic.path_ideal_max_weight
+  ) / idealWeight;
+  var pathError = Math.abs(metrics.pathLength - ideal);
+  var openness = metrics.nodes
+    ? metrics.chambers / metrics.nodes
+    : 0;
+  var options = metrics.playerOptions + metrics.homeOptions;
+  var score = 0;
+
+  score += metrics.junctions * jitteredWeight(
+    rewards.junctions, rewards.junctions_jitter, 9, mix
+  );
+  score += metrics.cycles * jitteredWeight(
+    rewards.cycles, rewards.cycles_jitter, 0, mix
+  );
+  score += metrics.turns * jitteredWeight(
+    rewards.turns, rewards.turns_jitter, 21, mix
+  );
+  score += options * jitteredWeight(
+    rewards.options, rewards.options_jitter, 12, mix
+  );
+  score += Math.min(metrics.pathLength, settings.map.maximum_path) *
+    jitteredWeight(rewards.path, rewards.path_jitter, 15, mix);
+
+  score -= metrics.deadEnds * jitteredWeight(
+    penalties.dead_ends, penalties.dead_ends_jitter, 3, mix
+  );
+  score -= metrics.fourWays * jitteredWeight(
+    penalties.four_ways, penalties.four_ways_jitter, 6, mix
+  );
+  score -= Math.max(0, metrics.longestStraight - penalties.straight_free) *
+    jitteredWeight(penalties.straight, penalties.straight_jitter, 18, mix);
+  score -= metrics.chambers * jitteredWeight(
+    penalties.chambers, penalties.chambers_jitter, 24, mix
+  );
+  score -= pathError * heuristic.path_deviation;
+
+  // Nonlinear epic combos — reward intertwined topology, tax mushy openness.
+  score += metrics.turns * metrics.cycles * combos.twist_cycle;
+  score += metrics.junctions * options * combos.junction_options;
+  score += metrics.junctions * metrics.cycles * combos.route_richness;
+  score -= metrics.deadEnds * metrics.chambers * combos.dead_chamber_stack;
+  score -= metrics.fourWays * metrics.fourWays * combos.four_way_tax;
+  score -= openness * metrics.nodes * combos.openness_ratio;
+  if (pathError <= 4) score += combos.balanced_path_bonus;
+  if (hasTunnel) {
+    score += heuristic.tunnel_bonus;
+    score += metrics.turns * combos.tunnel_twist_bonus;
+  }
+  if (isStrictMetrics(metrics)) score += heuristic.strict_bonus;
+
+  return score;
+}
+
+function validateMaze(candidate, strict) {
   if (
     candidate.length !== rows ||
     candidate.some(function (row) { return row.length !== columns; }) ||
@@ -630,18 +918,50 @@ function validateMaze(candidate) {
     return false;
   }
 
+  if (tunnelCells.length === 2) {
+    var homeKey = key(homeOrigin.x, homeOrigin.y);
+    var tunnelY = tunnelCells[0][1];
+    var afterLeft = distancesFor(
+      candidate,
+      { x: columns - 1, y: tunnelY }
+    ).get(homeKey) || 0;
+    var afterRight = distancesFor(
+      candidate,
+      { x: 0, y: tunnelY }
+    ).get(homeKey) || 0;
+    if (
+      Math.min(afterLeft, afterRight) <=
+      settings.heuristic.tunnel.minimum_home_distance
+    ) {
+      return false;
+    }
+  }
+
   var metrics = mazeMetrics(candidate);
-  return metrics.reachable === metrics.nodes &&
-    metrics.pathLength >= settings.map.minimum_path &&
-    metrics.pathLength <= settings.map.maximum_path &&
-    metrics.pickupQuadrants.size === 4 &&
-    metrics.powerDistance >= settings.pickups.minimum_spacing &&
-    metrics.cycles >= settings.map.minimum_cycles &&
-    metrics.junctions >= settings.map.minimum_junctions &&
-    metrics.playerOptions >= settings.map.route_options &&
-    metrics.homeOptions >= settings.map.route_options
-    ? metrics
-    : false;
+  if (
+    metrics.reachable !== metrics.nodes ||
+    metrics.pathLength < settings.map.minimum_path ||
+    metrics.pathLength > settings.map.maximum_path ||
+    metrics.pickupQuadrants.size !== 4 ||
+    metrics.powerDistance < settings.pickups.minimum_spacing ||
+    metrics.cycles < settings.map.minimum_cycles ||
+    metrics.junctions < settings.map.minimum_junctions ||
+    metrics.playerOptions < settings.map.route_options ||
+    metrics.homeOptions < settings.map.route_options
+  ) {
+    return false;
+  }
+  if (strict === false) return metrics;
+  return isStrictMetrics(metrics) ? metrics : false;
+}
+
+function isStrictMetrics(metrics) {
+  var strict = settings.heuristic.strict;
+  return metrics.turns >= strict.minimum_turns &&
+    metrics.longestStraight <= strict.maximum_straight &&
+    metrics.deadEnds <= strict.maximum_dead_ends &&
+    metrics.fourWays <= strict.maximum_four_ways &&
+    metrics.chambers <= strict.maximum_chambers;
 }
 
 function generateMaze(seed) {
@@ -653,27 +973,27 @@ function generateMaze(seed) {
     var candidateSeed = (
       seed + Math.imul(attempt, settings.random.generation_step)
     ) >>> 0;
-    var selectedTunnelRow = hasTunnel
-      ? jacobianTunnel(candidateSeed, true)
-      : -1;
-    var candidate = buildMaze(candidateSeed, selectedTunnelRow);
-    if (!candidate) continue;
-    var metrics = validateMaze(candidate);
-    if (!metrics) continue;
-    var score = metrics.junctions * 6 +
-      metrics.cycles * 4 -
-      metrics.deadEnds * 3 -
-      metrics.fourWays * 2 -
-      Math.abs(
-        metrics.pathLength -
-        (settings.map.minimum_path + settings.map.maximum_path) / 2
+    var tunnelChoices = hasTunnel
+      ? [jacobianTunnel(candidateSeed, true), -1]
+      : [-1];
+    for (var tunnelIndex = 0; tunnelIndex < tunnelChoices.length; tunnelIndex += 1) {
+      var selectedTunnelRow = tunnelChoices[tunnelIndex];
+      var candidate = buildMaze(candidateSeed, selectedTunnelRow);
+      if (!candidate) continue;
+      var metrics = validateMaze(candidate, false);
+      if (!metrics) continue;
+      var score = mazeHeuristic(
+        metrics,
+        candidateSeed,
+        selectedTunnelRow >= 0
       );
-    if (score > bestScore) {
-      best = {
-        maze: candidate,
-        tunnelRow: selectedTunnelRow
-      };
-      bestScore = score;
+      if (score > bestScore) {
+        best = {
+          maze: candidate,
+          tunnelRow: selectedTunnelRow
+        };
+        bestScore = score;
+      }
     }
   }
 
@@ -690,18 +1010,30 @@ function renderMaze() {
       var item = pickupBySymbol.get(cell);
       tile.className = "maze__cell";
       if (cell === "#") {
+        var isRoute = routeWalls.has(key(x, y));
         tile.classList.add("maze__cell--wall");
-        directions.forEach(function (direction, index) {
-          if (
-            maze[y + direction[1]] &&
-            maze[y + direction[1]][x + direction[0]] === "#"
-          ) {
-            tile.classList.add("joins-" + joinNames[index]);
-          }
-        });
-        if (routeWalls.has(key(x, y))) {
+        if (isRoute) {
           tile.classList.add("maze__cell--route");
+        } else if (!inLandmarkHalo(x, y) && !ghostPen.has(key(x, y))) {
+          directions.forEach(function (direction, index) {
+            var nx = x + direction[0];
+            var ny = y + direction[1];
+            if (maze[ny] && maze[ny][nx] === "#") {
+              tile.classList.add("joins-" + joinNames[index]);
+            }
+          });
         }
+      }
+      if (cell === "R") {
+        tile.classList.add("maze__cell--randomiser");
+        tile.title = "Gray randomiser tunnel";
+      }
+      if (
+        x === settings.landmark.pen_exit[0][0] &&
+        y === settings.landmark.ghosts[0][1] + 1
+      ) {
+        tile.classList.add("maze__cell--barrier");
+        tile.title = "Pen barrier";
       }
       if (cell === "." || item) {
         tile.classList.add("maze__cell--pellet");
@@ -801,11 +1133,28 @@ function place(element, position) {
   }
 }
 
+function updateKoalaFear() {
+  if (
+    playerElement.classList.contains("home") ||
+    board.classList.contains("lost") ||
+    board.classList.contains("won")
+  ) {
+    playerElement.classList.remove("frightened");
+    return;
+  }
+  var afraid = ghosts.some(function (ghost, index) {
+    if (devoured.has(index)) return false;
+    return Math.abs(ghost.x - player.x) + Math.abs(ghost.y - player.y) <= 2;
+  });
+  playerElement.classList.toggle("frightened", afraid);
+}
+
 function drawActors() {
   place(playerElement, player);
   ghosts.forEach(function (ghost, index) {
-    if (!devoured.has(index)) place(ghostElements[index], ghost);
+    place(ghostElements[index], ghost);
   });
+  updateKoalaFear();
   updateCrashTelemetry();
 }
 
@@ -851,9 +1200,14 @@ function clearWinSequence() {
     winLayer.remove();
     winLayer = null;
   }
+  if (thanosVeil) {
+    thanosVeil.remove();
+    thanosVeil = null;
+  }
   setRouteCount(null);
   osElement.classList.remove("routing-home", "routing-boom");
   document.documentElement.classList.remove("routing-home");
+  document.body.classList.remove("routing-snap");
 }
 
 function scheduleWin(fn, ms) {
@@ -905,19 +1259,58 @@ function startWinSequence() {
   winLayer.className = "win-route";
   winLayer.innerHTML =
     '<div class="win-confetti" aria-hidden="true"></div>' +
+    '<div class="win-snap" aria-hidden="true"></div>' +
     '<p class="win-route__count" aria-live="assertive"></p>' +
     '<p class="win-route__hint">returning to route /</p>';
   document.body.appendChild(winLayer);
   var countEl = winLayer.querySelector(".win-route__count");
   var hintEl = winLayer.querySelector(".win-route__hint");
+  var snapLayer = winLayer.querySelector(".win-snap");
+
+  function snapBurst(layer, count) {
+    var origin = {
+      x: innerWidth / 2,
+      y: innerHeight * 0.45
+    };
+    for (var i = 0; i < count; i += 1) {
+      var mote = document.createElement("span");
+      var angle = Math.random() * Math.PI * 2;
+      var dist = 10 + Math.random() * 70;
+      mote.className = "win-snap__mote";
+      mote.style.left = origin.x + "px";
+      mote.style.top = origin.y + "px";
+      mote.style.width = (0.2 + Math.random() * 0.55) + "rem";
+      mote.style.height = mote.style.width;
+      mote.style.background = i % 3 === 0
+        ? "#f2ff3d"
+        : i % 3 === 1
+          ? "#fff"
+          : "#6bdcff";
+      mote.style.setProperty("--dx", Math.cos(angle) * dist + "vmin");
+      mote.style.setProperty("--dy", Math.sin(angle) * dist + "vmin");
+      mote.style.setProperty("--delay", (Math.random() * 0.35) + "s");
+      layer.appendChild(mote);
+    }
+  }
 
   function goHome() {
+    hintEl.textContent = "mounting / ...";
+    winLayer.classList.add("is-snapping");
+    document.body.classList.add("routing-snap");
     document.documentElement.classList.add("routing-home");
     osElement.classList.add("routing-home");
-    hintEl.textContent = "mounting / ...";
+    if (thanosVeil) thanosVeil.remove();
+    thanosVeil = document.createElement("div");
+    thanosVeil.className = "thanos-veil";
+    thanosVeil.innerHTML = '<div class="thanos-veil__burst"></div>';
+    document.body.appendChild(thanosVeil);
+    snapBurst(thanosVeil.querySelector(".thanos-veil__burst"), reduced ? 36 : 120);
+    snapBurst(snapLayer, reduced ? 24 : 64);
+    void thanosVeil.offsetWidth;
+    thanosVeil.classList.add("is-active");
     scheduleWin(function () {
       location.assign(homeUrl);
-    }, reduced ? 180 : 900);
+    }, reduced ? 400 : 1600);
   }
 
   if (reduced) {
@@ -961,8 +1354,7 @@ function startWinSequence() {
     scheduleWin(goHome, 750);
   }
 
-  setRouteCount(5);
-  scheduleWin(tick, 850);
+  scheduleWin(tick, 1500);
 }
 
 function updateScore() {
@@ -1005,22 +1397,74 @@ function triggerPowerBurst() {
   }, 650);
 }
 
+function beginPredatorRegen(index) {
+  var element = ghostElements[index];
+  ghosts[index] = {
+    x: ghostStarts[index].x,
+    y: ghostStarts[index].y
+  };
+  ghostPrevious[index] = {
+    x: ghostStarts[index].x,
+    y: ghostStarts[index].y
+  };
+  place(element, ghosts[index]);
+  element.classList.remove("devoured", "eyes-return");
+  element.classList.add("regenerating", "regen-bones");
+  updateCrashTelemetry();
+  predatorRespawnTimers[index] = setTimeout(function () {
+    element.classList.replace("regen-bones", "regen-flesh");
+    predatorRespawnTimers[index] = setTimeout(function () {
+      element.classList.replace("regen-flesh", "regen-fur");
+      predatorRespawnTimers[index] = setTimeout(function () {
+        element.classList.replace("regen-fur", "regen-pop");
+        predatorRespawnTimers[index] = setTimeout(function () {
+          devoured.delete(index);
+          eyeQueues[index] = null;
+          element.classList.remove("regenerating", "regen-pop");
+          element.classList.add("recovered");
+          updateCrashTelemetry();
+        }, 320);
+      }, 380);
+    }, 420);
+  }, 420);
+}
+
+function stepEyeReturn(index) {
+  var element = ghostElements[index];
+  var path = eyeQueues[index];
+  if (!path || !path.length) {
+    beginPredatorRegen(index);
+    return;
+  }
+  ghosts[index] = path.shift();
+  place(element, ghosts[index]);
+  updateCrashTelemetry();
+  predatorRespawnTimers[index] = setTimeout(function () {
+    stepEyeReturn(index);
+  }, 95);
+}
+
 function devourPredator(index) {
   var element = ghostElements[index];
   clearTimeout(predatorRespawnTimers[index]);
   devoured.add(index);
-  element.classList.remove("devoured", "recovered");
+  element.classList.remove(
+    "devoured",
+    "recovered",
+    "regenerating",
+    "eyes-return",
+    "regen-bones",
+    "regen-flesh",
+    "regen-fur",
+    "regen-pop"
+  );
   void element.offsetWidth;
-  element.classList.add("devoured");
+  element.classList.add("devoured", "eyes-return");
+  eyeQueues[index] = shortestPath(maze, ghosts[index], ghostStarts[index]);
+  updateCrashTelemetry();
   predatorRespawnTimers[index] = setTimeout(function () {
-    element.classList.remove("devoured");
-    element.classList.add("regenerating");
-    place(element, ghostStarts[index]);
-    predatorRespawnTimers[index] = setTimeout(function () {
-      devoured.delete(index);
-      element.classList.replace("regenerating", "recovered");
-    }, 850);
-  }, 360);
+    stepEyeReturn(index);
+  }, 280);
 }
 
 function clearPredatorEffects() {
@@ -1029,11 +1473,17 @@ function clearPredatorEffects() {
     clearTimeout(timer);
   });
   predatorRespawnTimers = [];
+  eyeQueues = [];
   devoured.clear();
   ghostElements.forEach(function (element) {
     element.classList.remove(
       "devoured",
+      "eyes-return",
       "regenerating",
+      "regen-bones",
+      "regen-flesh",
+      "regen-fur",
+      "regen-pop",
       "recovered",
       "swooping",
       "tracking"
@@ -1110,20 +1560,12 @@ function resolveCollision() {
   ) {
     caughtGhosts.forEach(function (index) {
       devourPredator(index);
-      ghosts[index] = {
-        x: ghostStarts[index].x,
-        y: ghostStarts[index].y
-      };
-      ghostPrevious[index] = {
-        x: ghostStarts[index].x,
-        y: ghostStarts[index].y
-      };
     });
     score += caughtGhosts.length * settings.play.predator_points;
     updateScore();
     statusElement.textContent = "kradkrnl: predator module detached; +" +
       (caughtGhosts.length * settings.play.predator_points) +
-      "; reloading from the 0.";
+      "; eyes returning to the 0.";
     return false;
   }
 
@@ -1241,7 +1683,7 @@ function moveGhosts() {
   var reserved = new Set();
   ghostElements[0].classList.toggle(
     "tracking",
-    (playerDistances.get(key(ghosts[0].x, ghosts[0].y)) || Infinity) <= 8
+    (playerDistances.get(key(ghosts[0].x, ghosts[0].y)) || Infinity) <= 2
   );
   ghostElements[1].classList.toggle("swooping", swooping);
   ghosts.forEach(function (ghost, index) {
@@ -1266,6 +1708,12 @@ function moveGhosts() {
       element.classList.remove("recovered");
       element.style.removeProperty("filter");
     });
+    if (
+      playerElement.dataset.aura === "vegemite" ||
+      playerElement.dataset.aura === "dragon"
+    ) {
+      setPlayerAura("");
+    }
     statusElement.textContent =
       "devd: predator quarantine expired; dingo0 and eagle0 RUNNING.";
   }
@@ -1282,13 +1730,76 @@ function stopGhosts() {
   ghostsStarted = false;
 }
 
+function randomiserDestination() {
+  var homeDistances = distancesFor(maze, homeOrigin);
+  var choices = [];
+  maze.forEach(function (row, y) {
+    row.split("").forEach(function (cell, x) {
+      if (!playerMayEnter(maze, x, y) || cell === "R" || cell === "T") return;
+      var distance = homeDistances.get(key(x, y));
+      if (!(distance > 3)) return;
+      if (x === player.x && y === player.y) return;
+      choices.push({ x: x, y: y });
+    });
+  });
+  if (!choices.length) return null;
+  return choices[Math.floor(effectsRandom() * choices.length)];
+}
+
+function setPlayerAura(kind) {
+  clearTimeout(auraTimer);
+  if (!kind) {
+    delete playerElement.dataset.aura;
+    return;
+  }
+  playerElement.dataset.aura = kind;
+  if (kind === "fruit") {
+    auraTimer = setTimeout(function () {
+      if (playerElement.dataset.aura === "fruit") {
+        delete playerElement.dataset.aura;
+      }
+    }, 300);
+  }
+}
+
+function applyGraySlow() {
+  var now = performance.now();
+  if (now >= slowUntil) grayStacks = 0;
+  grayStacks += 1;
+  slowUntil = now + 5000;
+  nextMoveAt = now + grayStacks * (settings.play.ghost_interval_ms / 2);
+  playerElement.dataset.slow = String(grayStacks);
+  playerElement.style.setProperty("--slow-stacks", String(grayStacks));
+}
+
+function fireGrayWarp() {
+  var destination = randomiserDestination();
+  if (!destination) return false;
+  player = destination;
+  applyGraySlow();
+  return true;
+}
+
 function movePlayer(dx, dy) {
   if (!running) return;
+  var now = performance.now();
+  if (now >= slowUntil && grayStacks) {
+    grayStacks = 0;
+    delete playerElement.dataset.slow;
+  }
+  if (now < nextMoveAt) {
+    statusElement.textContent =
+      "kradkrnl: gray lag x" + grayStacks + "; momentum stalled.";
+    return;
+  }
 
   var next = stepIn(maze, player, [dx, dy]);
-  if (!openIn(maze, next.x, next.y)) {
-    statusElement.textContent = "kradkrnl: maze0: EACCES at cell " +
-      next.x + "," + next.y + "; select another vnode.";
+  if (!playerMayEnter(maze, next.x, next.y)) {
+    statusElement.textContent = ghostPen.has(key(next.x, next.y))
+      ? "kradkrnl: maze0: barrier block at " + next.x + "," + next.y +
+        "; momentum stopped."
+      : "kradkrnl: maze0: EACCES at cell " +
+        next.x + "," + next.y + "; select another vnode.";
     return;
   }
 
@@ -1297,6 +1808,14 @@ function movePlayer(dx, dy) {
   player = next;
   lastDirection = { x: dx, y: dy };
   turn += 1;
+
+  var randomised = false;
+  if (maze[player.y][player.x] === "R") {
+    randomised = fireGrayWarp();
+  } else if (warped && effectsRandom() < 0.58) {
+    randomised = fireGrayWarp();
+  }
+
   drawActors();
 
   var pellet = key(player.x, player.y);
@@ -1313,8 +1832,11 @@ function movePlayer(dx, dy) {
       panicTicks = boost.power_ticks;
       board.classList.add("powered");
       board.classList.remove("power-warning");
+      setPlayerAura(boost.id === "vegemite" ? "vegemite" : "dragon");
       flashRandomWalls();
       triggerPowerBurst();
+    } else if (bonus) {
+      setPlayerAura("fruit");
     }
     grid.children[player.y * columns + player.x].classList.add("eaten");
     updateScore();
@@ -1339,9 +1861,13 @@ function movePlayer(dx, dy) {
       " power event; 404 wall bank lit; predators quarantined.";
   } else if (collected && bonus) {
     statusElement.textContent = "kradkrnl: recovered " + bonus.id +
-      " block; +" + bonus.points + "; route journal committed.";
+      " block; +" + bonus.points + "; weak aura fizzled.";
+  } else if (randomised) {
+    statusElement.textContent =
+      "kradkrnl: gray warp → " + player.x + "," + player.y +
+      "; lag stacks=" + grayStacks + " (5s).";
   } else if (warped) {
-    statusElement.textContent = "kradkrnl: jacobian shear tunnel crossed; " +
+    statusElement.textContent = "kradkrnl: black tunnel crossed; " +
       "maze0 edge vnode remapped.";
   } else {
     statusElement.textContent = panicTicks > 0
@@ -1371,6 +1897,13 @@ function resetGame(regenerate) {
   panicTicks = 0;
   ghostTick = 0;
   graceTicks = 0;
+  slowUntil = 0;
+  nextMoveAt = 0;
+  grayStacks = 0;
+  delete playerElement.dataset.slow;
+  playerElement.style.removeProperty("--slow-stacks");
+  playerElement.classList.remove("frightened");
+  setPlayerAura("");
   lastDirection = { x: 1, y: 0 };
   pellets = new Set(pelletStarts);
   board.classList.remove("won", "caught", "powered", "lost");

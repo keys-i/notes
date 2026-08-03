@@ -244,6 +244,7 @@ function glitchLogo() {
     return;
   }
   var hue = Math.floor(effectsRandom() * 360);
+  var ultra = effectsRandom() < 0.68;
   telemetry.title.style.setProperty("--glitch-a", "hsl(" + hue + " 100% 62%)");
   telemetry.title.style.setProperty(
     "--glitch-b",
@@ -254,13 +255,21 @@ function glitchLogo() {
     "hsl(" + ((hue + 241) % 360) + " 100% 60%)"
   );
   telemetry.title.classList.add("glitching");
+  telemetry.title.classList.toggle("ultra-glitch", ultra);
   setTimeout(function () {
-    telemetry.title.classList.remove("glitching");
+    telemetry.title.classList.remove("glitching", "ultra-glitch");
     telemetry.title.style.removeProperty("--glitch-a");
     telemetry.title.style.removeProperty("--glitch-b");
     telemetry.title.style.removeProperty("--glitch-c");
-  }, 70 + Math.floor(effectsRandom() * 110));
-  setTimeout(glitchLogo, 260 + Math.floor(effectsRandom() * 1400));
+  }, ultra
+    ? 220 + Math.floor(effectsRandom() * 260)
+    : 110 + Math.floor(effectsRandom() * 160));
+  setTimeout(
+    glitchLogo,
+    ultra
+      ? 140 + Math.floor(effectsRandom() * 420)
+      : 220 + Math.floor(effectsRandom() * 900)
+  );
 }
 if (pageParams.has("dev")) {
   var samples = Array.from(

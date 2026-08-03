@@ -1,0 +1,189 @@
+[map]
+columns = 21
+rows = 15
+attempts = 96
+minimum_path = 36
+maximum_path = 90
+minimum_cycles = 7
+minimum_junctions = 12
+route_options = 2
+
+[random]
+leap = 7
+generation_step = 0x9E3779B9
+
+[random.streams]
+topology = 0
+loops = 1
+pickups = 2
+symbols = 3
+hunt = 4
+effects = 5
+
+[landmark]
+x = 4
+y = 6
+mask = [
+  "#.#.#####.#.#",
+  "###.#...#.###",
+  "..#.##.##...#",
+]
+clearance = 0
+ghosts = [[9, 7], [11, 7]]
+pen_exit = [[10, 8], [10, 9], [10, 10], [10, 11]]
+
+[tunnel]
+numerator = 1
+denominator = 2
+rows = [3, 11]
+
+[pickups]
+minimum_spacing = 4
+pellet_points = 10
+
+[[pickups.items]]
+symbol = "v"
+id = "vegemite"
+label = "Vegemite overclock"
+points = 75
+power_ticks = 22
+anchor = [0.15, 0.2]
+
+[[pickups.items]]
+symbol = "m"
+id = "meat-pie"
+label = "Dragon Ball X boost"
+points = 75
+power_ticks = 28
+anchor = [0.85, 0.2]
+
+[[pickups.items]]
+symbol = "a"
+id = "avocado"
+label = "Avocado bonus"
+points = 100
+power_ticks = 0
+anchor = [0.15, 0.8]
+
+[[pickups.items]]
+symbol = "b"
+id = "banana"
+label = "Banana bonus"
+points = 150
+power_ticks = 0
+anchor = [0.85, 0.8]
+
+[[pickups.items]]
+symbol = "c"
+id = "cherries"
+label = "Cherries bonus"
+points = 200
+power_ticks = 0
+anchor = [0.5, 0.5]
+
+[play]
+player = [1, 1]
+home = [19, 13]
+lives = 3
+ghost_interval_ms = 320
+grace_ticks = 3
+predator_points = 200
+power_warning_ticks = 5
+
+[assets]
+goal = "assets/images/game/goal.webp"
+neutral = "assets/images/game/koala/neutral.webp"
+scared = "assets/images/game/koala/scared.webp"
+happy = "assets/images/game/koala/happy.webp"
+dead = "assets/images/game/koala/crying.webp"
+
+# ---------------------------------------------------------------------------
+# Maze selection heuristic — fine-grained scoring, seed jitter, and combos.
+# ---------------------------------------------------------------------------
+
+[heuristic]
+seed_mix = 0x404F00D
+path_ideal_min_weight = 3
+path_ideal_max_weight = 1
+path_deviation = 4.0
+tunnel_bonus = 6.0
+strict_bonus = 96.0
+
+[heuristic.braid]
+extra_min = 3
+extra_span = 5
+
+[heuristic.tunnel]
+minimum_home_distance = 3
+
+[heuristic.rewards]
+junctions = 11.0
+junctions_jitter = 3
+cycles = 7.5
+cycles_jitter = 3
+turns = 14.0
+turns_jitter = 5
+options = 5.5
+options_jitter = 3
+path = 2.25
+path_jitter = 2
+
+[heuristic.penalties]
+dead_ends = 9.5
+dead_ends_jitter = 3
+four_ways = 7.5
+four_ways_jitter = 3
+straight = 9.5
+straight_jitter = 3
+straight_free = 2
+chambers = 24.0
+chambers_jitter = 7
+
+[heuristic.strict]
+minimum_turns = 9
+maximum_straight = 7
+maximum_dead_ends = 6
+maximum_four_ways = 6
+maximum_chambers = 18
+
+# Epic combo terms — nonlinear interactions between metrics.
+[heuristic.combos]
+twist_cycle = 0.42
+junction_options = 0.28
+dead_chamber_stack = 0.18
+openness_ratio = 0.55
+balanced_path_bonus = 14.0
+tunnel_twist_bonus = 0.35
+four_way_tax = 0.22
+route_richness = 0.16
+
+# Chamber detectors: weight is subtracted per matching open rectangle.
+[[heuristic.chambers]]
+width = 2
+height = 3
+weight = 18
+
+[[heuristic.chambers]]
+width = 3
+height = 2
+weight = 18
+
+[[heuristic.chambers]]
+width = 2
+height = 4
+weight = 12
+
+[[heuristic.chambers]]
+width = 4
+height = 2
+weight = 12
+
+[[heuristic.chambers]]
+width = 3
+height = 3
+weight = 14
+
+[[heuristic.chambers]]
+width = 2
+height = 2
+weight = 6
