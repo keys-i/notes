@@ -1,7 +1,7 @@
 "use strict";
 
 var shell = {
-  dev: ["localhost", "127.0.0.1", "[::1]"].includes(location.hostname),
+  DEBUG: ["localhost", "127.0.0.1", "[::1]"].includes(location.hostname),
   commands: [
     "apropos", "bt", "camcontrol", "cat", "cd", "clear", "crashinfo",
     "date", "ddb", "df", "dmesg", "echo", "env", "exit", "freebsd-version",
@@ -196,9 +196,9 @@ function manCommand(parts) {
           "",
           "SYNOPSIS",
           "       koalactl status",
-          "       koalactl move <directions>",
+          "       koalactl move <directions>   (nsew or 5n, 2e3s, ...)",
           "       koalactl <directions>",
-          shell.dev ? "       koalactl pause | resume" : null,
+          shell.DEBUG ? "       koalactl pause | resume" : null,
           "       koalactl trace",
           "       koalactl reset",
           "",
@@ -329,20 +329,70 @@ function ddbCommand(source) {
   }
 }
 
-function koalactlMove(pattern) {
-  var executed = 0;
-  for (var index = 0; index < pattern.length; index += 1) {
-    var direction = pattern[index];
-    if (!/^[nsew]$/.test(direction)) break;
-    var movement = directions[moveIndexes[direction]];
-    if (!movement) break;
-    movePlayer(movement[0], movement[1]);
-    executed += 1;
-    if (!running) break;
+function delay(ms) {
+  return new Promise(function (resolve) {
+    setTimeout(resolve, ms);
+  });
+}
+
+function expandMovePattern(pattern) {
+  pattern = String(pattern || "").toLowerCase().replace(/\s+/g, "");
+  if (!/^(?:\d*[nsew])+$/.test(pattern)) return "";
+  var expanded = "";
+  pattern.replace(/(\d*)([nsew])/g, function (_, count, direction) {
+    var times = count ? Number(count) : 1;
+    if (times < 1) times = 1;
+    if (times > 64) times = 64;
+    expanded += direction.repeat(times);
+    return "";
+  });
+  return expanded;
+}
+
+async function koalactlMove(pattern) {
+  var source = String(pattern || "").toLowerCase().replace(/\s+/g, "");
+  pattern = expandMovePattern(source);
+  if (!pattern) {
+    return "usage: koalactl move <n|s|e|w|5n|2e3s>...";
   }
-  if (!executed) return "usage: koalactl move <n|s|e|w>...";
-  return "koalactl: maze0 now at " + player.x + "," + player.y +
-    (executed > 1 ? " (" + executed + " moves)" : "");
+
+  var lines = [
+    "koalactl: expand(\"" + source + "\") → \"" + pattern + "\"",
+    "koalactl: recurse(\"" + pattern + "\")"
+  ];
+
+  async function recurse(seq, depth) {
+    var pad = "  ".repeat(depth);
+    if (!seq) {
+      lines.push(pad + "koalactl: nil");
+      return depth;
+    }
+    if (!running) {
+      lines.push(pad + "koalactl: halt");
+      return depth;
+    }
+    var direction = seq[0];
+    var rest = seq.slice(1);
+    var movement = directions[moveIndexes[direction]];
+    if (!movement) {
+      lines.push(pad + "koalactl: bad token '" + direction + "'");
+      return depth;
+    }
+    lines.push(
+      pad + "koalactl: cons('" + direction + "', \"" + rest + "\")"
+    );
+    movePlayer(movement[0], movement[1]);
+    lines.push(pad + "→ cell " + player.x + "," + player.y);
+    await delay(240);
+    return recurse(rest, depth + 1);
+  }
+
+  var executed = await recurse(pattern, 0);
+  lines.push(
+    "koalactl: maze0 now at " + player.x + "," + player.y +
+    (executed ? " (" + executed + " steps)" : "")
+  );
+  return lines.join("\n");
 }
 
 function shellCommand(source) {
@@ -364,8 +414,8 @@ function shellCommand(source) {
         "Boot/fs: fsck mount geom gpart zpool zfs savecore crashinfo",
         "Kernel: dmesg trace kldstat kldload kldunload sysctl ddb",
         "System: ps top vmstat procstat sockstat ifconfig route netstat",
-        "Game: koalactl status|move <directions>|" +
-          (shell.dev ? "pause|resume|" : "") + "trace|reset",
+        "Game: koalactl status|move <nsew|5n|2e3s...>|" +
+          (shell.DEBUG ? "pause|resume|" : "") + "trace|reset",
         "Manual: man [section] page | man -k keyword | apropos keyword",
         "Enter ddb, then type help at the db> prompt for kernel commands."
       ].join("\n");
@@ -715,13 +765,13 @@ function shellCommand(source) {
           " score=" + (score || 0) + " moves=" + (turn || 0) +
           " tunnel=" + (tunnelRow < 0 ? "offline" : "row" + tunnelRow);
       }
-      if (shell.dev && argument === "pause") {
+      if (shell.DEBUG && argument === "pause") {
         if (!running) return "koalactl: maze0 is halted; nothing to pause";
         if (paused) return "koalactl: maze0 scheduler already paused";
         paused = true;
         return "koalactl: maze0 scheduler paused; predators frozen";
       }
-      if (shell.dev && (argument === "resume" || argument === "unpause")) {
+      if (shell.DEBUG && (argument === "resume" || argument === "unpause")) {
         if (!paused) return "koalactl: maze0 scheduler is not paused";
         paused = false;
         return "koalactl: maze0 scheduler resumed";
@@ -734,7 +784,7 @@ function shellCommand(source) {
       if (argument === "move") {
         return koalactlMove(parts.slice(1).join("").toLowerCase());
       }
-      if (/^[nsew]+$/i.test(argument)) {
+      if (/^(?:\d*[nsew])+$/i.test(argument)) {
         return koalactlMove(argument.toLowerCase());
       }
       return "koalactl: unknown request " + argument;

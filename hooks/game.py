@@ -3,14 +3,69 @@
 import tomllib
 from pathlib import Path
 
-SECTIONS = ("map", "random", "landmark", "tunnel", "pickups", "play", "assets")
+SECTIONS = (
+    "map",
+    "random",
+    "landmark",
+    "tunnel",
+    "pickups",
+    "play",
+    "assets",
+    "heuristic",
+)
 STREAMS = ("topology", "loops", "pickups", "symbols", "hunt", "effects")
 ASSETS = ("goal", "neutral", "scared", "happy", "dead")
+MAP_TOML = Path("assets") / "game" / "map.toml"
+
+REWARD_KEYS = (
+    "junctions",
+    "junctions_jitter",
+    "cycles",
+    "cycles_jitter",
+    "turns",
+    "turns_jitter",
+    "options",
+    "options_jitter",
+    "path",
+    "path_jitter",
+)
+PENALTY_KEYS = (
+    "dead_ends",
+    "dead_ends_jitter",
+    "four_ways",
+    "four_ways_jitter",
+    "straight",
+    "straight_jitter",
+    "straight_free",
+    "chambers",
+    "chambers_jitter",
+)
+STRICT_KEYS = (
+    "minimum_turns",
+    "maximum_straight",
+    "maximum_dead_ends",
+    "maximum_four_ways",
+    "maximum_chambers",
+)
+COMBO_KEYS = (
+    "twist_cycle",
+    "junction_options",
+    "dead_chamber_stack",
+    "openness_ratio",
+    "balanced_path_bonus",
+    "tunnel_twist_bonus",
+    "four_way_tax",
+    "route_richness",
+)
 
 
 def require(condition, message):
     if not condition:
-        raise ValueError(f"images/game/map.toml: {message}")
+        raise ValueError(f"{MAP_TOML.as_posix()}: {message}")
+
+
+def number(value):
+    return type(value) in (int, float) and value == value
 
 
 def coordinate(value, columns, rows):
@@ -21,6 +76,76 @@ def coordinate(value, columns, rows):
         and 0 < value[0] < columns - 1
         and 0 < value[1] < rows - 1
     )
+
+
+def validate_heuristic(heuristic, board):
+    require(isinstance(heuristic, dict), "heuristic section is required")
+    require(
+        type(heuristic.get("seed_mix")) is int
+        and type(heuristic.get("path_ideal_min_weight")) is int
+        and type(heuristic.get("path_ideal_max_weight")) is int
+        and heuristic["path_ideal_min_weight"] > 0
+        and heuristic["path_ideal_max_weight"] > 0
+        and number(heuristic.get("path_deviation"))
+        and heuristic["path_deviation"] >= 0
+        and number(heuristic.get("tunnel_bonus"))
+        and number(heuristic.get("strict_bonus")),
+        "heuristic core fields are invalid",
+    )
+
+    braid = heuristic.get("braid")
+    require(
+        isinstance(braid, dict)
+        and type(braid.get("extra_min")) is int
+        and braid["extra_min"] >= 0
+        and type(braid.get("extra_span")) is int
+        and braid["extra_span"] > 0,
+        "heuristic.braid is invalid",
+    )
+
+    tunnel = heuristic.get("tunnel")
+    require(
+        isinstance(tunnel, dict)
+        and type(tunnel.get("minimum_home_distance")) is int
+        and tunnel["minimum_home_distance"] >= 0,
+        "heuristic.tunnel is invalid",
+    )
+
+    rewards = heuristic.get("rewards")
+    penalties = heuristic.get("penalties")
+    strict = heuristic.get("strict")
+    combos = heuristic.get("combos")
+    require(isinstance(rewards, dict), "heuristic.rewards is required")
+    require(isinstance(penalties, dict), "heuristic.penalties is required")
+    require(isinstance(strict, dict), "heuristic.strict is required")
+    require(isinstance(combos, dict), "heuristic.combos is required")
+    require(all(number(rewards.get(key)) for key in REWARD_KEYS), "heuristic.rewards values are invalid")
+    require(all(number(penalties.get(key)) for key in PENALTY_KEYS), "heuristic.penalties values are invalid")
+    require(
+        all(type(strict.get(key)) is int and strict[key] >= 0 for key in STRICT_KEYS),
+        "heuristic.strict values are invalid",
+    )
+    require(all(number(combos.get(key)) for key in COMBO_KEYS), "heuristic.combos values are invalid")
+    require(
+        type(penalties["straight_free"]) is int and penalties["straight_free"] >= 0,
+        "straight_free must be a non-negative integer",
+    )
+
+    chambers = heuristic.get("chambers")
+    require(isinstance(chambers, list) and chambers, "heuristic.chambers must be a non-empty list")
+    for chamber in chambers:
+        require(
+            isinstance(chamber, dict)
+            and type(chamber.get("width")) is int
+            and type(chamber.get("height")) is int
+            and number(chamber.get("weight"))
+            and chamber["width"] >= 2
+            and chamber["height"] >= 2
+            and chamber["width"] < board["columns"]
+            and chamber["height"] < board["rows"]
+            and chamber["weight"] > 0,
+            "heuristic chamber detectors are invalid",
+        )
 
 
 def load_map(path, docs_dir):
@@ -200,12 +325,12 @@ def load_map(path, docs_dir):
     for name in ASSETS:
         asset = (docs / data["assets"][name]).resolve()
         require(asset.is_relative_to(docs) and asset.is_file(), f"{name} asset is outside docs or missing")
+
+    validate_heuristic(data["heuristic"], board)
     return data
 
 
 def on_config(config):
-    config.extra["game"] = load_map(
-        Path(config.config_file_path).resolve().parent / "images" / "game" / "map.toml",
-        config.docs_dir,
-    )
+    docs = Path(config.docs_dir).resolve()
+    config.extra["game"] = load_map(docs / MAP_TOML, docs)
     return config
