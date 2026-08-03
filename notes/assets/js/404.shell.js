@@ -754,10 +754,8 @@ function shellCommand(source) {
       return "init: single user shell terminated, restarting";
     case "reboot":
     case "shutdown":
-      telemetry.tick = 0;
-      telemetry.lines = [];
-      resetGame();
-      return "syncing disks... done\nRebooting recovery kernel...";
+      startShutdownSequence();
+      return "Shutdown NOW!";
     case "koalactl":
       if (!argument || argument === "status") {
         return "maze0: " + (running ? (paused ? "PAUSED" : "RUNNING") : "HALTED") +

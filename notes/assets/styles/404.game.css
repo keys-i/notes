@@ -339,28 +339,55 @@
 }
 
 .maze__cell--avocado::after {
-  border: 1px solid #d9ffb5;
+  --fruit-h: 118;
+  --fruit-s: 62%;
+  --fruit-l: 52%;
+  --fruit-scale: .72;
+  border: 1px solid hsl(var(--fruit-h) var(--fruit-s) 82%);
   border-radius: 48% 48% 58% 58% / 42% 42% 68% 68%;
   background:
     radial-gradient(circle at 50% 66%, #80431d 0 18%, transparent 20%),
-    radial-gradient(ellipse at 50% 55%, #c9f28a 0 58%, #277746 60% 100%);
-  transform: rotate(-8deg);
+    radial-gradient(
+      ellipse at 50% 55%,
+      hsl(var(--fruit-h) var(--fruit-s) calc(var(--fruit-l) + 18%)) 0 58%,
+      hsl(var(--fruit-h) var(--fruit-s) calc(var(--fruit-l) - 18%)) 60% 100%
+    );
+  transform: rotate(-8deg) scale(var(--fruit-scale));
+  filter: drop-shadow(0 0 .1rem hsl(var(--fruit-h) var(--fruit-s) 60% / .55));
 }
 
 .maze__cell--banana::after {
-  border: clamp(.11rem, .45vw, .2rem) solid #f2ff3d;
+  --fruit-h: 52;
+  --fruit-s: 90%;
+  --fruit-l: 55%;
+  --fruit-scale: 1;
+  border: clamp(.11rem, .45vw, .2rem) solid hsl(var(--fruit-h) var(--fruit-s) 62%);
   border-top-color: transparent;
   border-left-color: transparent;
   border-radius: 50%;
-  filter: drop-shadow(0 0 .12rem rgb(242 255 61 / .65));
-  transform: rotate(28deg);
+  filter: drop-shadow(0 0 .12rem hsl(var(--fruit-h) var(--fruit-s) 58% / .65));
+  transform: rotate(28deg) scale(var(--fruit-scale));
 }
 
 .maze__cell--cherries::after {
+  --fruit-h: 4;
+  --fruit-s: 88%;
+  --fruit-l: 52%;
+  --fruit-scale: 1.3;
   border-radius: 0;
+  transform: scale(var(--fruit-scale));
+  filter: drop-shadow(0 0 .14rem hsl(var(--fruit-h) var(--fruit-s) 55% / .7));
   background:
-    radial-gradient(circle at 28% 69%, #ff5449 0 21%, transparent 23%),
-    radial-gradient(circle at 72% 69%, #d91e36 0 21%, transparent 23%),
+    radial-gradient(
+      circle at 28% 69%,
+      hsl(var(--fruit-h) var(--fruit-s) calc(var(--fruit-l) + 8%)) 0 21%,
+      transparent 23%
+    ),
+    radial-gradient(
+      circle at 72% 69%,
+      hsl(calc(var(--fruit-h) + 8) var(--fruit-s) calc(var(--fruit-l) - 8%)) 0 21%,
+      transparent 23%
+    ),
     linear-gradient(65deg, transparent 43%, #78d765 44% 50%, transparent 51%) 18% 5% / 42% 58% no-repeat,
     linear-gradient(-65deg, transparent 43%, #78d765 44% 50%, transparent 51%) 82% 5% / 42% 58% no-repeat;
 }
@@ -454,25 +481,63 @@
 }
 
 .player[data-aura="fruit"] {
-  filter: drop-shadow(0 0 .2rem rgb(180 255 160 / .7));
-  opacity: .95;
-}
-
-.player[data-aura="fruit"]::before {
-  inset: -55% -20% -4%;
-  opacity: .55;
-  background:
-    radial-gradient(
-      ellipse 50% 60% at 50% 70%,
-      #fff 0 25%,
-      #b8ff9a 25% 60%,
-      transparent 60% 100%
+  --aura-h: 350;
+  --aura-s: 80%;
+  --aura-l: 55%;
+  --aura-scale: 1;
+  --aura-power: .65;
+  filter:
+    drop-shadow(
+      0 0 calc(.12rem + var(--aura-power) * .2rem)
+      hsl(var(--aura-h) var(--aura-s) var(--aura-l) / calc(.35 + var(--aura-power) * .4))
+    )
+    drop-shadow(
+      0 0 calc(.2rem + var(--aura-power) * .28rem)
+      hsl(var(--aura-h) var(--aura-s) calc(var(--aura-l) - 12%) / calc(.2 + var(--aura-power) * .3))
     );
 }
 
+.player[data-aura="fruit"]::before {
+  opacity: calc(.28 + var(--aura-power) * .45);
+  background:
+    radial-gradient(
+      ellipse 52% 68% at 50% 74%,
+      #fff 0 18%,
+      hsl(var(--aura-h) var(--aura-s) calc(var(--aura-l) + 18%)) 18% 40%,
+      hsl(var(--aura-h) var(--aura-s) var(--aura-l)) 40% 68%,
+      hsl(var(--aura-h) var(--aura-s) calc(var(--aura-l) - 28%)) 68% 100%
+    );
+}
+
+.player[data-fruit="avocado"][data-aura="fruit"]::before {
+  inset: -70% -28% -6%;
+}
+
+.player[data-fruit="cherries"][data-aura="fruit"]::before {
+  inset: -108% -46% -12%;
+}
+
 .player[data-aura="dragon"] img,
-.player[data-aura="vegemite"] img {
+.player[data-aura="vegemite"] img,
+.player[data-aura="fruit"] img {
   filter: brightness(1.15) drop-shadow(0 0 .16rem rgb(255 236 150 / .85));
+}
+
+.player[data-aura-surge] {
+  filter:
+    drop-shadow(0 0 .42rem rgb(255 250 180 / 1))
+    drop-shadow(0 0 1.1rem rgb(255 210 40 / .95))
+    drop-shadow(0 0 1.8rem rgb(90 170 255 / .75)) !important;
+}
+
+.player[data-aura-surge]::before {
+  inset: -110% -48% -14%;
+  opacity: 1;
+  filter: brightness(1.35) saturate(1.4);
+}
+
+.player[data-aura-surge] img {
+  filter: brightness(1.35) contrast(1.12) drop-shadow(0 0 .28rem rgb(255 255 200 / 1));
 }
 
 .player[data-slow] {
@@ -532,6 +597,37 @@
 .player.frightened:not(.home) {
   z-index: 5;
   filter: drop-shadow(0 0 .28rem rgb(255 80 80 / .75));
+}
+
+.os.frightened {
+  --fear: 1;
+  box-shadow:
+    inset 0 0 0 .14rem rgb(255 48 48 / .78),
+    inset 0 0 4.5rem rgb(120 0 0 / .42);
+}
+
+.os.frightened .os__bar,
+.os.frightened .os__footer {
+  color: #ffd0d0;
+  background: #3a0610;
+  border-color: #ff4040;
+  text-shadow: 0 0 .35rem rgb(255 64 64 / .55);
+}
+
+.os.frightened .board {
+  box-shadow:
+    0 0 0 .12rem rgb(255 56 56 / .85),
+    0 0 1.8rem rgb(255 32 32 / .35);
+}
+
+.os.frightened .trace {
+  outline: 1px solid rgb(255 72 72 / .55);
+  box-shadow: inset 0 0 1.4rem rgb(90 0 0 / .35);
+}
+
+.os.frightened .game__status,
+.os.frightened .game__hint {
+  color: #ffb4b4;
 }
 
 .board.lost .player__dead {
@@ -978,6 +1074,95 @@
   filter: brightness(1.55) saturate(1.25);
 }
 
+.os.shutting-down {
+  pointer-events: none;
+  filter: grayscale(.35) brightness(.55) contrast(1.15);
+}
+
+html.shutting-down,
+html.shutting-down body,
+body.shutting-down {
+  background: #02040a;
+}
+
+.shutdown-route {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  align-content: end;
+  justify-items: stretch;
+  gap: .7rem;
+  padding: clamp(1rem, 4vw, 2.4rem);
+  background:
+    linear-gradient(180deg, rgb(1 4 12 / .72), #01040c 42%, #000 100%);
+  color: #79ff9a;
+  font: 600 clamp(.72rem, 1.7vw, .95rem)/1.45 "Lucida Console", Monaco, Consolas, ui-monospace, monospace;
+  opacity: 0;
+  transform: scale(1.02);
+  transition: opacity .28s linear, transform .28s linear;
+}
+
+.shutdown-route.is-live {
+  opacity: 1;
+  transform: none;
+}
+
+.shutdown-route__scan {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(
+      180deg,
+      transparent 0 2px,
+      rgb(0 255 120 / .035) 2px 3px
+    );
+  mix-blend-mode: screen;
+}
+
+.shutdown-route__log {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  max-height: min(62vh, 28rem);
+  overflow: auto;
+  color: #9dffb4;
+  text-shadow: 0 0 .35rem rgb(80 255 140 / .35);
+  white-space: pre-wrap;
+}
+
+.shutdown-route__banner {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  padding: .35rem .7rem;
+  border: 1px solid rgb(121 255 154 / .55);
+  background: rgb(0 20 8 / .78);
+  color: #e8ffe9;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.shutdown-route.is-halted {
+  background: #000;
+}
+
+.shutdown-route.is-halted .shutdown-route__banner {
+  border-color: #f2ff3d;
+  color: #f2ff3d;
+  background: #061273;
+}
+
+.shutdown-route.is-rebooting .shutdown-route__log {
+  opacity: .35;
+  filter: blur(.4px);
+}
+
+.shutdown-route.is-rebooting .shutdown-route__banner {
+  letter-spacing: .18em;
+}
+
 .os.routing-home {
   pointer-events: none;
   transform-origin: 50% 45%;
@@ -1235,6 +1420,22 @@ body.routing-snap {
     animation: fright-boundary .28s steps(2, jump-none) infinite;
   }
 
+  .os.frightened {
+    animation: fear-os .34s steps(2, jump-none) infinite;
+  }
+
+  .os.frightened .board {
+    animation: fear-board .34s steps(2, jump-none) infinite;
+  }
+
+  .shutdown-route.is-live .shutdown-route__scan {
+    animation: shutdown-scan 1.1s linear infinite;
+  }
+
+  .shutdown-route.is-halted .shutdown-route__banner {
+    animation: shutdown-halt .5s steps(2, jump-none) infinite;
+  }
+
   .game__cursor {
     animation: pulse .8s steps(1, jump-none) infinite;
   }
@@ -1260,17 +1461,29 @@ body.routing-snap {
   }
 
   .player[data-aura="dragon"]::before,
-  .player[data-aura="vegemite"]::before {
+  .player[data-aura="vegemite"]::before,
+  .player[data-aura="fruit"]::before {
     animation: saiyan-aura .26s steps(2, jump-none) infinite;
   }
 
   .player[data-aura="dragon"] img,
-  .player[data-aura="vegemite"] img {
+  .player[data-aura="vegemite"] img,
+  .player[data-aura="fruit"] img {
     animation: saiyan-charge .24s steps(2, jump-none) infinite;
   }
 
   .player[data-aura="fruit"]::before {
-    animation: fruit-fizzle .3s ease-out both;
+    animation:
+      saiyan-aura .28s steps(2, jump-none) infinite,
+      fruit-flame var(--aura-ms, 1.3s) ease-out both;
+  }
+
+  .player[data-aura-surge]::before {
+    animation: saiyan-surge .12s steps(2, jump-none) infinite;
+  }
+
+  .player[data-aura-surge] img {
+    animation: saiyan-surge-charge .1s steps(2, jump-none) infinite;
   }
 
   .board.powered .ghost:not(.devoured, .regenerating, .recovered) {
@@ -1442,6 +1655,31 @@ body.routing-snap {
     }
   }
 
+  @keyframes fear-os {
+    50% {
+      box-shadow:
+        inset 0 0 0 .18rem rgb(255 32 32 / .95),
+        inset 0 0 5.5rem rgb(150 0 0 / .55);
+      filter: saturate(1.15) contrast(1.08);
+    }
+  }
+
+  @keyframes fear-board {
+    50% {
+      box-shadow:
+        0 0 0 .16rem rgb(255 40 40 / 1),
+        0 0 2.4rem rgb(255 24 24 / .5);
+    }
+  }
+
+  @keyframes shutdown-scan {
+    to { transform: translateY(3px); }
+  }
+
+  @keyframes shutdown-halt {
+    50% { opacity: .45; }
+  }
+
   @keyframes tree-breathe {
     50% {
       filter:
@@ -1461,10 +1699,25 @@ body.routing-snap {
     50% { transform: translateY(-4%) scale(1.08); }
   }
 
-  @keyframes fruit-fizzle {
-    0% { opacity: .7; transform: scale(.85); }
-    40% { opacity: .55; transform: scale(1.05); }
-    100% { opacity: 0; transform: scale(1.2); }
+  @keyframes saiyan-surge {
+    0% {
+      clip-path: polygon(50% 0%, 57% 14%, 66% 0%, 74% 20%, 84% 4%, 88% 28%, 100% 14%, 96% 42%, 100% 34%, 94% 58%, 100% 52%, 88% 74%, 96% 66%, 84% 84%, 72% 92%, 60% 97%, 50% 100%, 40% 97%, 28% 92%, 16% 84%, 4% 66%, 12% 74%, 0% 52%, 6% 58%, 0% 34%, 4% 42%, 0% 14%, 12% 28%, 16% 4%, 26% 20%, 34% 0%, 43% 14%);
+      transform: scale(1.18, 1.28) translateY(-2%);
+    }
+    100% {
+      clip-path: polygon(50% 4%, 58% 12%, 62% 0%, 72% 18%, 78% 4%, 86% 26%, 94% 14%, 94% 40%, 99% 30%, 96% 54%, 100% 48%, 90% 68%, 97% 62%, 86% 78%, 75% 87%, 62% 93%, 50% 95%, 38% 93%, 25% 87%, 14% 78%, 3% 62%, 10% 68%, 0% 48%, 4% 54%, 1% 30%, 6% 40%, 6% 14%, 14% 26%, 22% 4%, 28% 18%, 38% 0%, 42% 12%);
+      transform: scale(1.32, 1.4) translateY(-6%);
+    }
+  }
+
+  @keyframes saiyan-surge-charge {
+    50% { transform: translateY(-10%) scale(1.18) rotate(-2deg); }
+  }
+
+  @keyframes fruit-flame {
+    0% { opacity: .55; }
+    70% { opacity: .5; }
+    100% { opacity: 0; }
   }
 
   @keyframes dingo-prowl {
@@ -1733,9 +1986,13 @@ body.routing-snap {
   .win-route__count.is-boom,
   .os.routing-boom,
   .os.routing-home,
+  .os.frightened,
+  .os.frightened .board,
   .thanos-veil.is-active,
   .win-snap__mote,
   .win-route.is-snapping,
+  .shutdown-route.is-live .shutdown-route__scan,
+  .shutdown-route.is-halted .shutdown-route__banner,
   .trace--nt.alert-dingo,
   .trace--nt.alert-eagle,
   .threat-flash,
@@ -1744,6 +2001,12 @@ body.routing-snap {
   .ghost.regen-fur,
   .ghost.regen-pop {
     animation: none;
+  }
+
+  .shutdown-route {
+    opacity: 1;
+    transform: none;
+    transition: none;
   }
 
   .win-confetti__piece {

@@ -76,10 +76,14 @@ var predatorRespawnTimers = [];
 var winTimers = [];
 var winLayer;
 var thanosVeil;
+var shutdownTimers = [];
+var shutdownLayer;
+var shuttingDown = false;
 var slowUntil = 0;
 var nextMoveAt = 0;
 var grayStacks = 0;
 var auraTimer;
+var powerAuraKind = "";
 var eyeQueues = [];
 var devoured = new Set();
 var ghostsStarted;
@@ -240,15 +244,22 @@ function ntDump(position) {
   ].join("\n");
 }
 
-function predatorNear(actor) {
-  return Math.abs(actor.x - player.x) + Math.abs(actor.y - player.y) <= 1;
+var FEAR_PATH_RADIUS = 3;
+
+function withinFearPath(actor, distances) {
+  if (!actor) return false;
+  var distance = (distances || distancesFor(maze, player))
+    .get(key(actor.x, actor.y));
+  return distance !== undefined && distance <= FEAR_PATH_RADIUS;
 }
 
-function updateCrashTelemetry() {
+function updateCrashTelemetry(fearMap) {
   var dingo = (ghosts && ghosts[0]) || ghostStarts[0] || playerOrigin;
   var eagle = (ghosts && ghosts[1]) || ghostStarts[1] || playerOrigin;
-  var nearDingo = predatorNear(dingo) && !devoured.has(0);
-  var nearEagle = predatorNear(eagle) && !devoured.has(1);
+  var distances = fearMap ||
+    (maze.length ? distancesFor(maze, player) : new Map());
+  var nearDingo = withinFearPath(dingo, distances) && !devoured.has(0);
+  var nearEagle = withinFearPath(eagle, distances) && !devoured.has(1);
   var state = [
     settings.seed,
     key(player.x, player.y),
@@ -1048,6 +1059,9 @@ function renderMaze() {
         );
         tile.dataset[item.power_ticks > 0 ? "power" : "bonus"] = item.id;
         tile.title = item.label;
+        if (item.power_ticks === 0) {
+          paintFruitTile(tile, item, effectsRandom || Math.random);
+        }
       }
       if (cell === "T") {
         tile.classList.add("maze__cell--tunnel");
@@ -1091,6 +1105,8 @@ function configureMaze(seed) {
 
   board.style.setProperty("--maze-columns", columns);
   board.style.setProperty("--maze-rows", rows);
+  huntRandom = seededRandom(seed, settings.random.streams.hunt);
+  effectsRandom = seededRandom(seed, settings.random.streams.effects);
   renderMaze();
   wallCells = Array.from(grid.querySelectorAll(
     ".maze__cell--wall:not(.maze__cell--route)"
@@ -1101,8 +1117,6 @@ function configureMaze(seed) {
     { x: columns - 2, y: rows - 2 },
     { x: 1, y: rows - 2 }
   ];
-  huntRandom = seededRandom(seed, settings.random.streams.hunt);
-  effectsRandom = seededRandom(seed, settings.random.streams.effects);
   board.dataset.mazeSeed = seed;
   board.dataset.tunnel = tunnelRow < 0 ? "offline" : tunnelRow;
 }
@@ -1133,20 +1147,23 @@ function place(element, position) {
   }
 }
 
-function updateKoalaFear() {
+function updateFear(fearMap) {
   if (
+    shuttingDown ||
     playerElement.classList.contains("home") ||
     board.classList.contains("lost") ||
     board.classList.contains("won")
   ) {
     playerElement.classList.remove("frightened");
+    osElement.classList.remove("frightened");
     return;
   }
+  var distances = fearMap || distancesFor(maze, player);
   var afraid = ghosts.some(function (ghost, index) {
-    if (devoured.has(index)) return false;
-    return Math.abs(ghost.x - player.x) + Math.abs(ghost.y - player.y) <= 2;
+    return !devoured.has(index) && withinFearPath(ghost, distances);
   });
   playerElement.classList.toggle("frightened", afraid);
+  osElement.classList.toggle("frightened", afraid);
 }
 
 function drawActors() {
@@ -1154,8 +1171,9 @@ function drawActors() {
   ghosts.forEach(function (ghost, index) {
     place(ghostElements[index], ghost);
   });
-  updateKoalaFear();
-  updateCrashTelemetry();
+  var fearMap = maze.length ? distancesFor(maze, player) : new Map();
+  updateFear(fearMap);
+  updateCrashTelemetry(fearMap);
 }
 
 function lockHome() {
@@ -1208,6 +1226,161 @@ function clearWinSequence() {
   osElement.classList.remove("routing-home", "routing-boom");
   document.documentElement.classList.remove("routing-home");
   document.body.classList.remove("routing-snap");
+}
+
+function clearShutdownSequence() {
+  shutdownTimers.forEach(clearTimeout);
+  shutdownTimers = [];
+  if (shutdownLayer) {
+    shutdownLayer.remove();
+    shutdownLayer = null;
+  }
+  osElement.classList.remove("shutting-down", "frightened");
+  document.body.classList.remove("shutting-down");
+  document.documentElement.classList.remove("shutting-down");
+  shuttingDown = false;
+}
+
+function scheduleShutdown(fn, ms) {
+  shutdownTimers.push(setTimeout(fn, ms));
+}
+
+function homeUrl() {
+  var reboot = document.querySelector("a.reboot");
+  return playerElement.dataset.homeUrl ||
+    (reboot && reboot.href) ||
+    "/";
+}
+
+function startShutdownSequence(url) {
+  if (shuttingDown) return;
+  running = false;
+  paused = true;
+  stopGhosts();
+  clearWinSequence();
+  clearShutdownSequence();
+  shuttingDown = true;
+  playerElement.classList.remove("frightened");
+  osElement.classList.remove("frightened");
+
+  var target = url || homeUrl();
+  var reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  osElement.classList.add("shutting-down");
+  document.body.classList.add("shutting-down");
+  document.documentElement.classList.add("shutting-down");
+  if (telemetry) {
+    telemetry.phase.textContent = "SHUTDOWN";
+    telemetry.dialect.textContent = "FreeBSD/amd64";
+    telemetry.tick = 0;
+    telemetry.lines = [];
+  }
+  statusElement.textContent =
+    "shutdown: -r now; FreeBSD/amd64 syncing disks and detaching maze0...";
+
+  shutdownLayer = document.createElement("div");
+  shutdownLayer.className = "shutdown-route";
+  shutdownLayer.setAttribute("role", "status");
+  shutdownLayer.setAttribute("aria-live", "assertive");
+  shutdownLayer.innerHTML =
+    '<div class="shutdown-route__scan" aria-hidden="true"></div>' +
+    '<pre class="shutdown-route__log"></pre>' +
+    '<p class="shutdown-route__banner">FreeBSD/amd64 · shutdown -r now</p>';
+  document.body.appendChild(shutdownLayer);
+  var logEl = shutdownLayer.querySelector(".shutdown-route__log");
+  var bannerEl = shutdownLayer.querySelector(".shutdown-route__banner");
+  var lines = [
+    "Shutdown NOW!",
+    "Waiting (max 60 seconds) for system process `vnlru' to stop...done",
+    "Waiting (max 60 seconds) for system process `bufdaemon' to stop...done",
+    "Waiting (max 60 seconds) for system process `syncer' to stop...done",
+    "Waiting (max 60 seconds) for system process `krad' to stop...done",
+    "Waiting (max 60 seconds) for system process `dingo' to stop...done",
+    "Waiting (max 60 seconds) for system process `eagle' to stop...done",
+    "Waiting (max 60 seconds) for system process `koala' to stop...done",
+    "Waiting (max 60 seconds) for system process `devd' to stop...done",
+    ".",
+    "All buffers synced.",
+    "",
+    "Uptime: 4m" + String((turn || 0) % 60).padStart(2, "0") + "s",
+    "The operating system has halted.",
+    "Please press any key to reboot.",
+    "",
+    "Rebooting..."
+  ];
+  var shown = [];
+  var index = 0;
+
+  function paint() {
+    logEl.textContent = shown.join("\n");
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function finish() {
+    bannerEl.textContent = "FreeBSD/amd64 · rebooting";
+    shutdownLayer.classList.add("is-halted", "is-rebooting");
+    // Hold the shutdown reboot banner, then start a fresh boot overlay.
+    scheduleShutdown(function () {
+      var boot = typeof playFreeBSDBoot === "function"
+        ? playFreeBSDBoot
+        : null;
+      if (!boot) {
+        location.assign(target);
+        return;
+      }
+      var halted = shutdownLayer;
+      shutdownLayer = null;
+      boot({
+        force: true,
+        onDone: function () {
+          try {
+            sessionStorage.setItem("freebsd-boot-seen", "1");
+            sessionStorage.removeItem("freebsd-reboot");
+          } catch (error) {
+            // ignore storage failures
+          }
+          location.assign(target);
+        }
+      });
+      if (halted) halted.remove();
+    }, reduced ? 480 : 1600);
+  }
+
+  function step() {
+    if (index >= lines.length) {
+      finish();
+      return;
+    }
+    var line = lines[index];
+    index += 1;
+    shown.push(line);
+    paint();
+    if (telemetry && line) {
+      telemetry.lines.push(line);
+      if (telemetry.lines.length > 42) telemetry.lines.shift();
+      telemetry.kernel.textContent = telemetry.lines.join("\n");
+      telemetry.kernel.scrollTop = telemetry.kernel.scrollHeight;
+      telemetry.phase.textContent = /reboot/i.test(line)
+        ? "REBOOT"
+        : /halt|Uptime|synced/i.test(line)
+          ? "HALT"
+          : "SHUTDOWN";
+    }
+    var delay = reduced
+      ? 55
+      : line === ""
+        ? 200
+        : line === "."
+          ? 480
+          : /Waiting|halted|Rebooting/.test(line)
+            ? 380
+            : 240;
+    scheduleShutdown(step, delay);
+  }
+
+  scheduleShutdown(function () {
+    shutdownLayer.classList.add("is-live");
+    step();
+  }, reduced ? 40 : 180);
 }
 
 function scheduleWin(fn, ms) {
@@ -1508,6 +1681,7 @@ function loseLife() {
   lives -= 1;
   panicTicks = 0;
   board.classList.remove("powered", "power-warning");
+  setPlayerAura("");
   ghostElements.forEach(function (element) {
     element.classList.remove("recovered");
   });
@@ -1708,12 +1882,7 @@ function moveGhosts() {
       element.classList.remove("recovered");
       element.style.removeProperty("filter");
     });
-    if (
-      playerElement.dataset.aura === "vegemite" ||
-      playerElement.dataset.aura === "dragon"
-    ) {
-      setPlayerAura("");
-    }
+    setPlayerAura("");
     statusElement.textContent =
       "devd: predator quarantine expired; dingo0 and eagle0 RUNNING.";
   }
@@ -1746,20 +1915,106 @@ function randomiserDestination() {
   return choices[Math.floor(effectsRandom() * choices.length)];
 }
 
+var FRUIT_FLAME = {
+  avocado: { ms: 900, scale: 0.72, power: 0.48, hue: [95, 145], sat: [55, 80] },
+  banana: { ms: 1300, scale: 1.0, power: 0.68, hue: [38, 68], sat: [70, 95] },
+  cherries: { ms: 1700, scale: 1.3, power: 0.95, hue: [-18, 18], sat: [75, 100] }
+};
+
+function fruitHue(range, random) {
+  var min = range[0];
+  var max = range[1];
+  var hue = min + (max - min) * random();
+  return ((hue % 360) + 360) % 360;
+}
+
+function fruitTint(id, random) {
+  var profile = FRUIT_FLAME[id] || FRUIT_FLAME.banana;
+  var sat = profile.sat[0] +
+    (profile.sat[1] - profile.sat[0]) * random();
+  return {
+    h: fruitHue(profile.hue, random).toFixed(1),
+    s: sat.toFixed(1),
+    l: (42 + random() * 16).toFixed(1),
+    scale: profile.scale,
+    power: profile.power,
+    ms: profile.ms
+  };
+}
+
+function clearFruitAuraVars() {
+  [
+    "--aura-h", "--aura-s", "--aura-l",
+    "--aura-scale", "--aura-power", "--aura-ms"
+  ].forEach(function (name) {
+    playerElement.style.removeProperty(name);
+  });
+  delete playerElement.dataset.fruit;
+}
+
 function setPlayerAura(kind) {
   clearTimeout(auraTimer);
+  auraTimer = 0;
+  delete playerElement.dataset.auraSurge;
   if (!kind) {
+    powerAuraKind = "";
+    clearFruitAuraVars();
     delete playerElement.dataset.aura;
     return;
   }
   playerElement.dataset.aura = kind;
-  if (kind === "fruit") {
-    auraTimer = setTimeout(function () {
-      if (playerElement.dataset.aura === "fruit") {
-        delete playerElement.dataset.aura;
-      }
-    }, 300);
+  if (kind === "vegemite" || kind === "dragon") {
+    powerAuraKind = kind;
+    clearFruitAuraVars();
+    return;
   }
+}
+
+function setFruitAura(item) {
+  var tint = fruitTint(item.id, effectsRandom || Math.random);
+  clearTimeout(auraTimer);
+  auraTimer = 0;
+  delete playerElement.dataset.auraSurge;
+  playerElement.dataset.aura = "fruit";
+  playerElement.dataset.fruit = item.id;
+  playerElement.style.setProperty("--aura-h", tint.h);
+  playerElement.style.setProperty("--aura-s", tint.s + "%");
+  playerElement.style.setProperty("--aura-l", tint.l + "%");
+  playerElement.style.setProperty("--aura-scale", String(tint.scale));
+  playerElement.style.setProperty("--aura-power", String(tint.power));
+  playerElement.style.setProperty("--aura-ms", tint.ms + "ms");
+  auraTimer = setTimeout(function () {
+    auraTimer = 0;
+    if (playerElement.dataset.aura === "fruit") {
+      clearFruitAuraVars();
+      delete playerElement.dataset.aura;
+    }
+  }, tint.ms);
+}
+
+function paintFruitTile(tile, item, random) {
+  var tint = fruitTint(item.id, random);
+  tile.style.setProperty("--fruit-h", tint.h);
+  tile.style.setProperty("--fruit-s", tint.s + "%");
+  tile.style.setProperty("--fruit-l", tint.l + "%");
+  tile.style.setProperty("--fruit-scale", String(tint.scale));
+}
+
+function surgeSaiyan() {
+  if (!powerAuraKind || panicTicks <= 0) return false;
+  clearTimeout(auraTimer);
+  playerElement.dataset.aura = powerAuraKind;
+  playerElement.dataset.auraSurge = "1";
+  auraTimer = setTimeout(function () {
+    auraTimer = 0;
+    delete playerElement.dataset.auraSurge;
+    if (panicTicks > 0 && powerAuraKind) {
+      playerElement.dataset.aura = powerAuraKind;
+    } else {
+      setPlayerAura("");
+    }
+  }, 2000);
+  return true;
 }
 
 function applyGraySlow() {
@@ -1836,7 +2091,7 @@ function movePlayer(dx, dy) {
       flashRandomWalls();
       triggerPowerBurst();
     } else if (bonus) {
-      setPlayerAura("fruit");
+      if (!surgeSaiyan()) setFruitAura(bonus);
     }
     grid.children[player.y * columns + player.x].classList.add("eaten");
     updateScore();
@@ -1847,6 +2102,7 @@ function movePlayer(dx, dy) {
   if (player.x === homeOrigin.x && player.y === homeOrigin.y) {
     running = false;
     stopGhosts();
+    setPlayerAura("");
     board.classList.add("won");
     unlockHome();
     dumpElement.textContent = "100%";
@@ -1860,8 +2116,14 @@ function movePlayer(dx, dy) {
     statusElement.textContent = "devd: " + boost.id +
       " power event; 404 wall bank lit; predators quarantined.";
   } else if (collected && bonus) {
-    statusElement.textContent = "kradkrnl: recovered " + bonus.id +
-      " block; +" + bonus.points + "; weak aura fizzled.";
+    var flame = FRUIT_FLAME[bonus.id];
+    statusElement.textContent = playerElement.dataset.auraSurge
+      ? "kradkrnl: recovered " + bonus.id +
+        " block; +" + bonus.points + "; saiyan OVERCLOCK 2s."
+      : "kradkrnl: recovered " + bonus.id +
+        " block; +" + bonus.points + "; " +
+        bonus.id + " flame " +
+        ((flame && flame.ms) || 1300) / 1000 + "s.";
   } else if (randomised) {
     statusElement.textContent =
       "kradkrnl: gray warp → " + player.x + "," + player.y +
@@ -1878,10 +2140,12 @@ function movePlayer(dx, dy) {
 }
 
 function resetGame(regenerate) {
+  if (shuttingDown) return;
   stopGhosts();
   clearWallFlashes();
   clearPredatorEffects();
   clearWinSequence();
+  clearShutdownSequence();
   if (regenerate !== false) {
     mazeGeneration += 1;
     configureMaze((
@@ -1903,6 +2167,7 @@ function resetGame(regenerate) {
   delete playerElement.dataset.slow;
   playerElement.style.removeProperty("--slow-stacks");
   playerElement.classList.remove("frightened");
+  osElement.classList.remove("frightened");
   setPlayerAura("");
   lastDirection = { x: 1, y: 0 };
   pellets = new Set(pelletStarts);
@@ -1924,6 +2189,13 @@ document.querySelectorAll("[data-move]").forEach(function (button) {
 });
 
 document.getElementById("reset").addEventListener("click", resetGame);
+var rebootLink = document.querySelector("a.reboot");
+if (rebootLink) {
+  rebootLink.addEventListener("click", function (event) {
+    event.preventDefault();
+    startShutdownSequence(rebootLink.href);
+  });
+}
 playerElement.addEventListener("click", function (event) {
   if (!playerElement.classList.contains("home")) {
     event.preventDefault();

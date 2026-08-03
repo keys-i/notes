@@ -147,42 +147,31 @@ function kernelScript() {
       "kradkrnl0: maze0 attached at cell " + position.x + "," + position.y],
     ["FreeBSD/amd64", "INIT",
       "devd: krad recovery modules online; restarting maze0"],
-    ["Linux/x86_64", "OOPS",
-      "BUG: unable to handle page fault for address: 0x" +
-      hex64(50, position)],
-    ["Linux/x86_64", "OOPS",
-      "#PF: supervisor read access in kernel mode"],
-    ["Linux/x86_64", "OOPS",
-      "#PF: error_code(0x0000) - not-present page"],
-    ["Linux/x86_64", "OOPS",
-      "Oops: 0000 [#1] PREEMPT SMP NOPTI"],
-    ["Linux/x86_64", "OOPS", "CPU: " + (position.x % 4) +
-      " UID: 0 PID: 404 Comm: kradkrnl Not tainted " +
-      "6.19.0-koala #404 PREEMPT_DYNAMIC"],
-    ["Linux/x86_64", "OOPS",
-      "Modules linked in: pacman koala vrbik kradkrnl [last unloaded: routecache]"],
-    ["Linux/x86_64", "OOPS",
-      "RIP: 0010:krad_route_fault+0x404/0x528 [kradkrnl]"],
-    ["Linux/x86_64", "OOPS", "RSP: 0018:0x" + hex64(54, position) +
-      " EFLAGS: 00010246"],
-    ["Linux/x86_64", "OOPS", "RAX: " + hex64(55, position) +
-      " RBX: " + hex64(56, position)],
-    ["Linux/x86_64", "TRACE", "Call Trace:"],
-    ["Linux/x86_64", "TRACE", " <TASK>"],
-    ["Linux/x86_64", "TRACE", " [<" + hex64(51, position) +
-      ">] dump_stack_lvl+0x44/0x64"],
-    ["Linux/x86_64", "TRACE", " [<" + hex64(52, position) +
-      ">] panic+0x117/0x2f0"],
-    ["Linux/x86_64", "TRACE", " [<" + hex64(53, position) +
-      ">] krad_route_fault+0x404/0x528 [kradkrnl]"],
-    ["Linux/x86_64", "TRACE", " [<" + hex64(57, position) +
-      ">] koala_recover+0x52/0x119 [koala]"],
-    ["Linux/x86_64", "TRACE", " </TASK>"],
-    ["Linux/x86_64", "PANIC",
-      "Kernel panic - not syncing: 404 route unreachable"],
-    ["Linux/x86_64", "REBOOT", "Rebooting in 4 seconds.."],
-    ["Linux/x86_64", "HALT",
-      "---[ end Kernel panic - not syncing: 404 route unreachable ]---"]
+    ["FreeBSD/amd64", "TRAP",
+      "kernel trap 12 with interrupts disabled"],
+    ["FreeBSD/amd64", "PANIC",
+      "panic: page fault in maze0 route vnode @ cell " +
+      position.x + "," + position.y],
+    ["FreeBSD/amd64", "PANIC",
+      "cpuid = " + (position.x % 4) + "; apic id = 0" +
+      (position.y % 8)],
+    ["FreeBSD/amd64", "PANIC",
+      "time = " + Math.floor(Date.now() / 1000)],
+    ["FreeBSD/amd64", "KDB", "KDB: stack backtrace:"],
+    ["FreeBSD/amd64", "KDB", trace[0]],
+    ["FreeBSD/amd64", "KDB", trace[6]],
+    ["FreeBSD/amd64", "KDB", trace[7]],
+    ["FreeBSD/amd64", "KDB", trace[8]],
+    ["FreeBSD/amd64", "DUMP",
+      "Dumping " + (120 + (position.x * 7 + position.y) % 280) +
+      " MB (" + (4 + position.x % 9) + "%): " +
+      ".".repeat(1 + position.y % 4)],
+    ["FreeBSD/amd64", "RECOVERY",
+      "savecore: reboot after panic: route vnode 404 vanished"],
+    ["FreeBSD/amd64", "MOUNTROOT",
+      "Trying to mount root from ufs:/dev/ada0p2 [rw]..."],
+    ["FreeBSD/amd64", "INIT",
+      "init: starting recovery; pid 1 → maze0 supervisor"]
   ];
 }
 
