@@ -73,6 +73,8 @@ var ghostTimer;
 var wallFlashTimer;
 var powerBurstTimer;
 var predatorRespawnTimers = [];
+var winTimers = [];
+var winLayer;
 var devoured = new Set();
 var ghostsStarted;
 var graceTicks;
@@ -829,6 +831,140 @@ function unlockHome() {
   );
 }
 
+function setRouteCount(n) {
+  if (n == null) {
+    delete osElement.dataset.route;
+    osElement.style.removeProperty("--route-progress");
+    return;
+  }
+  osElement.dataset.route = String(n);
+  osElement.style.setProperty(
+    "--route-progress",
+    String(Math.max(0, Math.min(1, (5 - n) / 4)))
+  );
+}
+
+function clearWinSequence() {
+  winTimers.forEach(clearTimeout);
+  winTimers = [];
+  if (winLayer) {
+    winLayer.remove();
+    winLayer = null;
+  }
+  setRouteCount(null);
+  osElement.classList.remove("routing-home", "routing-boom");
+  document.documentElement.classList.remove("routing-home");
+}
+
+function scheduleWin(fn, ms) {
+  winTimers.push(setTimeout(fn, ms));
+}
+
+function winOrigin() {
+  var rect = board.getBoundingClientRect();
+  return {
+    x: rect.left + rect.width / 2,
+    y: rect.top + rect.height * 0.45
+  };
+}
+
+function burstConfetti(count, power) {
+  if (!winLayer) return;
+  var layer = winLayer.querySelector(".win-confetti");
+  if (!layer) return;
+  var origin = winOrigin();
+  var colors = ["#f2ff3d", "#6bdcff", "#ffffff", "#ff6f61", "#79c95b", "#ff9f1c"];
+  var strength = power || 1;
+  for (var i = 0; i < count; i += 1) {
+    var piece = document.createElement("span");
+    var angle = Math.random() * Math.PI * 2;
+    var dist = (12 + Math.random() * 58) * strength;
+    piece.className = "win-confetti__piece" +
+      (i % 5 === 0 ? " win-confetti__piece--long" : "") +
+      (i % 7 === 0 ? " win-confetti__piece--dot" : "");
+    piece.style.left = origin.x + "px";
+    piece.style.top = origin.y + "px";
+    piece.style.background = colors[i % colors.length];
+    piece.style.setProperty("--dx", Math.cos(angle) * dist + "vmin");
+    piece.style.setProperty("--dy", Math.sin(angle) * dist + "vmin");
+    piece.style.setProperty("--rot", (Math.random() * 900 - 450) + "deg");
+    piece.style.setProperty("--delay", (Math.random() * 0.22) + "s");
+    piece.style.setProperty("--spin", (0.9 + Math.random() * 0.8) + "s");
+    layer.appendChild(piece);
+    scheduleWin(function (node) {
+      node.remove();
+    }.bind(null, piece), 1800);
+  }
+}
+
+function startWinSequence() {
+  clearWinSequence();
+  var reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var homeUrl = playerElement.dataset.homeUrl || "/";
+  winLayer = document.createElement("div");
+  winLayer.className = "win-route";
+  winLayer.innerHTML =
+    '<div class="win-confetti" aria-hidden="true"></div>' +
+    '<p class="win-route__count" aria-live="assertive"></p>' +
+    '<p class="win-route__hint">returning to route /</p>';
+  document.body.appendChild(winLayer);
+  var countEl = winLayer.querySelector(".win-route__count");
+  var hintEl = winLayer.querySelector(".win-route__hint");
+
+  function goHome() {
+    document.documentElement.classList.add("routing-home");
+    osElement.classList.add("routing-home");
+    hintEl.textContent = "mounting / ...";
+    scheduleWin(function () {
+      location.assign(homeUrl);
+    }, reduced ? 180 : 900);
+  }
+
+  if (reduced) {
+    countEl.textContent = "BOOM!";
+    countEl.classList.add("is-boom");
+    statusElement.textContent = "init: route restored; remounting /";
+    burstConfetti(28, 0.7);
+    scheduleWin(goHome, 700);
+    return;
+  }
+
+  burstConfetti(110, 1.15);
+  scheduleWin(function () {
+    burstConfetti(70, 1.35);
+  }, 280);
+
+  var n = 5;
+  function tick() {
+    countEl.classList.remove("is-boom", "is-tick");
+    if (n > 0) {
+      setRouteCount(n);
+      countEl.textContent = String(n);
+      void countEl.offsetWidth;
+      countEl.classList.add("is-tick");
+      hintEl.textContent = "remounting / in " + n;
+      statusElement.textContent =
+        "init: route recovery complete; remounting / in " + n + "...";
+      burstConfetti(42 + (5 - n) * 14, 1 + (5 - n) * 0.18);
+      n -= 1;
+      scheduleWin(tick, 1000);
+      return;
+    }
+    setRouteCount(1);
+    countEl.textContent = "BOOM!";
+    countEl.classList.add("is-boom");
+    osElement.classList.add("routing-boom");
+    hintEl.textContent = "route vnode remounted";
+    statusElement.textContent =
+      "init: BOOM — jumping back to /";
+    burstConfetti(160, 1.8);
+    scheduleWin(goHome, 750);
+  }
+
+  setRouteCount(5);
+  scheduleWin(tick, 850);
+}
+
 function updateScore() {
   scoreElement.textContent = String(score).padStart(4, "0");
   movesElement.textContent = String(turn).padStart(3, "0");
@@ -1193,7 +1329,8 @@ function movePlayer(dx, dy) {
     unlockHome();
     dumpElement.textContent = "100%";
     statusElement.textContent =
-      "init: route recovery complete; activate koala0 to reboot home.";
+      "init: route recovery complete; preparing remount of /";
+    startWinSequence();
   } else if (pellets.size === 0) {
     statusElement.textContent =
       "fsck_krad: route bitmap clean; proceed to eucalyptus mountpoint.";
@@ -1218,6 +1355,7 @@ function resetGame(regenerate) {
   stopGhosts();
   clearWallFlashes();
   clearPredatorEffects();
+  clearWinSequence();
   if (regenerate !== false) {
     mazeGeneration += 1;
     configureMaze((
