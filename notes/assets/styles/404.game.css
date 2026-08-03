@@ -121,7 +121,10 @@
 .board::after {
   position: absolute;
   z-index: 6;
+  opacity: 0;
   pointer-events: none;
+  text-align: center;
+  white-space: pre;
 }
 
 .board::before {
@@ -132,19 +135,13 @@
   background: #061273;
   font: 950 clamp(.55rem, 1.8vw, .9rem)/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
   letter-spacing: .12em;
-  opacity: 0;
-  text-align: center;
   transform: translate(-50%, -50%);
-  white-space: pre;
 }
 
 .board::after {
   inset: 10%;
   font: 950 clamp(.8rem, 2.5vw, 1.4rem)/2 ui-monospace, SFMono-Regular, Menlo, monospace;
   letter-spacing: .7em;
-  opacity: 0;
-  text-align: center;
-  white-space: pre;
 }
 
 .maze {
@@ -383,40 +380,27 @@
 
 .board.powered .player {
   z-index: 5;
-  filter:
-    drop-shadow(0 0 .35rem rgb(255 215 0 / .95))
-    drop-shadow(0 0 .75rem rgb(255 140 0 / .72));
+  overflow: visible;
+  filter: drop-shadow(0 0 .28rem rgb(130 215 255 / .9)) drop-shadow(0 0 .62rem rgb(64 150 255 / .55));
 }
 
 .board.powered .player::before {
+  z-index: -1;
+  inset: -88% -36% -8%;
   background:
     radial-gradient(
-      circle at 50% 58%,
-      rgb(255 248 170 / .88) 0%,
-      rgb(255 196 0 / .42) 34%,
-      transparent 68%
-    ),
-    conic-gradient(
-      from 0deg at 50% 55%,
-      transparent 0 8%,
-      rgb(255 255 255 / .55) 8% 10%,
-      transparent 10% 18%,
-      rgb(255 236 120 / .65) 18% 20%,
-      transparent 20% 28%,
-      rgb(255 255 255 / .45) 28% 30%,
-      transparent 30% 100%
+      ellipse 52% 68% at 50% 74%,
+      #fff 0 20%,
+      #9fe3ff 20% 48%,
+      #4aa8ff 48% 76%,
+      #2449e8 76% 100%
     );
-  mix-blend-mode: screen;
-  opacity: .92;
+  clip-path: polygon(50% 0%, 56% 16%, 64% 2%, 70% 22%, 80% 8%, 84% 30%, 96% 20%, 92% 44%, 100% 36%, 94% 58%, 99% 54%, 88% 72%, 94% 68%, 84% 80%, 74% 89%, 62% 95%, 50% 97%, 38% 95%, 26% 89%, 16% 80%, 6% 68%, 12% 72%, 1% 54%, 6% 58%, 0% 36%, 8% 44%, 4% 20%, 16% 30%, 20% 8%, 30% 22%, 36% 2%, 44% 16%);
+  transform-origin: 50% 92%;
 }
 
 .board.powered .player img {
-  filter:
-    saturate(1.45)
-    brightness(1.18)
-    contrast(1.08)
-    drop-shadow(0 0 .18rem #fff)
-    drop-shadow(0 0 .42rem #ffd54f);
+  filter: sepia(.5) saturate(1.7) hue-rotate(-8deg) brightness(1.2) drop-shadow(0 0 .16rem rgb(255 236 150 / .95));
 }
 
 .player:not(.home):hover {
@@ -469,6 +453,7 @@
 
 .board.lost .player__dead {
   opacity: 1;
+  filter: grayscale(.82) contrast(1.2);
 }
 
 .player.home .player__neutral,
@@ -615,19 +600,8 @@
 }
 
 .board.powered .ghost:not(.regenerating, .recovered) {
-  filter: drop-shadow(0 0 .3rem rgb(242 255 61 / .72));
-}
-
-.board.powered .threat--dingo:not(.regenerating, .recovered) {
-  --ghost-colour: color-mix(in srgb, var(--ghost-base-colour) 72%, #fff 28%);
-}
-
-.board.powered .threat--eagle:not(.regenerating, .recovered) {
-  --ghost-colour: color-mix(in srgb, var(--ghost-base-colour) 66%, #fff 34%);
-}
-
-.board.powered .threat--eagle:not(.regenerating, .recovered) .threat__beak {
-  fill: color-mix(in srgb, var(--ghost-base-colour) 58%, #fff 42%);
+  --ghost-colour: #2449e8;
+  filter: drop-shadow(0 0 .16rem rgb(0 0 0 / .8)) drop-shadow(0 0 .3rem rgb(242 255 61 / .72));
 }
 
 .board.powered .ghost:not(.regenerating, .recovered)::after {
@@ -656,7 +630,7 @@
 
 .ghost.regenerating {
   opacity: .78;
-  filter: drop-shadow(0 0 .35rem rgb(242 255 61 / .9));
+  filter: drop-shadow(0 0 .16rem rgb(0 0 0 / .8)) drop-shadow(0 0 .35rem rgb(242 255 61 / .9));
 }
 
 .ghost.regenerating::after {
@@ -738,10 +712,6 @@
 .board.lost .maze {
   filter: grayscale(1) contrast(1.18) brightness(.52);
   opacity: .5;
-}
-
-.board.lost .player__dead {
-  filter: grayscale(.82) contrast(1.2);
 }
 
 .controls {
@@ -891,7 +861,7 @@
   }
 
   .board.powered .player::before {
-    animation: saiyan-aura .55s ease-in-out infinite alternate;
+    animation: saiyan-aura .26s steps(2, jump-none) infinite;
   }
 
   .board.powered .player img {
@@ -996,12 +966,14 @@
   }
 
   @keyframes saiyan-aura {
-    0% { transform: scale(.88) rotate(-3deg); opacity: .72; }
-    100% { transform: scale(1.16) rotate(3deg); opacity: 1; }
+    100% {
+      clip-path: polygon(50% 4%, 58% 12%, 62% 0%, 72% 18%, 78% 4%, 86% 26%, 94% 14%, 94% 40%, 99% 30%, 96% 54%, 100% 48%, 90% 68%, 97% 62%, 86% 78%, 75% 87%, 62% 93%, 50% 95%, 38% 93%, 25% 87%, 14% 78%, 3% 62%, 10% 68%, 0% 48%, 4% 54%, 1% 30%, 6% 40%, 6% 14%, 14% 26%, 22% 4%, 28% 18%, 38% 0%, 42% 12%);
+      transform: scale(1.05, 1.1);
+    }
   }
 
   @keyframes saiyan-charge {
-    50% { transform: scale(1.08); }
+    50% { transform: translateY(-4%) scale(1.08); }
   }
 
   @keyframes dingo-prowl {
@@ -1023,8 +995,8 @@
   }
 
   @keyframes predator-warning {
-    0% { filter: brightness(1); transform: translateX(-7%); }
-    100% { filter: brightness(2.2); transform: translateX(7%); }
+    0% { filter: drop-shadow(0 0 .16rem rgb(0 0 0 / .8)); transform: translateX(-7%); }
+    100% { filter: drop-shadow(0 0 .16rem rgb(0 0 0 / .8)) brightness(1.4); transform: translateX(7%); }
   }
 
   @keyframes power-burst {
@@ -1039,7 +1011,7 @@
   }
 
   @keyframes predator-regenerate {
-    50% { filter: brightness(2); opacity: .35; transform: scale(.72); }
+    50% { filter: drop-shadow(0 0 .16rem rgb(0 0 0 / .8)) brightness(1.6); opacity: .35; transform: scale(.72); }
   }
 
   @keyframes wall-flash {
@@ -1128,11 +1100,6 @@
 
   .actor {
     transition: none;
-  }
-
-  .board.powered .player::before,
-  .board.powered .player img {
-    animation: none;
   }
 
   .maze__cell--wall.power-flash {

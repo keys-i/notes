@@ -197,6 +197,7 @@ function manCommand(parts) {
           "       koalactl status",
           "       koalactl move <directions>",
           "       koalactl <directions>",
+          "       koalactl pause | resume",
           "       koalactl trace",
           "       koalactl reset",
           "",
@@ -360,7 +361,7 @@ function shellCommand(source) {
         "Boot/fs: fsck mount geom gpart zpool zfs savecore crashinfo",
         "Kernel: dmesg trace kldstat kldload kldunload sysctl ddb",
         "System: ps top vmstat procstat sockstat ifconfig route netstat",
-        "Game: koalactl status|move <directions>|trace|reset",
+        "Game: koalactl status|move <directions>|pause|resume|trace|reset",
         "Manual: man [section] page | man -k keyword | apropos keyword",
         "Enter ddb, then type help at the db> prompt for kernel commands."
       ].join("\n");
@@ -705,10 +706,21 @@ function shellCommand(source) {
       return "syncing disks... done\nRebooting recovery kernel...";
     case "koalactl":
       if (!argument || argument === "status") {
-        return "maze0: " + (running ? "RUNNING" : "HALTED") +
+        return "maze0: " + (running ? (paused ? "PAUSED" : "RUNNING") : "HALTED") +
           " cell=" + position.x + "," + position.y +
           " score=" + (score || 0) + " moves=" + (turn || 0) +
           " tunnel=" + (tunnelRow < 0 ? "offline" : "row" + tunnelRow);
+      }
+      if (argument === "pause") {
+        if (!running) return "koalactl: maze0 is halted; nothing to pause";
+        if (paused) return "koalactl: maze0 scheduler already paused";
+        paused = true;
+        return "koalactl: maze0 scheduler paused; predators frozen";
+      }
+      if (argument === "resume" || argument === "unpause") {
+        if (!paused) return "koalactl: maze0 scheduler is not paused";
+        paused = false;
+        return "koalactl: maze0 scheduler resumed";
       }
       if (argument === "trace") return ntDump();
       if (argument === "reset" || argument === "restart") {
