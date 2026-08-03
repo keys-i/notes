@@ -1,6 +1,6 @@
 # Site Information
 site_name: Rad's Notes
-site_url: https://keys-i.github.io/notes
+site_url: https://uni.keysi.dev
 site_dir: public
 docs_dir: notes
 site_description: COMP4403 compilers and interpreters notes covering grammars, parsing, semantics, execution, runtime systems, tutorials, and assignments.
@@ -11,7 +11,11 @@ repo_url: https://github.com/keys-i/notes
 edit_uri: edit/main/notes/
 
 hooks:
-  - hooks/superfences.py
+  - hooks/game.py
+  - hooks/callouts.py
+  - hooks/graph.py
+  - hooks/discovery.py
+  - hooks/man.py
 
 # Theme Configuration
 theme:
@@ -54,6 +58,7 @@ theme:
 copyright: Copyright &copy; 2026 Keys
 
 extra:
+  twitter: keys_i
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/keys-i
@@ -75,7 +80,11 @@ markdown_extensions:
   - footnotes # Adds support for footnotes
   - attr_list # Allows adding attributes to elements
   - pymdownx.highlight # Enhances syntax highlighting
-  - pymdownx.superfences # Provides advanced code block fencing and powers markdown-exec
+  - pymdownx.superfences: # Provides advanced code block fencing and powers markdown-exec
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:mermaid2.fence_mermaid_custom
   - pymdownx.details # Adds collapsible detail/summary blocks
   - pymdownx.magiclink # Automatically turns URLs into clickable links
   - pymdownx.tasklist # Adds support for task lists
@@ -94,22 +103,7 @@ markdown_extensions:
 
 # Extra JavaScript for enhanced functionality
 extra_javascript:
-  - "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-MML-AM_CHTML" # Math rendering
-  - https://fastly.jsdelivr.net/npm/jquery/dist/jquery.min.js # jQuery support
-  - https://fastly.jsdelivr.net/npm/echarts@6.1.0/dist/echarts.min.js # Charting support via ECharts
-  - assets/javascripts/interactive_graph.js # Custom interactive graph script
-  - assets/javascripts/diagram_zoom.js?v=20260512-resolution2 # Pan and zoom controls for large Mermaid diagrams
-  - assets/javascripts/obsidian_tags.js # Custom CSS for Obsidian tags
-  - path: assets/javascripts/pretext-editor-engine.mjs
-    type: module # Pretext-powered editor preview engine
-
-# Extra CSS for custom styling
-extra_css:
-  - assets/stylesheets/interactive_graph.css # Styling for interactive graph
-  - assets/stylesheets/mermaid_zoom.css?v=20260512-resolution2 # Pan and zoom controls for large Mermaid diagrams
-  - assets/stylesheets/obsidian_tags.css # Obsidian-style tags
-  - assets/stylesheets/pretext-editor-engine.css # Styling for the Pretext editor engine
-  # - assets/stylesheets/custom_theme.css  # Optional: Add custom theme styles
+  - assets/js/graph.js # Custom interactive graph script
 
 # Plugins for added functionality
 plugins:
@@ -119,9 +113,26 @@ plugins:
   - obsidian-support
   - obsidian-interactive-graph # Interactive graph functionality for visualizing connections
   - mermaid2:
-      javascript: https://unpkg.com/mermaid@10.4.0/dist/mermaid.esm.min.mjs 
-  - minify: # Optional: Minifies HTML for faster loading
+      javascript: https://unpkg.com/mermaid@10.4.0/dist/mermaid.esm.min.mjs
+  - minify:
       minify_html: true
+      minify_js: true
+      minify_css: true
+      htmlmin_opts:
+        remove_comments: true
+      js_files:
+        - assets/js/404.game.js
+        - assets/js/404.shell.js
+        - assets/js/404.panic.js
+        - assets/js/comments.js
+        - assets/js/graph.js
+        - assets/js/zoom.mermaid.js
+      css_files:
+        - assets/styles/404.panic.css
+        - assets/styles/404.game.css
+        - assets/styles/404.shell.css
+        - assets/styles/graph.css
+        - assets/styles/zoom.mermaid.css
   - git-authors:
       show_contribution: false
       show_line_count: false

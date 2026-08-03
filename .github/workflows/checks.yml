@@ -1,21 +1,30 @@
-name: Markdown checks
+name: Checks
 
 on:
   pull_request:
-    paths:
-      - "**/*.md"
-      - ".github/workflows/checks.yml"
+    paths-ignore:
+      - README.md
   push:
     branches: [main, master]
-    paths:
-      - "**/*.md"
-      - ".github/workflows/checks.yml"
+    paths-ignore:
+      - README.md
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
+  hooks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.32"
+          python-version: "3.13"
+      - name: Run hook smoke tests
+        run: uv run --locked test
+
   markdown:
     runs-on: ubuntu-latest
     steps:
