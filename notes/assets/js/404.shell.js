@@ -1,6 +1,7 @@
 "use strict";
 
 var shell = {
+  dev: ["localhost", "127.0.0.1", "[::1]"].includes(location.hostname),
   commands: [
     "apropos", "bt", "camcontrol", "cat", "cd", "clear", "crashinfo",
     "date", "ddb", "df", "dmesg", "echo", "env", "exit", "freebsd-version",
@@ -197,13 +198,15 @@ function manCommand(parts) {
           "       koalactl status",
           "       koalactl move <directions>",
           "       koalactl <directions>",
-          "       koalactl pause | resume",
+          shell.dev ? "       koalactl pause | resume" : null,
           "       koalactl trace",
           "       koalactl reset",
           "",
           "DESCRIPTION",
           "       Local krad recovery extension; not part of FreeBSD."
-        ].join("\n");
+        ].filter(function (line) {
+          return line !== null;
+        }).join("\n");
       }
       var name = data.aliases[requested] || requested;
       var page = data.pages[name];
@@ -361,7 +364,8 @@ function shellCommand(source) {
         "Boot/fs: fsck mount geom gpart zpool zfs savecore crashinfo",
         "Kernel: dmesg trace kldstat kldload kldunload sysctl ddb",
         "System: ps top vmstat procstat sockstat ifconfig route netstat",
-        "Game: koalactl status|move <directions>|pause|resume|trace|reset",
+        "Game: koalactl status|move <directions>|" +
+          (shell.dev ? "pause|resume|" : "") + "trace|reset",
         "Manual: man [section] page | man -k keyword | apropos keyword",
         "Enter ddb, then type help at the db> prompt for kernel commands."
       ].join("\n");
@@ -711,13 +715,13 @@ function shellCommand(source) {
           " score=" + (score || 0) + " moves=" + (turn || 0) +
           " tunnel=" + (tunnelRow < 0 ? "offline" : "row" + tunnelRow);
       }
-      if (argument === "pause") {
+      if (shell.dev && argument === "pause") {
         if (!running) return "koalactl: maze0 is halted; nothing to pause";
         if (paused) return "koalactl: maze0 scheduler already paused";
         paused = true;
         return "koalactl: maze0 scheduler paused; predators frozen";
       }
-      if (argument === "resume" || argument === "unpause") {
+      if (shell.dev && (argument === "resume" || argument === "unpause")) {
         if (!paused) return "koalactl: maze0 scheduler is not paused";
         paused = false;
         return "koalactl: maze0 scheduler resumed";
