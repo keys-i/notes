@@ -1012,6 +1012,41 @@ function generateMaze(seed) {
   return best;
 }
 
+var FRUIT_FLAME = {
+  avocado: { ms: 900, scale: 0.72, power: 0.48, hue: [95, 145], sat: [55, 80] },
+  banana: { ms: 1300, scale: 1.0, power: 0.68, hue: [38, 68], sat: [70, 95] },
+  cherries: { ms: 1700, scale: 1.3, power: 0.95, hue: [-18, 18], sat: [75, 100] }
+};
+
+function fruitHue(range, random) {
+  var min = range[0];
+  var max = range[1];
+  var hue = min + (max - min) * random();
+  return ((hue % 360) + 360) % 360;
+}
+
+function fruitTint(id, random) {
+  var profile = FRUIT_FLAME[id] || FRUIT_FLAME.banana;
+  var sat = profile.sat[0] +
+    (profile.sat[1] - profile.sat[0]) * random();
+  return {
+    h: fruitHue(profile.hue, random).toFixed(1),
+    s: sat.toFixed(1),
+    l: (42 + random() * 16).toFixed(1),
+    scale: profile.scale,
+    power: profile.power,
+    ms: profile.ms
+  };
+}
+
+function paintFruitTile(tile, item, random) {
+  var tint = fruitTint(item.id, random);
+  tile.style.setProperty("--fruit-h", tint.h);
+  tile.style.setProperty("--fruit-s", tint.s + "%");
+  tile.style.setProperty("--fruit-l", tint.l + "%");
+  tile.style.setProperty("--fruit-scale", String(tint.scale));
+}
+
 function renderMaze() {
   var fragment = document.createDocumentFragment();
 
@@ -1126,7 +1161,29 @@ var seedValue = pageParams.get("maze");
 var initialSeed = seedValue !== null && /^\d+$/.test(seedValue)
   ? Number(seedValue) >>> 0
   : (Date.now() ^ 0x404) >>> 0;
-configureMaze(initialSeed);
+
+function bindShutdownButton() {
+  var link = document.getElementById("shutdown") ||
+    document.querySelector("a.reboot");
+  if (!link || link.dataset.boundShutdown === "1") return;
+  link.dataset.boundShutdown = "1";
+  link.addEventListener("click", function (event) {
+    event.preventDefault();
+    event.stopPropagation();
+    startShutdownSequence(link.href);
+  }, true);
+}
+
+// Bind before maze init so a render fault cannot leave the reboot link live.
+bindShutdownButton();
+try {
+  configureMaze(initialSeed);
+} catch (error) {
+  console.error(error);
+  statusElement.textContent =
+    "kradkrnl: maze0 attach failed; use shutdown -r now to leave recovery.";
+}
+
 function place(element, position) {
   var previousX = Number(element.dataset.cellX);
   if (
@@ -1236,8 +1293,16 @@ function clearShutdownSequence() {
     shutdownLayer = null;
   }
   osElement.classList.remove("shutting-down", "frightened");
-  document.body.classList.remove("shutting-down");
-  document.documentElement.classList.remove("shutting-down");
+  document.body.classList.remove(
+    "shutting-down",
+    "freebsd-booting",
+    "freebsd-shutting-down"
+  );
+  document.documentElement.classList.remove(
+    "shutting-down",
+    "freebsd-booting",
+    "freebsd-shutting-down"
+  );
   shuttingDown = false;
 }
 
@@ -1256,15 +1321,21 @@ function startShutdownSequence(url) {
   if (shuttingDown) return;
   running = false;
   paused = true;
-  stopGhosts();
-  clearWinSequence();
+  if (typeof stopGhosts === "function") stopGhosts();
+  if (typeof clearWinSequence === "function") clearWinSequence();
   clearShutdownSequence();
   shuttingDown = true;
   playerElement.classList.remove("frightened");
   osElement.classList.remove("frightened");
 
   var target = url || homeUrl();
-  var reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var shutdown = typeof playFreeBSDShutdown === "function"
+    ? playFreeBSDShutdown
+    : null;
+  var boot = typeof playFreeBSDBoot === "function"
+    ? playFreeBSDBoot
+    : null;
+
   osElement.classList.add("shutting-down");
   document.body.classList.add("shutting-down");
   document.documentElement.classList.add("shutting-down");
@@ -1272,115 +1343,81 @@ function startShutdownSequence(url) {
     telemetry.phase.textContent = "SHUTDOWN";
     telemetry.dialect.textContent = "FreeBSD/amd64";
     telemetry.tick = 0;
-    telemetry.lines = [];
+    telemetry.lines = [
+      "FreeBSD/amd64 14.2-RECOVERY",
+      "shutdown: -r now by rad on ttyv0"
+    ];
+    telemetry.kernel.textContent = telemetry.lines.join("\n");
   }
   statusElement.textContent =
     "shutdown: -r now; FreeBSD/amd64 syncing disks and detaching maze0...";
 
-  shutdownLayer = document.createElement("div");
-  shutdownLayer.className = "shutdown-route";
-  shutdownLayer.setAttribute("role", "status");
-  shutdownLayer.setAttribute("aria-live", "assertive");
-  shutdownLayer.innerHTML =
-    '<div class="shutdown-route__scan" aria-hidden="true"></div>' +
-    '<pre class="shutdown-route__log"></pre>' +
-    '<p class="shutdown-route__banner">FreeBSD/amd64 · shutdown -r now</p>';
-  document.body.appendChild(shutdownLayer);
-  var logEl = shutdownLayer.querySelector(".shutdown-route__log");
-  var bannerEl = shutdownLayer.querySelector(".shutdown-route__banner");
-  var lines = [
-    "Shutdown NOW!",
-    "Waiting (max 60 seconds) for system process `vnlru' to stop...done",
-    "Waiting (max 60 seconds) for system process `bufdaemon' to stop...done",
-    "Waiting (max 60 seconds) for system process `syncer' to stop...done",
-    "Waiting (max 60 seconds) for system process `krad' to stop...done",
-    "Waiting (max 60 seconds) for system process `dingo' to stop...done",
-    "Waiting (max 60 seconds) for system process `eagle' to stop...done",
-    "Waiting (max 60 seconds) for system process `koala' to stop...done",
-    "Waiting (max 60 seconds) for system process `devd' to stop...done",
-    ".",
-    "All buffers synced.",
-    "",
-    "Uptime: 4m" + String((turn || 0) % 60).padStart(2, "0") + "s",
-    "The operating system has halted.",
-    "Please press any key to reboot.",
-    "",
-    "Rebooting..."
-  ];
-  var shown = [];
-  var index = 0;
-
-  function paint() {
-    logEl.textContent = shown.join("\n");
-    logEl.scrollTop = logEl.scrollHeight;
+  function goHome() {
+    try {
+      sessionStorage.setItem("freebsd-boot-seen", "1");
+      sessionStorage.removeItem("freebsd-reboot");
+    } catch (error) {
+      // ignore storage failures
+    }
+    location.assign(target);
   }
 
-  function finish() {
-    bannerEl.textContent = "FreeBSD/amd64 · rebooting";
-    shutdownLayer.classList.add("is-halted", "is-rebooting");
-    // Hold the shutdown reboot banner, then start a fresh boot overlay.
-    scheduleShutdown(function () {
-      var boot = typeof playFreeBSDBoot === "function"
-        ? playFreeBSDBoot
-        : null;
-      if (!boot) {
-        location.assign(target);
-        return;
-      }
-      var halted = shutdownLayer;
-      shutdownLayer = null;
-      boot({
-        force: true,
-        onDone: function () {
-          try {
-            sessionStorage.setItem("freebsd-boot-seen", "1");
-            sessionStorage.removeItem("freebsd-reboot");
-          } catch (error) {
-            // ignore storage failures
-          }
-          location.assign(target);
-        }
-      });
-      if (halted) halted.remove();
-    }, reduced ? 480 : 1600);
-  }
-
-  function step() {
-    if (index >= lines.length) {
-      finish();
+  function beginFreeBSDBoot() {
+    if (telemetry) {
+      telemetry.phase.textContent = "BOOT";
+      telemetry.dialect.textContent = "FreeBSD/amd64";
+    }
+    statusElement.textContent =
+      "boot: FreeBSD/amd64 loading recovery kernel...";
+    if (!boot) {
+      goHome();
       return;
     }
-    var line = lines[index];
-    index += 1;
-    shown.push(line);
-    paint();
-    if (telemetry && line) {
-      telemetry.lines.push(line);
-      if (telemetry.lines.length > 42) telemetry.lines.shift();
-      telemetry.kernel.textContent = telemetry.lines.join("\n");
-      telemetry.kernel.scrollTop = telemetry.kernel.scrollHeight;
-      telemetry.phase.textContent = /reboot/i.test(line)
-        ? "REBOOT"
-        : /halt|Uptime|synced/i.test(line)
-          ? "HALT"
-          : "SHUTDOWN";
-    }
-    var delay = reduced
-      ? 55
-      : line === ""
-        ? 200
-        : line === "."
-          ? 480
-          : /Waiting|halted|Rebooting/.test(line)
-            ? 380
-            : 240;
-    scheduleShutdown(step, delay);
+    boot({
+      force: true,
+      onDone: goHome
+    });
   }
 
-  scheduleShutdown(function () {
-    shutdownLayer.classList.add("is-live");
-    step();
-  }, reduced ? 40 : 180);
+  function onShutdownLine(line) {
+    if (!telemetry || !line) return;
+    telemetry.lines.push(line);
+    if (telemetry.lines.length > 42) telemetry.lines.shift();
+    telemetry.kernel.textContent = telemetry.lines.join("\n");
+    telemetry.kernel.scrollTop = telemetry.kernel.scrollHeight;
+    telemetry.dialect.textContent = "FreeBSD/amd64";
+    telemetry.phase.textContent = /reboot/i.test(line)
+      ? "REBOOT"
+      : /halt|Uptime|synced|Terminated/i.test(line)
+        ? "HALT"
+        : "SHUTDOWN";
+  }
+
+  if (!shutdown) {
+    beginFreeBSDBoot();
+    return;
+  }
+
+  shutdownLayer = shutdown({
+    force: true,
+    keep: true,
+    uptime: "4m" + String((turn || 0) % 60).padStart(2, "0") + "s",
+    onLine: onShutdownLine,
+    onDone: function () {
+      if (shutdownLayer) {
+        shutdownLayer.classList.add("is-handoff");
+        scheduleShutdown(function () {
+          if (shutdownLayer && shutdownLayer.parentNode) {
+            shutdownLayer.remove();
+          }
+          shutdownLayer = null;
+          beginFreeBSDBoot();
+        }, 280);
+        return;
+      }
+      beginFreeBSDBoot();
+    }
+  });
 }
 
 function scheduleWin(fn, ms) {
@@ -1915,33 +1952,6 @@ function randomiserDestination() {
   return choices[Math.floor(effectsRandom() * choices.length)];
 }
 
-var FRUIT_FLAME = {
-  avocado: { ms: 900, scale: 0.72, power: 0.48, hue: [95, 145], sat: [55, 80] },
-  banana: { ms: 1300, scale: 1.0, power: 0.68, hue: [38, 68], sat: [70, 95] },
-  cherries: { ms: 1700, scale: 1.3, power: 0.95, hue: [-18, 18], sat: [75, 100] }
-};
-
-function fruitHue(range, random) {
-  var min = range[0];
-  var max = range[1];
-  var hue = min + (max - min) * random();
-  return ((hue % 360) + 360) % 360;
-}
-
-function fruitTint(id, random) {
-  var profile = FRUIT_FLAME[id] || FRUIT_FLAME.banana;
-  var sat = profile.sat[0] +
-    (profile.sat[1] - profile.sat[0]) * random();
-  return {
-    h: fruitHue(profile.hue, random).toFixed(1),
-    s: sat.toFixed(1),
-    l: (42 + random() * 16).toFixed(1),
-    scale: profile.scale,
-    power: profile.power,
-    ms: profile.ms
-  };
-}
-
 function clearFruitAuraVars() {
   [
     "--aura-h", "--aura-s", "--aura-l",
@@ -1990,14 +2000,6 @@ function setFruitAura(item) {
       delete playerElement.dataset.aura;
     }
   }, tint.ms);
-}
-
-function paintFruitTile(tile, item, random) {
-  var tint = fruitTint(item.id, random);
-  tile.style.setProperty("--fruit-h", tint.h);
-  tile.style.setProperty("--fruit-s", tint.s + "%");
-  tile.style.setProperty("--fruit-l", tint.l + "%");
-  tile.style.setProperty("--fruit-scale", String(tint.scale));
 }
 
 function surgeSaiyan() {
@@ -2189,13 +2191,7 @@ document.querySelectorAll("[data-move]").forEach(function (button) {
 });
 
 document.getElementById("reset").addEventListener("click", resetGame);
-var rebootLink = document.querySelector("a.reboot");
-if (rebootLink) {
-  rebootLink.addEventListener("click", function (event) {
-    event.preventDefault();
-    startShutdownSequence(rebootLink.href);
-  });
-}
+bindShutdownButton();
 playerElement.addEventListener("click", function (event) {
   if (!playerElement.classList.contains("home")) {
     event.preventDefault();

@@ -77,20 +77,58 @@
     ];
   }
 
-  function createLayer() {
+  function shutdownLines(uptime) {
+    return [
+      "shutdown: [pid 1] Shutdown NOW!",
+      "",
+      "Stopping cron.",
+      "Waiting for PIDS: " + (404 + (uptime % 90)) + ".",
+      "Stopping sshd.",
+      "Waiting for PIDS: " + (520 + (uptime % 40)) + ".",
+      "Stopping sendmail.",
+      "Waiting for PIDS: .",
+      "Stopping powerd.",
+      "Stopping koala recovery console.",
+      "Waiting for PIDS: 404.",
+      "Stopping krad.",
+      "Waiting for PIDS: 404.",
+      "Stopping dingo.",
+      "Waiting for PIDS: 8.",
+      "Stopping eagle.",
+      "Waiting for PIDS: 9.",
+      "Stopping devd.",
+      "Waiting for PIDS: 33.",
+      ".",
+      "Terminated",
+      "",
+      "Waiting (max 60 seconds) for system process `vnlru' to stop...done",
+      "Waiting (max 60 seconds) for system process `bufdaemon' to stop...done",
+      "Waiting (max 60 seconds) for system process `bufspacedaemon' to stop...done",
+      "Waiting (max 60 seconds) for system process `syncer' to stop...",
+      "Syncing disks, vnodes remaining... 3 2 1 0 0 done",
+      "All buffers synced.",
+      "Uptime: " + uptime,
+      "The operating system has halted.",
+      "Please press any key to reboot.",
+      "",
+      "Rebooting..."
+    ];
+  }
+
+  function createLayer(mode) {
     var layer = document.createElement("div");
-    layer.className = "freebsd-boot";
+    layer.className = "freebsd-boot freebsd-boot--" + (mode || "boot");
     layer.setAttribute("role", "status");
     layer.setAttribute("aria-live", "assertive");
     layer.innerHTML =
       '<div class="freebsd-boot__scan" aria-hidden="true"></div>' +
       '<pre class="freebsd-boot__log"></pre>' +
-      '<p class="freebsd-boot__banner">FreeBSD/amd64 · booting</p>';
+      '<p class="freebsd-boot__banner"></p>';
     document.body.appendChild(layer);
     return layer;
   }
 
-  function playFreeBSDBoot(options) {
+  function playConsole(options) {
     options = options || {};
     if (playing && !options.force) return activeLayer;
     playing = true;
@@ -101,14 +139,23 @@
     }
 
     var reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
-    var layer = createLayer();
+    var mode = options.mode || "boot";
+    var layer = createLayer(mode);
     activeLayer = layer;
     document.documentElement.classList.add("freebsd-booting");
     document.body.classList.add("freebsd-booting");
+    if (mode === "shutdown") {
+      document.documentElement.classList.add("freebsd-shutting-down");
+      document.body.classList.add("freebsd-shutting-down");
+    }
 
     var logEl = layer.querySelector(".freebsd-boot__log");
     var bannerEl = layer.querySelector(".freebsd-boot__banner");
-    var lines = bootLines();
+    bannerEl.textContent = options.banner ||
+      (mode === "shutdown"
+        ? "FreeBSD/amd64 · shutdown -r now"
+        : "FreeBSD/amd64 · booting");
+    var lines = options.lines || bootLines();
     var shown = [];
     var index = 0;
 
@@ -118,18 +165,28 @@
     }
 
     function finish() {
-      bannerEl.textContent = "FreeBSD/amd64 · multiuser";
+      bannerEl.textContent = options.doneBanner ||
+        (mode === "shutdown"
+          ? "FreeBSD/amd64 · rebooting"
+          : "FreeBSD/amd64 · multiuser");
       layer.classList.add("is-ready");
+      if (mode === "shutdown") layer.classList.add("is-halted");
       schedule(function () {
-        document.documentElement.classList.remove("freebsd-booting");
-        document.body.classList.remove("freebsd-booting");
         if (options.keep !== true) {
+          document.documentElement.classList.remove(
+            "freebsd-booting",
+            "freebsd-shutting-down"
+          );
+          document.body.classList.remove(
+            "freebsd-booting",
+            "freebsd-shutting-down"
+          );
           layer.remove();
           if (activeLayer === layer) activeLayer = null;
         }
         playing = false;
         if (typeof options.onDone === "function") options.onDone();
-      }, delay(reduced ? 120 : 520));
+      }, delay(reduced ? 120 : options.holdMs || 520));
     }
 
     function step() {
@@ -141,15 +198,30 @@
       index += 1;
       shown.push(line);
       paint();
-      var base = reduced
-        ? 18
-        : line === ""
+      if (typeof options.onLine === "function") options.onLine(line);
+
+      var base;
+      if (reduced) {
+        base = 18;
+      } else if (mode === "shutdown") {
+        base = line === ""
+          ? 140
+          : line === "."
+            ? 420
+            : /Shutdown NOW|Terminated|halted|Rebooting|Syncing disks/.test(line)
+              ? 380
+              : /Waiting \(max|Waiting for PIDS|Stopping /.test(line)
+                ? 300
+                : 200;
+      } else {
+        base = line === ""
           ? 90
           : /Copyright|FreeBSD clang|real memory|Trying to mount|login:|Welcome/.test(line)
             ? 70
             : /ada0:|Starting |Mounting |Setting /.test(line)
               ? 42
               : 28;
+      }
       schedule(step, delay(base));
     }
 
@@ -159,6 +231,23 @@
     }, delay(reduced ? 20 : 80));
 
     return layer;
+  }
+
+  function playFreeBSDBoot(options) {
+    options = options || {};
+    options.mode = "boot";
+    return playConsole(options);
+  }
+
+  function playFreeBSDShutdown(options) {
+    options = options || {};
+    var uptime = options.uptime || "4m00s";
+    options.mode = "shutdown";
+    options.lines = options.lines || shutdownLines(uptime);
+    options.banner = options.banner || "FreeBSD/amd64 · shutdown -r now";
+    options.doneBanner = options.doneBanner || "FreeBSD/amd64 · rebooting";
+    options.holdMs = options.holdMs != null ? options.holdMs : 1100;
+    return playConsole(options);
   }
 
   function armSiteBoot() {
@@ -185,6 +274,7 @@
   }
 
   window.playFreeBSDBoot = playFreeBSDBoot;
+  window.playFreeBSDShutdown = playFreeBSDShutdown;
   window.markFreeBSDReboot = function () {
     try {
       sessionStorage.setItem(REBOOT_KEY, "1");

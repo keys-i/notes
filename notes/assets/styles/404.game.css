@@ -1088,7 +1088,7 @@ body.shutting-down {
 .shutdown-route {
   position: fixed;
   inset: 0;
-  z-index: 50;
+  z-index: 10050;
   display: grid;
   align-content: end;
   justify-items: stretch;
@@ -1100,7 +1100,7 @@ body.shutting-down {
   font: 600 clamp(.72rem, 1.7vw, .95rem)/1.45 "Lucida Console", Monaco, Consolas, ui-monospace, monospace;
   opacity: 0;
   transform: scale(1.02);
-  transition: opacity .28s linear, transform .28s linear;
+  transition: opacity .28s linear, transform .28s linear, filter .35s linear;
 }
 
 .shutdown-route.is-live {
@@ -1161,6 +1161,12 @@ body.shutting-down {
 
 .shutdown-route.is-rebooting .shutdown-route__banner {
   letter-spacing: .18em;
+}
+
+.shutdown-route.is-handoff {
+  opacity: 0;
+  filter: brightness(0);
+  pointer-events: none;
 }
 
 .os.routing-home {
