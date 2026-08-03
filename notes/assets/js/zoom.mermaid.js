@@ -1,32 +1,24 @@
 (function () {
   "use strict";
 
-  var MIN_SCALE = 0.4;
-  var MAX_SCALE = 8;
   var ZOOM_STEP = 1.2;
-  var DEFAULT_MERMAID_SRC = "https://unpkg.com/mermaid@10.4.0/dist/mermaid.esm.min.mjs";
   var mermaidReady = null;
   var renderId = 0;
-  var scheduled = false;
-  var observerStarted = false;
 
-  function clamp(value, min, max) {
-    return Math.min(Math.max(value, min), max);
-  }
-
-  function makeButton(label, title) {
+  function makeButton(label, title, action) {
     var button = document.createElement("button");
     button.type = "button";
     button.className = "mermaid-zoom__button";
     button.textContent = label;
     button.title = title;
+    button.dataset.mermaidZoomAction = action;
     button.setAttribute("aria-label", title);
     return button;
   }
 
   function closestElement(target, selector) {
-    var element = target instanceof Element ? target : target && target.parentElement;
-    return element ? element.closest(selector) : null;
+    target = target instanceof Element ? target : target && target.parentElement;
+    return target ? target.closest(selector) : null;
   }
 
   function parseSvgLength(value) {
@@ -39,13 +31,7 @@
   }
 
   function getSvgViewBoxSize(svg) {
-    var viewBox = svg.getAttribute("viewBox");
-
-    if (!viewBox) {
-      return null;
-    }
-
-    var values = viewBox.trim().split(/[\s,]+/).map(Number);
+    var values = (svg.getAttribute("viewBox") || "").trim().split(/[\s,]+/).map(Number);
 
     if (
       values.length === 4 &&
@@ -66,34 +52,33 @@
   function getSvgBaseSize(svg) {
     var rect = svg.getBoundingClientRect();
     var viewBox = getSvgViewBoxSize(svg);
-    var width = rect.width || parseSvgLength(svg.getAttribute("width")) || (viewBox && viewBox.width) || 800;
-    var height = rect.height || parseSvgLength(svg.getAttribute("height")) || (viewBox && viewBox.height) || 450;
 
     return {
-      width: Math.max(1, width),
-      height: Math.max(1, height),
+      width: Math.max(
+        1,
+        rect.width || parseSvgLength(svg.getAttribute("width")) || (viewBox && viewBox.width) || 800
+      ),
+      height: Math.max(
+        1,
+        rect.height || parseSvgLength(svg.getAttribute("height")) || (viewBox && viewBox.height) || 450
+      ),
     };
   }
 
   function findMermaidSource() {
-    var scripts = document.getElementsByTagName("script");
-
-    for (var i = 0; i < scripts.length; i++) {
-      var src = scripts[i].getAttribute("src");
-
-      if (src && /mermaid.*\.mjs(?:$|\?)/i.test(src)) {
-        return scripts[i].src;
+    for (var script of document.scripts) {
+      if (/mermaid.*\.mjs(?:$|\?)/i.test(script.getAttribute("src") || "")) {
+        return script.src;
       }
 
-      var text = scripts[i].textContent || "";
-      var match = text.match(/import\s+mermaid\s+from\s+["']([^"']+)["']/);
+      var match = (script.textContent || "").match(/import\s+mermaid\s+from\s+["']([^"']+)["']/);
 
       if (match) {
         return match[1];
       }
     }
 
-    return DEFAULT_MERMAID_SRC;
+    return "https://unpkg.com/mermaid@10.4.0/dist/mermaid.esm.min.mjs";
   }
 
   function loadMermaid() {
@@ -103,15 +88,13 @@
 
     if (!mermaidReady) {
       mermaidReady = import(findMermaidSource()).then(function (module) {
-        var mermaid = module.default || module;
-        var config = (window.mermaidConfig && window.mermaidConfig.default) || {
-          startOnLoad: false,
-        };
-
-        mermaid.initialize(config);
-        window.mermaid = mermaid;
-
-        return mermaid;
+        module = module.default || module;
+        module.initialize(
+          (window.mermaidConfig && window.mermaidConfig.default) || {
+            startOnLoad: false,
+          }
+        );
+        return (window.mermaid = module);
       });
     }
 
@@ -119,12 +102,11 @@
   }
 
   function getMermaidSource(mermaidElement) {
-    var code = mermaidElement.querySelector("code");
-    return (code ? code.textContent : mermaidElement.textContent).trim();
+    return (mermaidElement.querySelector("code") || mermaidElement).textContent.trim();
   }
 
   function replacePreWithDiv(mermaidElement) {
-    if (mermaidElement.tagName.toLowerCase() !== "pre") {
+    if (mermaidElement.tagName !== "PRE") {
       return mermaidElement;
     }
 
@@ -151,11 +133,13 @@
   }
 
   async function renderDiagram(mermaid, mermaidElement) {
-    var source = getMermaidSource(mermaidElement);
     mermaidElement.dataset.mermaidRendering = "true";
 
     try {
-      var result = await mermaid.render("mermaid-diagram-" + renderId++, source);
+      var result = await mermaid.render(
+        "mermaid-diagram-" + renderId++,
+        getMermaidSource(mermaidElement)
+      );
       var target = replacePreWithDiv(mermaidElement);
 
       target.innerHTML = result.svg;
@@ -174,10 +158,8 @@
     }
   }
 
-  async function renderMermaid(root) {
-    var diagrams = Array.prototype.slice
-      .call((root || document).querySelectorAll(".mermaid"))
-      .filter(needsMermaidRender);
+  async function renderMermaid(elements) {
+    var diagrams = Array.from(elements).filter(needsMermaidRender);
 
     if (!diagrams.length) {
       return;
@@ -185,8 +167,8 @@
 
     var mermaid = await loadMermaid();
 
-    for (var i = 0; i < diagrams.length; i++) {
-      await renderDiagram(mermaid, diagrams[i]);
+    for (var diagram of diagrams) {
+      await renderDiagram(mermaid, diagram);
     }
   }
 
@@ -197,13 +179,7 @@
 
     var svg = mermaidElement.querySelector("svg");
 
-    if (!svg) {
-      return;
-    }
-
-    var parent = mermaidElement.parentNode;
-
-    if (!parent) {
+    if (!svg || !mermaidElement.parentNode) {
       return;
     }
 
@@ -220,7 +196,7 @@
     var surface = document.createElement("div");
     surface.className = "mermaid-zoom__surface";
 
-    parent.insertBefore(wrapper, mermaidElement);
+    mermaidElement.parentNode.insertBefore(wrapper, mermaidElement);
     wrapper.appendChild(viewport);
     viewport.appendChild(surface);
     surface.appendChild(mermaidElement);
@@ -233,26 +209,19 @@
     var controls = document.createElement("div");
     controls.className = "mermaid-zoom__controls";
 
-    var zoomInButton = makeButton("+", "Zoom in");
-    zoomInButton.dataset.mermaidZoomAction = "in";
-    var zoomOutButton = makeButton("-", "Zoom out");
-    zoomOutButton.dataset.mermaidZoomAction = "out";
-    var resetButton = makeButton("100%", "Reset zoom");
+    var resetButton = makeButton("100%", "Reset zoom", "reset");
     resetButton.classList.add("mermaid-zoom__button--reset");
-    resetButton.dataset.mermaidZoomAction = "reset";
 
-    controls.appendChild(zoomOutButton);
+    controls.appendChild(makeButton("-", "Zoom out", "out"));
     controls.appendChild(resetButton);
-    controls.appendChild(zoomInButton);
+    controls.appendChild(makeButton("+", "Zoom in", "in"));
     wrapper.appendChild(controls);
 
-    var state = {
-      scale: 1,
-    };
+    var scale = 1;
 
     function applyResolution() {
-      var width = Math.round(baseSize.width * state.scale);
-      var height = Math.round(baseSize.height * state.scale);
+      var width = Math.round(baseSize.width * scale);
+      var height = Math.round(baseSize.height * scale);
 
       surface.style.width = width + "px";
       surface.style.height = height + "px";
@@ -260,28 +229,28 @@
       svg.setAttribute("height", height);
       svg.style.width = "100%";
       svg.style.height = "100%";
-      resetButton.textContent = Math.round(state.scale * 100) + "%";
-      wrapper.dataset.mermaidZoomScale = String(state.scale);
+      resetButton.textContent = Math.round(scale * 100) + "%";
+      wrapper.dataset.mermaidZoomScale = String(scale);
     }
 
     function zoomAt(multiplier, clientX, clientY) {
-      var nextScale = clamp(state.scale * multiplier, MIN_SCALE, MAX_SCALE);
+      var nextScale = Math.min(Math.max(scale * multiplier, 0.4), 8);
 
-      if (nextScale === state.scale) {
+      if (nextScale === scale) {
         return;
       }
 
       var rect = viewport.getBoundingClientRect();
-      var localX = clientX - rect.left;
-      var localY = clientY - rect.top;
-      var focusX = (viewport.scrollLeft + localX) / state.scale;
-      var focusY = (viewport.scrollTop + localY) / state.scale;
+      clientX -= rect.left;
+      clientY -= rect.top;
+      clientX = ((viewport.scrollLeft + clientX) / scale) * nextScale - clientX;
+      clientY = ((viewport.scrollTop + clientY) / scale) * nextScale - clientY;
 
-      state.scale = nextScale;
+      scale = nextScale;
       applyResolution();
 
-      viewport.scrollLeft = focusX * state.scale - localX;
-      viewport.scrollTop = focusY * state.scale - localY;
+      viewport.scrollLeft = clientX;
+      viewport.scrollTop = clientY;
     }
 
     function zoomFromCenter(multiplier) {
@@ -290,7 +259,7 @@
     }
 
     function resetZoom() {
-      state.scale = 1;
+      scale = 1;
       applyResolution();
       viewport.scrollLeft = 0;
       viewport.scrollTop = 0;
@@ -376,55 +345,19 @@
     applyResolution();
   }
 
-  function initMermaidZoom(root) {
-    (root || document).querySelectorAll(".mermaid").forEach(initDiagram);
-  }
-
-  function scheduleInit(root) {
-    if (scheduled) {
-      return;
-    }
-
-    scheduled = true;
-    window.requestAnimationFrame(function () {
-      scheduled = false;
-      initMermaidZoom(root || document);
-      renderMermaid(root || document).catch(function (error) {
+  function start() {
+    requestAnimationFrame(function () {
+      var diagrams = document.querySelectorAll(".mermaid");
+      diagrams.forEach(initDiagram);
+      renderMermaid(diagrams).catch(function (error) {
         console.error("Failed to prepare Mermaid diagrams", error);
       });
     });
   }
 
-  function start(root) {
-    scheduleInit(root || document);
-
-    if (!observerStarted) {
-      observerStarted = true;
-
-      new MutationObserver(function () {
-        scheduleInit(document);
-      }).observe(document.documentElement, {
-        childList: true,
-        subtree: true,
-      });
-    }
-
-    if (root && root !== document) {
-      scheduleInit(root);
-    }
-  }
-
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", function () {
-      start(document);
-    });
+    document.addEventListener("DOMContentLoaded", start);
   } else {
-    start(document);
-  }
-
-  if (window.document$ && typeof window.document$.subscribe === "function") {
-    window.document$.subscribe(function (root) {
-      start(root || document);
-    });
+    start();
   }
 })();

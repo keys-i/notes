@@ -1,4 +1,6 @@
 {% extends "base.html" %}
+{% set has_math = page and page.content and 'class="arithmatex"' in page.content %}
+{% set has_mermaid = page and page.content and 'class="mermaid"' in page.content %}
 {% block extrahead %}
 {% set title = config.site_name %}
 {% if page and page.title and not page.is_homepage %}
@@ -14,6 +16,10 @@
 {% endif %}
 <link rel="apple-touch-icon" sizes="180x180" href="{{ 'assets/images/apple-touch-icon.png' | url }}" />
 <link rel="apple-touch-icon-precomposed" sizes="180x180" href="{{ 'assets/images/apple-touch-icon-precomposed.png' | url }}" />
+<link rel="stylesheet" href="{{ 'assets/styles/graph.min.css' | url }}" />
+{% if has_mermaid %}
+<link rel="stylesheet" href="{{ 'assets/styles/zoom.mermaid.min.css?v=20260512-resolution2' | url }}" />
+{% endif %}
 {% if not page or page.url == "print_page/" %}
 <meta name="robots" content="noindex,follow" />
 {% else %}
@@ -73,7 +79,7 @@
 
 <!-- Announcements - remove suffix: off -->
 {% block announceoff %}
-<a href="#"> For updates, follow our announcements. </a>
+<a href="https://github.com/keys-i/notes/releases"> For updates, follow our announcements. </a>
 {% endblock %} {% block content %} {% if page and page.meta and page.meta.wip ==
 true %}
 <div class="admonition warning">
@@ -90,12 +96,12 @@ true %}
         page, you may either not have logged into your GitHub account or not
         have been added to a required GitHub group of writers. For the latter,
         tweet <code>@{{ config.extra.twitter }}</code> to be added into a valid
-        group.<p style="font-size: smaller; color: gray">
+        group.
+    </p>
+        <p><small>
             Powered by
             <a href="{{ config.repo_url }}/{{ config.extra.comments.type }}">GitHub {{ config.extra.comments.type }}</a>
-        </p>
-
-    </p>
+        </small></p>
 </div>
 {% endif %} {{ super() }} {% if git_page_authors %}
 <div class="md-source-date">
@@ -112,82 +118,42 @@ page.meta.comments == false %}
 <!-- disable comments -->
 {% else %}
 <h2 id="__comments">{{ lang.t("meta.comments") }}</h2>
-<p style="font-size: smaller; color: gray">
+<p><small>
     Powered by
     <a href="{{ config.repo_url }}/{{ config.extra.comments.type }}"
         >GitHub {{ config.extra.comments.type }}</a
     >
-</p>
+</small></p>
 
 {% if config.extra.comments.mode == "giscus" %}
-<script src="https://giscus.app/client.js"
-        data-repo="keys-i/notes"
-        data-repo-id="R_kgDORv7gZA"
-        data-category="General"
-        data-category-id="DIC_kwDORv7gZM4C5NrE"
-        data-mapping="pathname"
-        data-strict="0"
-        data-reactions-enabled="1"
-        data-emit-metadata="0"
-        data-input-position="bottom"
-        data-theme="preferred_color_scheme"
-        data-lang="en"
-        crossorigin="anonymous"
-        async>
-</script>
+<div id="comments-provider"
+     data-mode="giscus"
+     data-repo="keys-i/notes"
+     data-repo-id="R_kgDORv7gZA"
+     data-category="General"
+     data-category-id="DIC_kwDORv7gZM4C5NrE"
+     data-mapping="pathname"
+     data-strict="0"
+     data-reactions-enabled="1"
+     data-emit-metadata="0"
+     data-input-position="bottom"
+     data-lang="en"></div>
 {% else %}
-<script
-    src="https://utteranc.es/client.js"
-    repo="keys-i/notes"
-    issue-term="title"
-    theme="photon-dark"
-    crossorigin="anonymous"
-    async
-></script>
+<div id="comments-provider"
+     data-mode="utterances"
+     data-repo="keys-i/notes"
+     data-issue-term="title"></div>
 {% endif %}
 
-<!-- Reload on palette change -->
-<script>
-    var palette = __md_get("__palette")
-    if (palette && typeof palette.color === "object")
-        if (palette.color.scheme === "slate") {
-            {% if config.extra.comments.mode == "giscus" %}
-            var giscus = document.querySelector("script[src*=giscus]")
-            giscus.setAttribute("data-theme", "dark")
-            {% else %}
-            var utterances = document.querySelector("script[src*=utteranc]")
-            utterances.setAttribute("theme", "photon-dark")
-            {% endif %}
-        }
-
-    /* Register event handlers after document loaded */
-    document.addEventListener("DOMContentLoaded", function() {
-        var ref = document.querySelector("[data-md-component=palette]")
-        ref.addEventListener("change", function() {
-            var palette = __md_get("__palette")
-            if (palette && typeof palette.color === "object") {
-                // reload theme for either giscus or utterances
-                {% if config.extra.comments.mode == "giscus" %}
-                /* Instruct Giscus to change theme */
-                var theme = palette.color.scheme === "slate" ? "dark" : "light"
-                var frame = document.querySelector(".giscus-frame")
-                frame.contentWindow.postMessage(
-                    { giscus: { setConfig: { theme } } },
-                    "https://giscus.app"
-                )
-                {% else %}
-                /* Instruct Utterances to change theme */
-                var frame = document.querySelector(".utterances-frame")
-                var theme = palette.color.scheme === "slate" ? "photon-dark" : "github-light"
-                const message = {
-                    type: 'set-theme',
-                    theme: theme
-                };
-                const iframe = document.querySelector('.utterances-frame');
-                iframe.contentWindow.postMessage(message, 'https://utteranc.es');
-                {% endif %}
-            }
-        })
-    })
-</script>
+<script src="{{ 'assets/js/comments.min.js' | url }}"></script>
 {% endif %} {% endblock %}
+
+{% block scripts %}
+{{ super() }}
+{% if has_math %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+{% endif %}
+{% if has_mermaid %}
+<script src="{{ 'assets/js/zoom.mermaid.min.js?v=20260512-resolution2' | url }}"></script>
+{% endif %}
+{% endblock %}

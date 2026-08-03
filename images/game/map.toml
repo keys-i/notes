@@ -1,0 +1,100 @@
+[map]
+columns = 21
+rows = 15
+attempts = 48
+minimum_path = 30
+maximum_path = 84
+minimum_cycles = 4
+minimum_junctions = 8
+route_options = 2
+
+[random]
+leap = 7
+generation_step = 0x9E3779B9
+
+[random.streams]
+topology = 0
+loops = 1
+pickups = 2
+symbols = 3
+hunt = 4
+effects = 5
+
+[landmark]
+x = 4
+y = 5
+mask = [
+  "#.#.#####.#.#",
+  "#.#.#...#.#.#",
+  "###.#...#.###",
+  "..#.#...#...#",
+  "..#.##.##...#",
+]
+clearance = 1
+ghosts = [[9, 7], [11, 7]]
+pen_exit = [[10, 7], [10, 8], [10, 9], [10, 10], [10, 11]]
+
+[tunnel]
+numerator = 1
+denominator = 2
+rows = [3, 11]
+
+[pickups]
+minimum_spacing = 4
+pellet_points = 10
+
+[[pickups.items]]
+symbol = "v"
+id = "vegemite"
+label = "Vegemite overclock"
+points = 75
+power_ticks = 22
+anchor = [0.15, 0.2]
+
+[[pickups.items]]
+symbol = "m"
+id = "meat-pie"
+label = "Meat pie super boost"
+points = 75
+power_ticks = 28
+anchor = [0.85, 0.2]
+
+[[pickups.items]]
+symbol = "a"
+id = "avocado"
+label = "Avocado bonus"
+points = 100
+power_ticks = 0
+anchor = [0.15, 0.8]
+
+[[pickups.items]]
+symbol = "b"
+id = "banana"
+label = "Banana bonus"
+points = 150
+power_ticks = 0
+anchor = [0.85, 0.8]
+
+[[pickups.items]]
+symbol = "c"
+id = "cherries"
+label = "Cherries bonus"
+points = 200
+power_ticks = 0
+anchor = [0.5, 0.5]
+
+[play]
+player = [1, 1]
+home = [19, 13]
+lives = 3
+ghost_interval_ms = 320
+grace_ticks = 3
+predator_points = 200
+power_warning_ticks = 5
+
+[assets]
+goal = "assets/images/game/goal.webp"
+neutral = "assets/images/game/koala/neutral.webp"
+scared = "assets/images/game/koala/scared.webp"
+happy = "assets/images/game/koala/happy.webp"
+dead = "assets/images/game/koala/crying.webp"

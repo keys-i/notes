@@ -1,0 +1,74 @@
+.recovery-shell {
+  margin-top: .55rem;
+  border: 1px solid #6bdcff;
+  background: #000319;
+  box-shadow:
+    inset 0 0 .8rem rgb(23 67 245 / .28),
+    0 0 .35rem rgb(107 220 255 / .18);
+  color: #d9fff0;
+  font: 700 .62rem/1.35 ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.recovery-shell:focus-within {
+  border-color: #f2ff3d;
+  box-shadow: 0 0 0 1px #f2ff3d;
+}
+
+.recovery-shell__log {
+  height: 8.1em;
+  overflow: auto;
+  padding: .38rem .5rem;
+}
+
+.recovery-shell__log pre {
+  margin: 0;
+  color: inherit;
+  font: inherit;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.shell-prompt {
+  color: #f2ff3d;
+}
+
+.shell-man-title {
+  color: #6bdcff;
+  text-shadow: 0 0 .3rem rgb(107 220 255 / .45);
+}
+
+.shell-man-heading {
+  color: #ffbd45;
+}
+
+.shell-error {
+  color: #ff667d;
+}
+
+.recovery-shell__line {
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+  padding: .28rem .5rem;
+  border-top: 1px solid rgb(107 220 255 / .48);
+  color: #f2ff3d;
+  cursor: text;
+}
+
+.recovery-shell__line input {
+  min-width: 0;
+  flex: 1;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  color: #fff;
+  background: transparent;
+  caret-color: #f2ff3d;
+  font: inherit;
+}
+
+@media (max-width: 1024px) {
+  .recovery-shell__line input {
+    font-size: 16px;
+  }
+}
