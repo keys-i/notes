@@ -66,6 +66,7 @@ var score;
 var lives;
 var turn;
 var running;
+var paused;
 var panicTicks;
 var ghostTick;
 var ghostTimer;
@@ -919,6 +920,11 @@ function resetPositions() {
 
 function loseLife() {
   lives -= 1;
+  panicTicks = 0;
+  board.classList.remove("powered", "power-warning");
+  ghostElements.forEach(function (element) {
+    element.classList.remove("recovered");
+  });
   updateScore();
   board.classList.add("caught");
   setTimeout(function () {
@@ -1087,7 +1093,7 @@ function moveGhost(ghost, index, playerDistances, reserved) {
 }
 
 function moveGhosts() {
-  if (!running || document.hidden) return;
+  if (!running || paused || document.hidden) return;
   if (graceTicks > 0) {
     graceTicks -= 1;
     return;
@@ -1223,6 +1229,7 @@ function resetGame(regenerate) {
   lives = settings.play.lives;
   turn = 0;
   running = true;
+  paused = false;
   panicTicks = 0;
   ghostTick = 0;
   graceTicks = 0;
