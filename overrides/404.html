@@ -9,6 +9,7 @@
 {% block extrahead %}
   <meta name="robots" content="noindex,follow" />
   <meta name="theme-color" content="#0719aa" />
+  <link rel="stylesheet" href="{{ site_root }}assets/styles/freebsd-boot.min.css" />
   <link rel="stylesheet" href="{{ site_root }}assets/styles/404.panic.min.css" />
   <link rel="stylesheet" href="{{ site_root }}assets/styles/404.game.min.css" />
   <link rel="stylesheet" href="{{ site_root }}assets/styles/404.shell.min.css" />
@@ -61,7 +62,7 @@
   </header>
 
   <div class="os__grid">
-    <aside class="trace trace--kernel" aria-label="Live Linux and FreeBSD kernel recovery trace">
+    <aside class="trace trace--kernel" aria-label="Live FreeBSD kernel recovery trace">
       <p class="trace__title">
         <span id="kernel-dialect">FreeBSD/amd64</span>
         <span>LIVE TRACE</span>
@@ -287,11 +288,12 @@ ff69bc28 80115f67 80115f67 ff7b2600 - eagle.sys @11,07 RUN</pre>
   <footer class="os__footer">
     <strong>&gt; VFS LOOKUP FAILED: ENOENT (404)</strong>
     <span>&gt; VMCORE RECOVERY: <strong id="dump">0%</strong></span>
-    <a class="reboot" href="{{ site_root }}">&gt; shutdown -r now · REBOOT HOME</a>
+    <a class="reboot" href="{{ site_root }}" id="shutdown">&gt; shutdown -r now · REBOOT HOME</a>
   </footer>
 </section>
 
 <script id="map-config" type="application/json">{{ game | tojson }}</script>
+<script src="{{ site_root }}assets/js/freebsd-boot.min.js" defer></script>
 <script src="{{ site_root }}assets/js/404.game.min.js" defer></script>
 <script src="{{ site_root }}assets/js/404.shell.min.js" defer></script>
 <script src="{{ site_root }}assets/js/404.panic.min.js" defer></script>

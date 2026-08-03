@@ -1,0 +1,72 @@
+html.freebsd-booting,
+html.freebsd-booting body,
+body.freebsd-booting {
+  background: #000 !important;
+  overflow: hidden;
+}
+
+.freebsd-boot {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: grid;
+  align-content: end;
+  justify-items: stretch;
+  gap: .55rem;
+  padding: clamp(.8rem, 3vw, 2rem);
+  background: #000;
+  color: #c8c8c8;
+  font: 500 clamp(.68rem, 1.55vw, .9rem)/1.4 "Lucida Console", Monaco, Consolas, ui-monospace, monospace;
+  opacity: 0;
+  transition: opacity .2s linear;
+}
+
+.freebsd-boot.is-live {
+  opacity: 1;
+}
+
+.freebsd-boot__scan {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(
+      180deg,
+      transparent 0 2px,
+      rgb(255 255 255 / .03) 2px 3px
+    );
+}
+
+.freebsd-boot__log {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  max-height: min(78vh, 40rem);
+  overflow: auto;
+  color: #d4d4d4;
+  white-space: pre-wrap;
+}
+
+.freebsd-boot__banner {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  padding: .3rem .65rem;
+  border: 1px solid #666;
+  background: #0a0a0a;
+  color: #f2ff3d;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.freebsd-boot.is-ready .freebsd-boot__banner {
+  border-color: #79ff9a;
+  color: #79ff9a;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .freebsd-boot {
+    transition: none;
+    opacity: 1;
+  }
+}

@@ -16,6 +16,7 @@
 {% endif %}
 <link rel="apple-touch-icon" sizes="180x180" href="{{ 'assets/images/apple-touch-icon.png' | url }}" />
 <link rel="apple-touch-icon-precomposed" sizes="180x180" href="{{ 'assets/images/apple-touch-icon-precomposed.png' | url }}" />
+<link rel="stylesheet" href="{{ 'assets/styles/freebsd-boot.min.css' | url }}" />
 <link rel="stylesheet" href="{{ 'assets/styles/graph.min.css' | url }}" />
 {% if has_mermaid %}
 <link rel="stylesheet" href="{{ 'assets/styles/zoom.mermaid.min.css?v=20260512-resolution2' | url }}" />
@@ -150,6 +151,7 @@ page.meta.comments == false %}
 
 {% block scripts %}
 {{ super() }}
+<script src="{{ 'assets/js/freebsd-boot.min.js' | url }}"></script>
 {% if has_math %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-MML-AM_CHTML"></script>
 {% endif %}

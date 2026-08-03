@@ -121,6 +121,7 @@ plugins:
       htmlmin_opts:
         remove_comments: true
       js_files:
+        - assets/js/freebsd-boot.js
         - assets/js/404.game.js
         - assets/js/404.shell.js
         - assets/js/404.panic.js
@@ -128,6 +129,7 @@ plugins:
         - assets/js/graph.js
         - assets/js/zoom.mermaid.js
       css_files:
+        - assets/styles/freebsd-boot.css
         - assets/styles/404.panic.css
         - assets/styles/404.game.css
         - assets/styles/404.shell.css
