@@ -25,9 +25,7 @@ def test_game(config):
     assert game.on_config(config).extra["game"]["map"]["columns"] == 21
     assert config.extra["game"]["landmark"]["mask"] == [
         "#.#.#####.#.#",
-        "#.#.#...#.#.#",
         "###.#...#.###",
-        "..#.#...#...#",
         "..#.##.##...#",
     ]
 
