@@ -1122,6 +1122,7 @@ function moveGhosts() {
   if (wasPowered && panicTicks === 0) {
     ghostElements.forEach(function (element) {
       element.classList.remove("recovered");
+      element.style.removeProperty("filter");
     });
     statusElement.textContent =
       "devd: predator quarantine expired; dingo0 and eagle0 RUNNING.";
