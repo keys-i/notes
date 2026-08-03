@@ -7,6 +7,14 @@ body {
   display: none;
 }
 
+/* Material main.*.min.css sets .md-typeset code/pre to --md-code-fg (#36464e). */
+.md-typeset code,
+.md-typeset kbd,
+.md-typeset pre {
+  color: #d3d3d3;
+  background-color: transparent;
+}
+
 .md-main,
 .md-main__inner,
 .md-content,
@@ -59,6 +67,52 @@ body {
   --roll-opacity: .1;
   --vignette-opacity: .3;
   --roll-speed: 4s;
+}
+
+/* Win countdown: 5→1 dissolves the CRT world while scanlines intensify. */
+.os[data-route] {
+  --route-progress: 0;
+  --scan-size: calc(7px - var(--route-progress) * 4px);
+  --scan-opacity: calc(0.38 + var(--route-progress) * 0.62);
+  --roll-opacity: calc(0.035 + var(--route-progress) * 0.14);
+  --vignette-opacity: calc(0.16 + var(--route-progress) * 0.28);
+  --roll-speed: calc(9s - var(--route-progress) * 6s);
+  --route-scene: calc(1 - var(--route-progress) * 0.82);
+  --route-glow: calc(1 + var(--route-progress) * 1.55);
+  background: rgb(7 25 170 / calc(1 - var(--route-progress) * 0.88));
+  transition:
+    background .85s linear,
+    color .85s linear,
+    text-shadow .85s linear;
+}
+
+html:has(.os[data-route]),
+html:has(.os[data-route]) body {
+  background: #d7ffe8;
+}
+
+.os[data-route]::before {
+  background:
+    linear-gradient(
+      transparent calc(100% - 1px),
+      rgb(202 255 224 / calc(0.16 + var(--route-progress) * 0.55))
+    ) 0 0 / 100% var(--scan-size) repeat,
+    linear-gradient(
+      90deg,
+      rgb(255 255 255 / calc(0.04 + var(--route-progress) * 0.14)) 0 1px,
+      transparent 1px 3px
+    ) 0 0 / 3px 100% repeat;
+  transition:
+    opacity .85s linear,
+    background .85s linear;
+}
+
+.os[data-route] .os__bar,
+.os[data-route] .os__footer,
+.os[data-route] .os__grid {
+  opacity: var(--route-scene);
+  transition: opacity .85s linear, filter .85s linear;
+  filter: brightness(var(--route-glow));
 }
 
 .os::before,
@@ -255,7 +309,8 @@ body {
 @media (prefers-reduced-motion: no-preference) {
   .os[data-damage="1"]::after,
   .os[data-damage="2"]::after,
-  .os[data-damage="3"]::after {
+  .os[data-damage="3"]::after,
+  .os[data-route]::after {
     animation: phosphor-roll var(--roll-speed) linear infinite;
   }
 
