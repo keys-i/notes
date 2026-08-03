@@ -1,0 +1,1073 @@
+.trace__dump--nt {
+  color: #fff;
+}
+
+.game {
+  min-width: 0;
+  width: min(100%, 40rem, calc((100svh - 21rem) * 1.4));
+  justify-self: center;
+}
+
+.game__heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: .75rem;
+}
+
+.game__heading h1 {
+  --glitch-a: #f2ff3d;
+  --glitch-b: #fff;
+  --glitch-c: #ff3f8f;
+  
+  position: relative;
+  margin: 0;
+  color: inherit;
+  font: 950 clamp(3.1rem, 7vw, 7.2rem)/.72 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: -.14em;
+  text-shadow: .045em 0 var(--glitch-a), -.045em 0 var(--glitch-b);
+}
+
+.game__heading h1::before,
+.game__heading h1::after {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  content: attr(data-text);
+  pointer-events: none;
+}
+
+.game__heading h1::before {
+  color: var(--glitch-a);
+  clip-path: inset(18% 0 54%);
+  text-shadow: -.04em 0 var(--glitch-c);
+  transform: translateX(.06em);
+}
+
+.game__heading h1::after {
+  color: var(--glitch-b);
+  clip-path: inset(64% 0 12%);
+  text-shadow: .05em 0 var(--glitch-c);
+  transform: translateX(-.08em);
+}
+
+.game__heading p {
+  max-width: 15rem;
+  min-height: 2.6em;
+  margin: 0;
+  font-size: clamp(.62rem, 1vw, .78rem);
+  font-weight: 800;
+  letter-spacing: .08em;
+  line-height: 1.3;
+  text-align: right;
+  text-transform: uppercase;
+}
+
+.game__recovery {
+  overflow-wrap: anywhere;
+}
+
+.game__cursor {
+  margin-left: .25em;
+  color: #f2ff3d;
+}
+
+.game__eyebrow {
+  display: block;
+  margin-bottom: .4rem;
+  font-size: .62rem;
+  font-weight: 900;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
+.score {
+  display: grid;
+  padding: .45rem .65rem;
+  border: 1px solid #f2ff3d;
+  background: #061273;
+  box-shadow: inset 0 0 .8rem rgb(23 67 245 / .55);
+  font-size: clamp(.58rem, 1.2vw, .72rem);
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  grid-template-columns: 1fr auto 1fr;
+  gap: .6rem;
+}
+
+.score span:last-child {
+  text-align: right;
+}
+
+.board {
+  position: relative;
+  aspect-ratio: var(--maze-columns, 21) / var(--maze-rows, 15);
+  overflow: hidden;
+  border: 1px solid #fff;
+  background: #000319;
+  box-shadow: 0 0 0 1px #000319;
+  contain: layout paint;
+  outline: none;
+  touch-action: manipulation;
+}
+
+.board:focus-visible {
+  outline: .3rem solid #f2ff3d;
+  outline-offset: .25rem;
+}
+
+.board::before,
+.board::after {
+  position: absolute;
+  z-index: 6;
+  pointer-events: none;
+}
+
+.board::before {
+  top: 45%;
+  left: 50%;
+  padding: .4rem .65rem;
+  border: 1px solid #f2ff3d;
+  background: #061273;
+  font: 950 clamp(.55rem, 1.8vw, .9rem)/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: .12em;
+  opacity: 0;
+  text-align: center;
+  transform: translate(-50%, -50%);
+  white-space: pre;
+}
+
+.board::after {
+  inset: 10%;
+  font: 950 clamp(.8rem, 2.5vw, 1.4rem)/2 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: .7em;
+  opacity: 0;
+  text-align: center;
+  white-space: pre;
+}
+
+.maze {
+  display: grid;
+  height: 100%;
+  grid-template:
+    repeat(var(--maze-rows, 15), 1fr) /
+    repeat(var(--maze-columns, 21), 1fr);
+}
+
+.maze__cell {
+  position: relative;
+  min-width: 0;
+}
+
+.maze__cell--wall {
+  --wall: #07196f;
+  --wall-shine: #8f5cff;
+  --join-n: 0 0;
+  --join-e: 0 0;
+  --join-s: 0 0;
+  --join-w: 0 0;
+  
+  background:
+    radial-gradient(circle, var(--wall) 0 30%, var(--wall-shine) 32% 40%, transparent 43%),
+    linear-gradient(90deg, var(--wall-shine) 0 8%, var(--wall) 12% 88%, var(--wall-shine) 92%) 50% 0 / var(--join-n) no-repeat,
+    linear-gradient(var(--wall-shine) 0 8%, var(--wall) 12% 88%, var(--wall-shine) 92%) 100% 50% / var(--join-e) no-repeat,
+    linear-gradient(90deg, var(--wall-shine) 0 8%, var(--wall) 12% 88%, var(--wall-shine) 92%) 50% 100% / var(--join-s) no-repeat,
+    linear-gradient(var(--wall-shine) 0 8%, var(--wall) 12% 88%, var(--wall-shine) 92%) 0 50% / var(--join-w) no-repeat;
+}
+
+.maze__cell--wall.joins-n {
+  --join-n: 58% calc(50% + 1px);
+}
+
+.maze__cell--wall.joins-e {
+  --join-e: calc(50% + 1px) 58%;
+}
+
+.maze__cell--wall.joins-s {
+  --join-s: 58% calc(50% + 1px);
+}
+
+.maze__cell--wall.joins-w {
+  --join-w: calc(50% + 1px) 58%;
+}
+
+.maze__cell--route {
+  --wall: #1743f5;
+  --wall-shine: #f2ff3d;
+  
+  z-index: 1;
+  filter: drop-shadow(0 0 .14rem rgb(242 255 61 / .72));
+}
+
+.maze__cell--wall.power-flash::before {
+  position: absolute;
+  z-index: 3;
+  display: grid;
+  font-size: clamp(.4rem, 1.4vw, .72rem);
+  line-height: 1;
+  content: "🐻";
+  inset: -18%;
+  place-items: center;
+  pointer-events: none;
+  text-shadow:
+    0 0 .22rem #f2ff3d,
+    0 0 .48rem #6bdcff;
+}
+
+.maze__cell--tunnel {
+  box-shadow:
+    inset 0 2px #6bdcff,
+    inset 0 -2px #6bdcff;
+}
+
+.maze__cell--tunnel[data-tunnel="west"] {
+  border-radius: 0 50% 50% 0;
+  box-shadow:
+    inset -2px 0 #6bdcff,
+    inset 0 2px #6bdcff,
+    inset 0 -2px #6bdcff;
+}
+
+.maze__cell--tunnel[data-tunnel="east"] {
+  border-radius: 50% 0 0 50%;
+  box-shadow:
+    inset 2px 0 #6bdcff,
+    inset 0 2px #6bdcff,
+    inset 0 -2px #6bdcff;
+}
+
+.maze__cell--pellet::after {
+  position: absolute;
+  width: 22%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #fff;
+  content: "";
+  inset: 39%;
+}
+
+.maze__cell--pellet.eaten::after {
+  display: none;
+}
+
+.maze__cell--power::after {
+  display: grid;
+  width: 62%;
+  border: 1px solid #f2ff3d;
+  background: #061273;
+  font: 950 clamp(.3rem, 1vw, .6rem)/1 ui-monospace, monospace;
+  inset: 19%;
+  place-items: center;
+}
+
+.maze__cell--vegemite::after {
+  width: 68%;
+  height: 78%;
+  border: 1px solid #fff;
+  border-radius: 12% 12% 24% 24%;
+  background:
+    linear-gradient(
+      #f2ff3d 0 18%,
+      #3b160c 19% 100%
+    );
+  content: "";
+  inset: 11% 16%;
+}
+
+.maze__cell--vegemite::before {
+  position: absolute;
+  z-index: 1;
+  top: 42%;
+  left: 23%;
+  display: grid;
+  width: 54%;
+  height: 29%;
+  border: 1px solid #f2ff3d;
+  border-radius: 50%;
+  background: #0719aa;
+  content: "V";
+  font: 950 clamp(.24rem, .7vw, .42rem)/1 ui-monospace, monospace;
+  place-items: center;
+}
+
+.maze__cell--vegemite.eaten::before {
+  display: none;
+}
+
+.maze__cell--meat-pie::after {
+  border: 1px solid #fff;
+  border-radius: 50%;
+  content: "×";
+}
+
+.maze__cell--bonus::after {
+  width: 72%;
+  height: 72%;
+  content: "";
+  inset: 14%;
+}
+
+.maze__cell--avocado::after {
+  border: 1px solid #d9ffb5;
+  border-radius: 48% 48% 58% 58% / 42% 42% 68% 68%;
+  background:
+    radial-gradient(circle at 50% 66%, #80431d 0 18%, transparent 20%),
+    radial-gradient(ellipse at 50% 55%, #c9f28a 0 58%, #277746 60% 100%);
+  transform: rotate(-8deg);
+}
+
+.maze__cell--banana::after {
+  border: clamp(.11rem, .45vw, .2rem) solid #f2ff3d;
+  border-top-color: transparent;
+  border-left-color: transparent;
+  border-radius: 50%;
+  filter: drop-shadow(0 0 .12rem rgb(242 255 61 / .65));
+  transform: rotate(28deg);
+}
+
+.maze__cell--cherries::after {
+  border-radius: 0;
+  background:
+    radial-gradient(circle at 28% 69%, #ff5449 0 21%, transparent 23%),
+    radial-gradient(circle at 72% 69%, #d91e36 0 21%, transparent 23%),
+    linear-gradient(65deg, transparent 43%, #78d765 44% 50%, transparent 51%) 18% 5% / 42% 58% no-repeat,
+    linear-gradient(-65deg, transparent 43%, #78d765 44% 50%, transparent 51%) 82% 5% / 42% 58% no-repeat;
+}
+
+.maze__cell--home {
+  z-index: 2;
+  overflow: visible;
+  filter: drop-shadow(0 0 .42rem rgb(107 220 255 / .78));
+  transform: scale(1.72);
+}
+
+.maze__cell--home img {
+  position: absolute;
+  inset: -18%;
+  width: 136%;
+  max-width: none;
+  height: 136%;
+  object-fit: cover;
+  clip-path: polygon(9% 14%, 25% 8%, 40% 12%, 55% 5%, 70% 12%, 92% 9%, 88% 27%, 96% 43%, 90% 61%, 95% 82%, 74% 88%, 58% 96%, 39% 90%, 17% 94%, 11% 73%, 4% 57%, 10% 39%);
+}
+
+.actor {
+  position: absolute;
+  z-index: 3;
+  width: calc(100% / var(--maze-columns, 21));
+  aspect-ratio: 1;
+  transition: left .2s linear, top .2s linear, transform .16s ease;
+}
+
+.actor.warping {
+  transition: none;
+}
+
+.player {
+  left: 4.7619%;
+  top: 6.6667%;
+  display: grid;
+  overflow: hidden;
+  cursor: help;
+  place-items: center;
+  text-decoration: none;
+}
+
+.player::before {
+  position: absolute;
+  inset: -42%;
+  content: "";
+}
+
+.player:not(.home):hover {
+  z-index: 4;
+  transform: scale(1.12) rotate(-3deg);
+}
+
+.player.home {
+  cursor: pointer;
+}
+
+.player.home:hover {
+  z-index: 4;
+  transform: scale(1.28) rotate(-5deg);
+}
+
+.player:focus-visible {
+  z-index: 4;
+  outline: .2rem solid #f2ff3d;
+  outline-offset: .12rem;
+}
+
+.player img {
+  display: block;
+  grid-area: 1 / 1;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  transition: opacity .08s linear;
+}
+
+.player__scared,
+.player__happy,
+.player__dead {
+  opacity: 0;
+}
+
+.player:not(.home):is(:hover, :focus-visible) .player__neutral,
+.board:is(.caught, .lost) .player__neutral {
+  opacity: 0;
+}
+
+.player:not(.home):is(:hover, :focus-visible) .player__scared,
+.board.caught .player__scared,
+.player.home .player__happy {
+  opacity: 1;
+}
+
+.board.lost .player__dead {
+  opacity: 1;
+}
+
+.player.home .player__neutral,
+.player.home .player__scared,
+.board:is(.caught, .lost) .player__happy,
+.board.lost .player__scared {
+  opacity: 0;
+}
+
+.player::after {
+  position: absolute;
+  z-index: 2;
+  top: 35%;
+  left: 50%;
+  display: none;
+  content: "×  ×";
+  font: 950 34%/1 ui-monospace, monospace;
+  letter-spacing: .12em;
+  text-shadow: 0 0 2px #000319;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.board.lost .player::after {
+  display: block;
+}
+
+.ghost {
+  overflow: visible;
+  filter: drop-shadow(0 0 .16rem rgb(0 0 0 / .8));
+}
+
+.threat--dingo {
+  top: 46.6667%;
+  left: 42.8571%;
+  --ghost-base-colour: #ff6f61;
+  --ghost-colour: var(--ghost-base-colour);
+  transition:
+    left .3s cubic-bezier(.22, .75, .18, 1),
+    top .3s cubic-bezier(.22, .75, .18, 1),
+    transform .16s ease;
+}
+
+.threat--eagle {
+  top: 46.6667%;
+  left: 52.3810%;
+  --ghost-base-colour: #f2ff3d;
+  --ghost-colour: var(--ghost-base-colour);
+  transition:
+    left .62s cubic-bezier(.18, .8, .2, 1),
+    top .62s cubic-bezier(.18, .8, .2, 1),
+    transform .16s ease;
+}
+
+.threat--eagle.swooping {
+  transition-duration: .3s, .3s, .16s;
+}
+
+.ghost svg {
+  display: block;
+  width: 125%;
+  max-width: none;
+  height: 125%;
+  overflow: visible;
+  transform: translate(-10%, -10%);
+}
+
+.ghost::after {
+  position: absolute;
+  top: -48%;
+  right: -26%;
+  display: grid;
+  width: 1.05rem;
+  aspect-ratio: 1;
+  border: 1px solid #fff;
+  border-radius: 50%;
+  background: #0719aa;
+  content: "!";
+  font: 950 .72rem/1 ui-monospace, monospace;
+  opacity: 0;
+  place-items: center;
+  transform: scale(.5);
+}
+
+.threat__body {
+  fill: var(--ghost-colour);
+  stroke: #fff;
+  stroke-linejoin: round;
+  stroke-width: 2.5;
+}
+
+.threat__muzzle,
+.threat__beak {
+  stroke: #000;
+  stroke-width: 1.5;
+}
+
+.threat__muzzle {
+  fill: #e6dcc9;
+}
+
+.threat__eye,
+.threat__pupil,
+.threat__nose {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.threat__eye {
+  fill: #fff;
+  stroke: #000;
+  stroke-width: 1.4;
+}
+
+.threat__pupil,
+.threat__nose {
+  fill: #000;
+}
+
+.threat__mouth {
+  fill: none;
+  stroke: #000;
+  stroke-linecap: round;
+  stroke-width: 2.2;
+}
+
+.threat__beak {
+  fill: #f2ff3d;
+  stroke-linejoin: round;
+}
+
+.ghost > span {
+  position: absolute;
+  top: 92%;
+  left: 50%;
+  padding: .03rem .12rem;
+  background: #000319;
+  font-size: clamp(.18rem, .5vw, .32rem);
+  font-weight: 950;
+  letter-spacing: -.04em;
+  line-height: 1;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.board.powered .ghost:not(.regenerating, .recovered) {
+  --ghost-colour: #2449e8;
+  filter: drop-shadow(0 0 .3rem rgb(242 255 61 / .72));
+}
+
+.board.powered .ghost:not(.regenerating, .recovered)::after {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.board.powered .ghost:not(.regenerating, .recovered) > span,
+.ghost.regenerating > span {
+  border: 1px solid #f2ff3d;
+  background: #061273;
+}
+
+.board.powered .ghost:not(.regenerating, .recovered) .threat__eye {
+  transform: scale(1.28);
+}
+
+.board.powered .ghost:not(.regenerating, .recovered) .threat__pupil {
+  transform: translateY(-18%) scale(.72);
+}
+
+.board.powered .ghost:not(.regenerating, .recovered) .threat__mouth {
+  stroke: #f2ff3d;
+  stroke-dasharray: 2 2;
+}
+
+.ghost.regenerating {
+  opacity: .78;
+  filter: drop-shadow(0 0 .35rem rgb(242 255 61 / .9));
+}
+
+.ghost.regenerating::after {
+  content: "+";
+  opacity: 1;
+  transform: scale(.9);
+}
+
+.board.power-burst:not(.won)::after {
+  inset: 0;
+  background:
+    radial-gradient(
+      circle at var(--burst-x) var(--burst-y),
+      transparent 0 4%,
+      rgb(242 255 61 / .92) 4.5% 6%,
+      transparent 6.5% 10%,
+      rgb(255 255 255 / .64) 10.5% 12%,
+      transparent 12.5%
+    );
+  content: "";
+  opacity: 1;
+}
+
+.board.won {
+  border-color: #f2ff3d;
+  box-shadow: 0 0 0 2px #f2ff3d;
+}
+
+.board.won::before {
+  content: "ROUTE RESTORED";
+  opacity: 1;
+}
+
+.board.won::after {
+  content: "✦  +  ✦\A +  ✦  +\A✦  +  ✦";
+  opacity: .9;
+}
+
+.board.won .ghost {
+  opacity: .22;
+}
+
+.board.lost {
+  border-color: #ff6f61;
+  background: #080000;
+  box-shadow:
+    0 0 0 2px #ff6f61,
+    inset 0 0 3rem rgb(0 0 0 / .9);
+}
+
+.board.lost::before {
+  z-index: 8;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  padding: .65rem 0;
+  border-block: 1px solid rgb(255 255 255 / .16);
+  background: rgb(0 0 0 / .76);
+  content: "WASTED";
+  font-size: clamp(1.3rem, 5vw, 2.8rem);
+  letter-spacing: .08em;
+  opacity: 1;
+  text-shadow:
+    .04em .04em 0 #6b0000,
+    0 0 .45rem rgb(255 0 0 / .55);
+  transform: translateY(-50%);
+}
+
+.board.lost::after {
+  z-index: 7;
+  inset: 0;
+  background:
+    radial-gradient(circle, transparent 18%, rgb(0 0 0 / .86) 100%),
+    linear-gradient(rgb(161 0 0 / .45), transparent 38%);
+  content: "";
+  opacity: .78;
+}
+
+.board.lost .maze {
+  filter: grayscale(1) contrast(1.18) brightness(.52);
+  opacity: .5;
+}
+
+.board.lost .player__dead {
+  filter: grayscale(.82) contrast(1.2);
+}
+
+.controls {
+  display: none;
+  width: min(100%, 18rem);
+  margin: 1rem auto 0;
+  grid-template-columns: repeat(3, 1fr);
+  gap: .3rem;
+}
+
+.controls button {
+  min-height: 2.75rem;
+  border: 2px solid #fff;
+  color: #fff;
+  cursor: pointer;
+  font: 900 .72rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: .06em;
+  touch-action: manipulation;
+}
+
+.controls button:hover,
+.controls button:focus-visible {
+  background: #061273;
+  outline: .2rem solid #f2ff3d;
+  outline-offset: .1rem;
+}
+
+.controls__up {
+  grid-area: 1 / 2;
+}
+
+.controls__left {
+  grid-area: 2 / 1;
+}
+
+.controls__reset {
+  grid-area: 2 / 2;
+}
+
+.controls__right {
+  grid-area: 2 / 3;
+}
+
+.controls__down {
+  grid-area: 3 / 2;
+}
+
+.game__status,
+.game__hint {
+  margin: .7rem 0 0;
+  font-size: .68rem;
+  letter-spacing: .06em;
+  line-height: 1.45;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.game__status {
+  width: fit-content;
+  max-width: 100%;
+  min-height: 1.45em;
+  margin-inline: auto;
+  padding: .12rem .35rem;
+  border: 1px solid #f2ff3d;
+  background: #061273;
+  font-weight: 900;
+  text-transform: none;
+}
+
+@media (min-width: 1025px) {
+  .game__heading {
+    margin-bottom: .45rem;
+  }
+
+  .game__heading h1 {
+    font-size: clamp(3rem, 5vw, 5.7rem);
+  }
+
+  .score {
+    padding-block: .32rem;
+  }
+
+  .game__status,
+  .game__hint {
+    margin-top: .35rem;
+    line-height: 1.3;
+  }
+}
+
+@media (max-width: 1024px) {
+  .game {
+    width: min(100%, 38rem);
+  }
+}
+
+@media (max-width: 1024px) and (hover: none) and (pointer: coarse) {
+  .controls {
+    display: grid;
+  }
+}
+
+@media (max-width: 480px) {
+  .board {
+    box-shadow: 0 0 0 1px #000319;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .board.caught {
+    animation: error .24s steps(2, jump-none) 2;
+  }
+
+  .game__heading h1::before {
+    animation: title-glitch-a 2.8s steps(1, jump-none) infinite;
+  }
+
+  .game__heading h1::after {
+    animation: title-glitch-b 3.4s steps(1, jump-none) infinite;
+  }
+
+  .game__heading h1.glitching {
+    filter: saturate(1.8) brightness(1.15);
+  }
+
+  .game__cursor {
+    animation: pulse .8s steps(1, jump-none) infinite;
+  }
+
+  .maze__cell--power::after {
+    animation: pulse 1.8s steps(2, jump-none) infinite;
+  }
+
+  .maze__cell--home {
+    animation: tree-breathe 1.9s ease-in-out infinite;
+  }
+
+  .threat--dingo {
+    animation: dingo-prowl .42s ease-in-out infinite alternate;
+  }
+
+  .threat--eagle {
+    animation: eagle-circle 1.45s ease-in-out infinite;
+  }
+
+  .threat--eagle.swooping {
+    animation: eagle-swoop .34s ease-in-out infinite alternate;
+  }
+
+  .board.powered .ghost:not(.devoured, .regenerating, .recovered) {
+    animation: predator-tremor .14s steps(2, jump-none) infinite;
+  }
+
+  .board.powered.power-warning .ghost:not(.devoured, .regenerating, .recovered) {
+    animation: predator-warning .24s steps(2, jump-none) infinite;
+  }
+
+  .board.power-burst:not(.won)::after {
+    animation: power-burst .62s ease-out both;
+  }
+
+  .maze__cell--wall.power-flash {
+    z-index: 2;
+    animation: wall-flash .68s steps(3, jump-none) var(--wall-flash-delay) both;
+  }
+
+  .board.caught .player {
+    animation: fright .42s steps(2, jump-none);
+  }
+
+  .board.caught .ghost {
+    animation: ghost-lunge .24s ease-out 2 alternate;
+  }
+
+  .board.won::before {
+    animation: state-banner 1.15s steps(2, jump-none) both;
+  }
+
+  .board.won::after {
+    animation: packet-burst 1.25s ease-out both;
+  }
+
+  .board.won .player {
+    animation: victory .72s cubic-bezier(.2, .8, .2, 1);
+  }
+
+  .board.won .maze__cell--home {
+    animation: tree-win .72s ease-out 2 alternate;
+  }
+
+  .board.won .ghost {
+    animation: ghost-retreat .48s ease-in both;
+  }
+
+  .board.lost .player {
+    animation: defeat .9s cubic-bezier(.2, .8, .2, 1) both;
+  }
+
+  .board.lost .ghost {
+    animation: ghost-victory .32s steps(2, jump-none) 3;
+  }
+
+  .board.lost::before {
+    animation: wasted-banner 1.2s cubic-bezier(.16, 1, .3, 1) both;
+  }
+
+  .board.lost::after {
+    animation: wasted-vignette 1.35s ease-out both;
+  }
+
+  .board.lost {
+    animation: wasted-hit .45s steps(2, jump-none);
+  }
+
+  .ghost.devoured {
+    animation: predator-devoured .34s ease-in both;
+  }
+
+  .ghost.regenerating {
+    animation: predator-regenerate .5s steps(2, jump-none) infinite;
+  }
+
+  @keyframes error {
+    50% { filter: invert(1); transform: translateX(.2rem); }
+  }
+
+  @keyframes title-glitch-a {
+    0%, 91%, 100% { transform: translateX(.06em); }
+    92% { transform: translate(.16em, -.04em); }
+    94% { transform: translate(-.11em, .03em); }
+  }
+
+  @keyframes title-glitch-b {
+    0%, 86%, 100% { transform: translateX(-.08em); }
+    87% { transform: translate(.2em, .04em); }
+    90% { transform: translate(-.15em, -.03em); }
+  }
+
+  @keyframes tree-breathe {
+    50% {
+      filter:
+        brightness(1.12)
+        drop-shadow(0 0 .72rem rgb(107 220 255 / .95));
+    }
+  }
+
+  @keyframes dingo-prowl {
+    to { transform: translate(4%, -3%) rotate(1deg) scale(1.03, .98); }
+  }
+
+  @keyframes eagle-circle {
+    0%, 100% { transform: translate(-5%, 2%) rotate(-3deg); }
+    50% { transform: translate(5%, -12%) rotate(3deg) scale(1.06); }
+  }
+
+  @keyframes eagle-swoop {
+    to { transform: translateY(12%) rotate(4deg) scale(1.12, .9); }
+  }
+
+  @keyframes predator-tremor {
+    0% { transform: translate(-7%, 2%) rotate(-4deg); }
+    100% { transform: translate(7%, -2%) rotate(4deg); }
+  }
+
+  @keyframes predator-warning {
+    0% { filter: brightness(1); transform: translateX(-7%); }
+    100% { filter: brightness(2.2); transform: translateX(7%); }
+  }
+
+  @keyframes power-burst {
+    0% { opacity: 0; transform: scale(.72); }
+    18% { opacity: 1; }
+    100% { opacity: 0; transform: scale(1.32); }
+  }
+
+  @keyframes predator-devoured {
+    30% { filter: brightness(2.4); transform: scale(1.22); }
+    100% { filter: brightness(3); opacity: 0; transform: scale(.06) rotate(28deg); }
+  }
+
+  @keyframes predator-regenerate {
+    50% { filter: brightness(2); opacity: .35; transform: scale(.72); }
+  }
+
+  @keyframes wall-flash {
+    0%, 100% {
+      filter: brightness(1);
+    }
+    34%, 68% {
+      filter:
+        brightness(2.7)
+        saturate(.6)
+        drop-shadow(0 0 .35rem #f2ff3d);
+    }
+  }
+
+  @keyframes fright {
+    25% { transform: translateX(-18%) rotate(-8deg) scale(.92); }
+    55% { transform: translateX(12%) rotate(5deg) scale(1.04); }
+  }
+
+  @keyframes ghost-lunge {
+    to { transform: scale(1.32); }
+  }
+
+  @keyframes state-banner {
+    0% { opacity: 0; transform: translate(-50%, -25%) scale(.72); }
+    18%, 72% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, -90%) scale(1.06); }
+  }
+
+  @keyframes packet-burst {
+    0% { opacity: 0; transform: scale(.6); }
+    22% { opacity: 1; }
+    100% { opacity: 0; transform: scale(1.22) rotate(3deg); }
+  }
+
+  @keyframes victory {
+    35% { transform: translateY(-38%) rotate(-12deg) scale(1.24); }
+    65% { transform: translateY(8%) rotate(7deg) scale(.94); }
+  }
+
+  @keyframes tree-win {
+    50% {
+      filter: brightness(1.4) saturate(1.3);
+      transform: scale(1.72);
+      box-shadow:
+        0 0 0 2px #fff,
+        0 0 1.2rem #6bdcff,
+        0 0 2rem rgb(121 201 91 / .8);
+    }
+  }
+
+  @keyframes ghost-retreat {
+    to { opacity: 0; transform: scale(.5); }
+  }
+
+  @keyframes defeat {
+    22% { transform: translateY(-10%) rotate(-8deg) scale(1.15); }
+    to { opacity: 1; transform: translateY(24%) rotate(17deg) scale(.86); }
+  }
+
+  @keyframes ghost-victory {
+    50% { transform: translateY(-16%) scale(1.14); }
+  }
+
+  @keyframes wasted-hit {
+    0%, 34% { box-shadow: inset 0 0 0 99rem rgb(255 0 0 / .5); }
+    35%, 100% { box-shadow: 0 0 0 2px #ff6f61; }
+  }
+
+  @keyframes wasted-banner {
+    0%, 24% { opacity: 0; transform: translateY(-50%) scale(1.5); }
+    46%, 100% { opacity: 1; transform: translateY(-50%) scale(1); }
+  }
+
+  @keyframes wasted-vignette {
+    0% { opacity: 0; }
+    18% { opacity: .95; }
+    100% { opacity: .78; }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .game__cursor {
+    display: none;
+  }
+
+  .actor {
+    transition: none;
+  }
+
+  .maze__cell--wall.power-flash {
+    filter: brightness(2.4) saturate(.6);
+  }
+
+  .ghost.devoured {
+    opacity: 0;
+  }
+}

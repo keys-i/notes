@@ -1,6 +1,8 @@
 # Custom / Testing
 public/
 dev/
+.shelljs-stage/
+.shelljs-wiki-stage/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
