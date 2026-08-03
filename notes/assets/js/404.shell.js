@@ -195,7 +195,8 @@ function manCommand(parts) {
           "",
           "SYNOPSIS",
           "       koalactl status",
-          "       koalactl move <n|s|e|w>",
+          "       koalactl move <directions>",
+          "       koalactl <directions>",
           "       koalactl trace",
           "       koalactl reset",
           "",
@@ -324,6 +325,22 @@ function ddbCommand(source) {
   }
 }
 
+function koalactlMove(pattern) {
+  var executed = 0;
+  for (var index = 0; index < pattern.length; index += 1) {
+    var direction = pattern[index];
+    if (!/^[nsew]$/.test(direction)) break;
+    var movement = directions[moveIndexes[direction]];
+    if (!movement) break;
+    movePlayer(movement[0], movement[1]);
+    executed += 1;
+    if (!running) break;
+  }
+  if (!executed) return "usage: koalactl move <n|s|e|w>...";
+  return "koalactl: maze0 now at " + player.x + "," + player.y +
+    (executed > 1 ? " (" + executed + " moves)" : "");
+}
+
 function shellCommand(source) {
   source = source.trim();
   if (!source) return "";
@@ -343,7 +360,7 @@ function shellCommand(source) {
         "Boot/fs: fsck mount geom gpart zpool zfs savecore crashinfo",
         "Kernel: dmesg trace kldstat kldload kldunload sysctl ddb",
         "System: ps top vmstat procstat sockstat ifconfig route netstat",
-        "Game: koalactl status|move <n|s|e|w>|trace|reset",
+        "Game: koalactl status|move <directions>|trace|reset",
         "Manual: man [section] page | man -k keyword | apropos keyword",
         "Enter ddb, then type help at the db> prompt for kernel commands."
       ].join("\n");
@@ -699,10 +716,10 @@ function shellCommand(source) {
         return "koalactl: maze0 recovery task restarted";
       }
       if (argument === "move") {
-        var movement = directions[moveIndexes[parts[1]]];
-        if (!movement) return "usage: koalactl move <n|s|e|w>";
-        movePlayer(movement[0], movement[1]);
-        return "koalactl: maze0 now at " + player.x + "," + player.y;
+        return koalactlMove(parts.slice(1).join("").toLowerCase());
+      }
+      if (/^[nsew]+$/i.test(argument)) {
+        return koalactlMove(argument.toLowerCase());
       }
       return "koalactl: unknown request " + argument;
     default:
