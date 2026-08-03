@@ -40,6 +40,9 @@ MD013 = { line_length = 80, code_blocks = false, tables = false }
 MD024 = false
 MD025 = { front_matter_title = "" }
 
+[tool.ruff]
+ignore = ["E731"]
+
 [build-system]
 requires = ["uv_build>=0.12.0,<0.13.0"]
 build-backend = "uv_build"
