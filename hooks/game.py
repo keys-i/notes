@@ -65,7 +65,7 @@ def require(condition, message):
 
 
 def number(value):
-    return type(value) in (int, float) and value == value
+    return type(value) in (int, float)
 
 
 def coordinate(value, columns, rows):
