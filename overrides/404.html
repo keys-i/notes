@@ -1,59 +1,50 @@
-{% extends "main.html" %}
-{% set site_root = config.site_url.rstrip('/') ~ '/' %}
-{% set game = config.extra.game %}
-
-{% block htmltitle %}
-  <title>404 · Page not found · {{ config.site_name }}</title>
-{% endblock %}
-
-{% block extrahead %}
-  <meta name="robots" content="noindex,follow" />
-  <meta name="theme-color" content="#0719aa" />
-  <link rel="stylesheet" href="{{ site_root }}assets/styles/freebsd-boot.min.css" />
-  <link rel="stylesheet" href="{{ site_root }}assets/styles/404.panic.min.css" />
-  <link rel="stylesheet" href="{{ site_root }}assets/styles/404.game.min.css" />
-  <link rel="stylesheet" href="{{ site_root }}assets/styles/404.shell.min.css" />
-  <link
-    rel="preload"
-    as="image"
-    type="image/webp"
-    href="{{ site_root }}{{ game.assets.neutral }}"
-  />
-  <link
-    rel="preload"
-    as="image"
-    type="image/webp"
-    href="{{ site_root }}{{ game.assets.scared }}"
-  />
-  <link
-    rel="preload"
-    as="image"
-    type="image/webp"
-    href="{{ site_root }}{{ game.assets.happy }}"
-  />
-  <link
-    rel="preload"
-    as="image"
-    type="image/webp"
-    href="{{ site_root }}{{ game.assets.dead }}"
-  />
-  <link
-    rel="preload"
-    as="image"
-    type="image/webp"
-    href="{{ site_root }}{{ game.assets.goal }}"
-  />
-{% endblock %}
-
-{% block fonts %}{% endblock %}
-{% block analytics %}{% endblock %}
-{% block header %}{% endblock %}
-{% block site_nav %}{% endblock %}
-{% block footer %}{% endblock %}
-{% block config %}{% endblock %}
-{% block scripts %}{% endblock %}
-
-{% block content %}
+{% extends "main.html" %} {% set site_root = config.site_url.rstrip('/') ~ '/'
+%} {% set game = config.extra.game %} {% block htmltitle %}
+<title>404 · Page not found · {{ config.site_name }}</title>
+{% endblock %} {% block extrahead %}
+<meta name="robots" content="noindex,follow" />
+<meta name="theme-color" content="#0719aa" />
+<link
+  rel="stylesheet"
+  href="{{ site_root }}assets/styles/freebsd.boot.min.css"
+/>
+<link rel="stylesheet" href="{{ site_root }}assets/styles/404/panic.min.css" />
+<link rel="stylesheet" href="{{ site_root }}assets/styles/404/game.min.css" />
+<link rel="stylesheet" href="{{ site_root }}assets/styles/404/shell.min.css" />
+<link
+  rel="preload"
+  as="image"
+  type="image/webp"
+  href="{{ site_root }}{{ game.assets.neutral }}"
+/>
+<link
+  rel="preload"
+  as="image"
+  type="image/webp"
+  href="{{ site_root }}{{ game.assets.scared }}"
+/>
+<link
+  rel="preload"
+  as="image"
+  type="image/webp"
+  href="{{ site_root }}{{ game.assets.happy }}"
+/>
+<link
+  rel="preload"
+  as="image"
+  type="image/webp"
+  href="{{ site_root }}{{ game.assets.dead }}"
+/>
+<link
+  rel="preload"
+  as="image"
+  type="image/webp"
+  href="{{ site_root }}{{ game.assets.goal }}"
+/>
+{% endblock %} {% block fonts %}{% endblock %} {% block analytics %}{% endblock
+%} {% block header %}{% endblock %} {% block site_nav %}{% endblock %} {% block
+footer %}{% endblock %} {% block config %}{% endblock %} {% block scripts %}{%
+endblock %} {% block content %}
 <section class="os" id="os" data-damage="0" aria-labelledby="404-title">
   <header class="os__bar">
     <span class="os__signal">KoalaBSD 14.2-RECOVERY</span>
@@ -62,7 +53,10 @@
   </header>
 
   <div class="os__grid">
-    <aside class="trace trace--kernel" aria-label="Live FreeBSD kernel recovery trace">
+    <aside
+      class="trace trace--kernel"
+      aria-label="Live FreeBSD kernel recovery trace"
+    >
       <p class="trace__title">
         <span id="kernel-dialect">FreeBSD/amd64</span>
         <span>LIVE TRACE</span>
@@ -71,7 +65,8 @@
         class="trace__dump trace__dump--kernel"
         id="kernel-stream"
         aria-hidden="true"
-      >Fatal trap 12: page fault while in kernel mode
+      >
+Fatal trap 12: page fault while in kernel mode
 cpuid = 0; apic id = 00
 fault virtual address = 0xffffffff80404040
 fault code = supervisor read data, page not present
@@ -99,7 +94,9 @@ Dumping 404 out of 404 MB</pre>
           <h1 id="404-title" data-text="404">404</h1>
         </div>
         <p class="game__recovery" aria-label="Live recovery activity">
-          <span id="recovery-text" aria-hidden="true">Enter full pathname of shell or RETURN for /bin/sh:</span><span class="game__cursor" aria-hidden="true">█</span>
+          <span id="recovery-text" aria-hidden="true"
+            >Enter full pathname of shell or RETURN for /bin/sh:</span
+          ><span class="game__cursor" aria-hidden="true">█</span>
         </p>
       </div>
 
@@ -108,6 +105,9 @@ Dumping 404 out of 404 MB</pre>
         <span>Moves <strong id="moves">000</strong></span>
         <span>Lives <strong id="lives">♥♥♥</strong></span>
       </div>
+      <p class="game__dialogue" id="dialogue" aria-hidden="true">
+        koala0: maze0 mounted; snacks indexed; predators disagree.
+      </p>
 
       <div
         class="board"
@@ -163,13 +163,16 @@ Dumping 404 out of 404 MB</pre>
             aria-hidden="true"
           />
         </a>
-        <span
-          class="actor ghost threat--dingo"
-          aria-hidden="true"
-        >
+        <span class="actor ghost threat--dingo" aria-hidden="true">
           <svg viewBox="0 0 64 64" focusable="false">
-            <path class="threat__body" d="M8 5 23 17q9-7 18 0L56 5l-5 24q7 9 1 21-8 11-20 11T12 50q-6-12 1-21Z" />
-            <path class="threat__muzzle" d="M18 37q14-9 28 0l-5 16q-9 8-18 0Z" />
+            <path
+              class="threat__body"
+              d="M8 5 23 17q9-7 18 0L56 5l-5 24q7 9 1 21-8 11-20 11T12 50q-6-12 1-21Z"
+            />
+            <path
+              class="threat__muzzle"
+              d="M18 37q14-9 28 0l-5 16q-9 8-18 0Z"
+            />
             <circle class="threat__eye" cx="23" cy="31" r="5" />
             <circle class="threat__eye" cx="41" cy="31" r="5" />
             <circle class="threat__pupil" cx="24" cy="32" r="2.2" />
@@ -179,12 +182,12 @@ Dumping 404 out of 404 MB</pre>
           </svg>
           <span>DINGO.EXE</span>
         </span>
-        <span
-          class="actor ghost threat--eagle"
-          aria-hidden="true"
-        >
+        <span class="actor ghost threat--eagle" aria-hidden="true">
           <svg viewBox="0 0 64 64" focusable="false">
-            <path class="threat__body" d="M3 20Q12 4 27 17l5-8 5 8Q52 4 61 20 49 20 44 33L38 48 32 59 26 48 20 33Q15 21 3 20Z" />
+            <path
+              class="threat__body"
+              d="M3 20Q12 4 27 17l5-8 5 8Q52 4 61 20 49 20 44 33L38 48 32 59 26 48 20 33Q15 21 3 20Z"
+            />
             <path class="threat__muzzle" d="M24 22q8-8 16 0l-3 17q-5 7-10 0Z" />
             <circle class="threat__eye" cx="28" cy="28" r="4" />
             <circle class="threat__eye" cx="36" cy="28" r="4" />
@@ -198,18 +201,54 @@ Dumping 404 out of 404 MB</pre>
       </div>
 
       <div class="controls" role="group" aria-label="Maze controls">
-        <button class="controls__up" type="button" data-move="0,-1" aria-label="Move up">↑</button>
-        <button class="controls__left" type="button" data-move="-1,0" aria-label="Move left">←</button>
-        <button class="controls__reset" id="reset" type="button" aria-label="Restart game">↻</button>
-        <button class="controls__right" type="button" data-move="1,0" aria-label="Move right">→</button>
-        <button class="controls__down" type="button" data-move="0,1" aria-label="Move down">↓</button>
+        <button
+          class="controls__up"
+          type="button"
+          data-move="0,-1"
+          aria-label="Move up"
+        >
+          ↑
+        </button>
+        <button
+          class="controls__left"
+          type="button"
+          data-move="-1,0"
+          aria-label="Move left"
+        >
+          ←
+        </button>
+        <button
+          class="controls__reset"
+          id="reset"
+          type="button"
+          aria-label="Restart game"
+        >
+          ↻
+        </button>
+        <button
+          class="controls__right"
+          type="button"
+          data-move="1,0"
+          aria-label="Move right"
+        >
+          →
+        </button>
+        <button
+          class="controls__down"
+          type="button"
+          data-move="0,1"
+          aria-label="Move down"
+        >
+          ↓
+        </button>
       </div>
 
       <p class="game__status" id="status" aria-live="polite">
         kradkrnl: maze0 attached; koala0 pid=404; dingo0/eagle0 queued at the 0.
       </p>
       <p class="game__hint">
-        Arrow keys / WASD · R to reset — edge portals wrap when online; boosts return predators to the 0.
+        Arrow keys / WASD · R to reset — edge portals wrap when online; boosted
+        captures chain score and return predators to the 0.
       </p>
       <form
         class="recovery-shell"
@@ -223,7 +262,8 @@ Dumping 404 out of 404 MB</pre>
           aria-live="polite"
           aria-relevant="additions text"
         >
-          <pre id="shell-output">FreeBSD/amd64 14.2-RECOVERY; ttyv0; single-user mode
+          <pre id="shell-output">
+FreeBSD/amd64 14.2-RECOVERY; ttyv0; single-user mode
 Enter full pathname of shell or RETURN for /bin/sh: /rescue/sh
 /dev/ada0p2: FILE SYSTEM CLEAN; SKIPPING CHECKS
 kradkrnl.ko: maze0 attached; pid 404; type help or ddb</pre>
@@ -248,13 +288,19 @@ kradkrnl.ko: maze0 attached; pid 404; type help or ddb</pre>
       </noscript>
     </div>
 
-    <aside class="trace trace--nt" aria-label="Live NT stop diagnostic derived from the maze state">
-      <p class="trace__title"><span>NT POOL VERIFIER</span><span>STOP 0x19</span></p>
+    <aside
+      class="trace trace--nt"
+      aria-label="Live NT stop diagnostic derived from the maze state"
+    >
+      <p class="trace__title">
+        <span>NT POOL VERIFIER</span><span>STOP 0x19</span>
+      </p>
       <pre
         class="trace__dump trace__dump--nt"
         id="stop-dump"
         aria-hidden="true"
-      >*** STOP: 0x00000019 (0x00000003, 0xC00E0FF0,
+      >
+*** STOP: 0x00000019 (0x00000003, 0xC00E0FF0,
   0xFFFFEFD4, 0xC0000000)
 BAD_POOL_HEADER
 
@@ -288,18 +334,17 @@ ff69bc28 80115f67 80115f67 ff7b2600 - eagle.sys @11,07 RUN</pre>
   <footer class="os__footer">
     <strong>&gt; VFS LOOKUP FAILED: ENOENT (404)</strong>
     <span>&gt; VMCORE RECOVERY: <strong id="dump">0%</strong></span>
-    <a
-      class="reboot"
-      href="{{ site_root }}"
-      id="shutdown"
-      data-shutdown="1"
-    >&gt; shutdown -r now · REBOOT HOME</a>
+    <a class="reboot" href="{{ site_root }}" id="shutdown" data-shutdown="1"
+      >&gt; shutdown -r now · REBOOT HOME</a
+    >
   </footer>
 </section>
 
-<script id="map-config" type="application/json">{{ game | tojson }}</script>
-<script src="{{ site_root }}assets/js/freebsd-boot.min.js" defer></script>
-<script src="{{ site_root }}assets/js/404.game.min.js" defer></script>
-<script src="{{ site_root }}assets/js/404.shell.min.js" defer></script>
-<script src="{{ site_root }}assets/js/404.panic.min.js" defer></script>
+<script id="map-config" type="application/json">
+  {{ game | tojson }}
+</script>
+<script src="{{ site_root }}assets/js/freebsd.boot.min.js" defer></script>
+<script src="{{ site_root }}assets/js/404/game.min.js" defer></script>
+<script src="{{ site_root }}assets/js/404/shell.min.js" defer></script>
+<script src="{{ site_root }}assets/js/404/panic.min.js" defer></script>
 {% endblock %}

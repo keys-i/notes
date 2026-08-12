@@ -6,16 +6,22 @@
 
   function theme() {
     var palette = document.querySelector("[data-md-color-scheme]:checked");
-    var dark = (palette?.dataset.mdColorScheme ||
-      document.body.dataset.mdColorScheme) === "slate";
+    var dark =
+      (palette?.dataset.mdColorScheme ||
+        document.body.dataset.mdColorScheme) === "slate";
     return dark
-      ? mode === "giscus" ? "dark" : "photon-dark"
-      : mode === "giscus" ? "light" : "github-light";
+      ? mode === "giscus"
+        ? "dark"
+        : "photon-dark"
+      : mode === "giscus"
+        ? "light"
+        : "github-light";
   }
 
   function updateTheme() {
     var value = theme();
-    host.querySelector("script")
+    host
+      .querySelector("script")
       ?.setAttribute(mode === "giscus" ? "data-theme" : "theme", value);
     document
       .querySelector("." + mode + "-frame")
@@ -23,7 +29,7 @@
         mode === "giscus"
           ? { giscus: { setConfig: { theme: value } } }
           : { type: "set-theme", theme: value },
-        mode === "giscus" ? "https://giscus.app" : "https://utteranc.es"
+        mode === "giscus" ? "https://giscus.app" : "https://utteranc.es",
       );
   }
 
@@ -32,9 +38,10 @@
     host.dataset.loaded = "true";
 
     var script = document.createElement("script");
-    script.src = mode === "giscus"
-      ? "https://giscus.app/client.js"
-      : "https://utteranc.es/client.js";
+    script.src =
+      mode === "giscus"
+        ? "https://giscus.app/client.js"
+        : "https://utteranc.es/client.js";
     script.async = true;
     script.crossOrigin = "anonymous";
 
@@ -56,14 +63,15 @@
   }
 
   if ("IntersectionObserver" in window) {
-    new IntersectionObserver(function (entries, observer) {
-      if (entries[0].isIntersecting) {
-        observer.disconnect();
-        load();
-      }
-    }, { rootMargin: "200px" }).observe(
-      document.getElementById("__comments") || host
-    );
+    new IntersectionObserver(
+      function (entries, observer) {
+        if (entries[0].isIntersecting) {
+          observer.disconnect();
+          load();
+        }
+      },
+      { rootMargin: "200px" },
+    ).observe(document.getElementById("__comments") || host);
   } else {
     load();
   }
@@ -71,4 +79,4 @@
   document
     .querySelector("[data-md-component=palette]")
     ?.addEventListener("change", updateTheme);
-}());
+})();

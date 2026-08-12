@@ -32,7 +32,7 @@
       "FreeBSD clang version 18.1.6",
       "VT: init without driver.",
       "CPU: AMD Ryzen Koala-404 (2794.91-MHz K8-class CPU)",
-      "  Origin=\"AuthenticAMD\"  Id=0x00a40f41  Family=0x19  Model=0x44  Stepping=1",
+      '  Origin="AuthenticAMD"  Id=0x00a40f41  Family=0x19  Model=0x44  Stepping=1',
       "real memory  = 2147483648 (2048 MB)",
       "avail memory = 1981280256 (1889 MB)",
       "arc4random: WARNING: initial seeding bypassed the cryptographic random device",
@@ -73,45 +73,42 @@
       "Aug  3 11:04:05 recv login: ROOT LOGIN (ttyv0)",
       "Welcome to FreeBSD!",
       "",
-      "rad@recv ~ #"
+      "rad@recv ~ #",
     ];
   }
 
   function shutdownLines(uptime) {
     return [
-      "shutdown: [pid 1] Shutdown NOW!",
+      "Shutdown NOW!",
+      "shutdown: [pid 404]",
+      "",
+      "*** FINAL System shutdown message from rad@recv ***",
+      "",
+      "System going down IMMEDIATELY",
+      "",
+      "System shutdown time has arrived",
       "",
       "Stopping cron.",
-      "Waiting for PIDS: " + (404 + (uptime % 90)) + ".",
+      "Waiting for PIDS: 404.",
       "Stopping sshd.",
-      "Waiting for PIDS: " + (520 + (uptime % 40)) + ".",
-      "Stopping sendmail.",
-      "Waiting for PIDS: .",
-      "Stopping powerd.",
+      "Waiting for PIDS: 520.",
       "Stopping koala recovery console.",
       "Waiting for PIDS: 404.",
-      "Stopping krad.",
-      "Waiting for PIDS: 404.",
-      "Stopping dingo.",
-      "Waiting for PIDS: 8.",
-      "Stopping eagle.",
-      "Waiting for PIDS: 9.",
       "Stopping devd.",
       "Waiting for PIDS: 33.",
+      "Writing entropy file: .",
+      "Writing early boot entropy file: .",
       ".",
       "Terminated",
       "",
-      "Waiting (max 60 seconds) for system process `vnlru' to stop...done",
-      "Waiting (max 60 seconds) for system process `bufdaemon' to stop...done",
-      "Waiting (max 60 seconds) for system process `bufspacedaemon' to stop...done",
+      "Waiting (max 60 seconds) for system process `vnlru' to stop... done",
+      "Waiting (max 60 seconds) for system process `bufdaemon' to stop... done",
+      "Waiting (max 60 seconds) for system process `bufspacedaemon' to stop... done",
       "Waiting (max 60 seconds) for system process `syncer' to stop...",
       "Syncing disks, vnodes remaining... 3 2 1 0 0 done",
       "All buffers synced.",
       "Uptime: " + uptime,
-      "The operating system has halted.",
-      "Please press any key to reboot.",
-      "",
-      "Rebooting..."
+      "Rebooting...",
     ];
   }
 
@@ -151,7 +148,8 @@
 
     var logEl = layer.querySelector(".freebsd-boot__log");
     var bannerEl = layer.querySelector(".freebsd-boot__banner");
-    bannerEl.textContent = options.banner ||
+    bannerEl.textContent =
+      options.banner ||
       (mode === "shutdown"
         ? "FreeBSD/amd64 · shutdown -r now"
         : "FreeBSD/amd64 · booting");
@@ -165,28 +163,31 @@
     }
 
     function finish() {
-      bannerEl.textContent = options.doneBanner ||
+      bannerEl.textContent =
+        options.doneBanner ||
         (mode === "shutdown"
           ? "FreeBSD/amd64 · rebooting"
           : "FreeBSD/amd64 · multiuser");
       layer.classList.add("is-ready");
-      if (mode === "shutdown") layer.classList.add("is-halted");
-      schedule(function () {
-        if (options.keep !== true) {
-          document.documentElement.classList.remove(
-            "freebsd-booting",
-            "freebsd-shutting-down"
-          );
-          document.body.classList.remove(
-            "freebsd-booting",
-            "freebsd-shutting-down"
-          );
-          layer.remove();
-          if (activeLayer === layer) activeLayer = null;
-        }
-        playing = false;
-        if (typeof options.onDone === "function") options.onDone();
-      }, delay(reduced ? 120 : options.holdMs || 520));
+      schedule(
+        function () {
+          if (options.keep !== true) {
+            document.documentElement.classList.remove(
+              "freebsd-booting",
+              "freebsd-shutting-down",
+            );
+            document.body.classList.remove(
+              "freebsd-booting",
+              "freebsd-shutting-down",
+            );
+            layer.remove();
+            if (activeLayer === layer) activeLayer = null;
+          }
+          playing = false;
+          if (typeof options.onDone === "function") options.onDone();
+        },
+        delay(reduced ? 120 : options.holdMs || 520),
+      );
     }
 
     function step() {
@@ -204,31 +205,40 @@
       if (reduced) {
         base = 18;
       } else if (mode === "shutdown") {
-        base = line === ""
-          ? 140
-          : line === "."
-            ? 420
-            : /Shutdown NOW|Terminated|halted|Rebooting|Syncing disks/.test(line)
-              ? 380
-              : /Waiting \(max|Waiting for PIDS|Stopping /.test(line)
-                ? 300
-                : 200;
+        base =
+          line === ""
+            ? 140
+            : line === "."
+              ? 420
+              : /Shutdown NOW|FINAL System|going down|shutdown time|Terminated|Rebooting|Syncing disks/.test(
+                    line,
+                  )
+                ? 380
+                : /Waiting \(max|Waiting for PIDS|Stopping /.test(line)
+                  ? 300
+                  : 200;
       } else {
-        base = line === ""
-          ? 90
-          : /Copyright|FreeBSD clang|real memory|Trying to mount|login:|Welcome/.test(line)
-            ? 70
-            : /ada0:|Starting |Mounting |Setting /.test(line)
-              ? 42
-              : 28;
+        base =
+          line === ""
+            ? 90
+            : /Copyright|FreeBSD clang|real memory|Trying to mount|login:|Welcome/.test(
+                  line,
+                )
+              ? 70
+              : /ada0:|Starting |Mounting |Setting /.test(line)
+                ? 42
+                : 28;
       }
       schedule(step, delay(base));
     }
 
-    schedule(function () {
-      layer.classList.add("is-live");
-      step();
-    }, delay(reduced ? 20 : 80));
+    schedule(
+      function () {
+        layer.classList.add("is-live");
+        step();
+      },
+      delay(reduced ? 20 : 80),
+    );
 
     return layer;
   }
@@ -269,7 +279,7 @@
         } catch (error) {
           // ignore
         }
-      }
+      },
     });
   }
 

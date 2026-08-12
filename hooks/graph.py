@@ -115,17 +115,13 @@ def on_pre_build(config):
     nodes_by_url.clear()
     edges.clear()
     seen_links = 0
-    if plugin := getattr(config, "plugins", {}).get(
-        "obsidian-interactive-graph"
-    ):
+    if plugin := getattr(config, "plugins", {}).get("obsidian-interactive-graph"):
         plugin.nodes.clear()
         plugin.data["nodes"].clear()
         plugin.data["links"].clear()
         plugin.current_id = 0
     config_path = getattr(config, "config_file_path", None)
-    repository_root = (
-        Path(config_path).resolve().parent if config_path else Path.cwd()
-    )
+    repository_root = Path(config_path).resolve().parent if config_path else Path.cwd()
     creation_dates_by_path.clear()
     creation_dates_by_path.update(git_creation_dates(repository_root))
 
@@ -145,7 +141,9 @@ def on_page_content(html, page, config, **_):
 
     source = graph.nodes[graph.get_page_path(page)]
     title = " ".join(str(page.title).split())
-    source["title"] = f"{' '.join(str(page.meta.get('slug') or title).split())} •{title}"
+    source["title"] = (
+        f"{' '.join(str(page.meta.get('slug') or title).split())} •{title}"
+    )
     if not nodes_by_url:
         nodes_by_url.update(
             (page_url(node["url"]), node) for node in graph.nodes.values()
