@@ -1,14 +1,35 @@
+.md-typeset h4 {
+  font-size: 1.1em;
+}
+
+.md-typeset h5 {
+  color: var(--md-default-fg-color);
+  font-size: 1em;
+}
+
+.md-typeset :is(.admonition, details) :is(h2, h3, h4) {
+  font-weight: 700;
+}
+
+[data-md-color-scheme="default"] {
+  --graph-bg-color: var(--md-code-bg-color);
+}
+
+[data-md-color-scheme="slate"] {
+  --graph-bg-color: var(--md-footer-bg-color);
+}
+
 .graph-preview-shell {
   position: relative;
   height: 14rem;
-  margin: 1rem .5rem 1.5rem;
+  margin: 1rem 0.5rem 1.5rem;
   overflow: hidden;
-  border: 1px solid rgb(99 245 255 / .38);
-  border-radius: .65rem;
-  background: var(--md-default-bg-color);
+  border: 1px solid rgb(99 245 255 / 0.38);
+  border-radius: 0.65rem;
+  background: var(--graph-bg-color, var(--md-default-bg-color));
   box-shadow:
-    0 0 .65rem rgb(99 245 255 / .18),
-    0 0 1.2rem rgb(255 79 216 / .08);
+    0 0 0.65rem rgb(99 245 255 / 0.18),
+    0 0 1.2rem rgb(255 79 216 / 0.08);
   contain: layout paint;
 }
 
@@ -20,7 +41,7 @@
   display: grid;
   padding: 1rem;
   color: var(--md-default-fg-color--light);
-  font-size: .7rem;
+  font-size: 0.7rem;
   place-items: center;
   text-align: center;
 }
@@ -29,34 +50,34 @@
   position: relative;
   width: min(70rem, calc(100% - 2rem));
   height: min(48rem, calc(100% - 2rem));
-  border: 1px solid rgb(99 245 255 / .48);
-  border-radius: .8rem;
-  background: var(--md-default-bg-color);
+  border: 1px solid rgb(99 245 255 / 0.48);
+  border-radius: 0.8rem;
+  background: var(--graph-bg-color, var(--md-default-bg-color));
   box-shadow:
-    0 0 .8rem rgb(99 245 255 / .22),
-    0 0 1.7rem rgb(255 79 216 / .12);
+    0 0 0.8rem rgb(99 245 255 / 0.22),
+    0 0 1.7rem rgb(255 79 216 / 0.12);
 }
 
 .graph-timelapse {
   position: absolute;
   z-index: 3;
-  top: .7rem;
-  right: .7rem;
+  top: 0.7rem;
+  right: 0.7rem;
   display: grid;
   width: 2.35rem;
   height: 2.35rem;
-  border: 1px solid rgb(99 245 255 / .42);
-  border-radius: .65rem;
+  border: 1px solid rgb(99 245 255 / 0.42);
+  border-radius: 0.65rem;
   color: var(--md-default-fg-color);
   background: var(--md-default-bg-color);
-  box-shadow: 0 .12rem .3rem rgb(0 0 0 / .1);
+  box-shadow: 0 0.12rem 0.3rem rgb(0 0 0 / 0.1);
   cursor: pointer;
   place-items: center;
   transition:
-    color .14s,
-    transform .14s,
-    border-color .14s,
-    background-color .14s;
+    color 0.14s,
+    transform 0.14s,
+    border-color 0.14s,
+    background-color 0.14s;
 }
 
 .graph-timelapse svg {
@@ -82,11 +103,11 @@
 }
 
 .md-nav--secondary > .md-nav__list {
-  margin-top: .6rem;
+  margin-top: 0.6rem;
 }
 
 .md-nav--secondary > .md-nav__list > .md-nav__item > .md-nav__link {
-  padding-left: .4rem;
+  padding-left: 0.4rem;
 }
 
 .md-nav--secondary .md-nav .md-nav__link {
@@ -115,43 +136,44 @@
   }
 
   .graph-timelapse.is-playing .graph-timelapse__sparkle:last-child {
-    animation-delay: -.55s;
+    animation-delay: -0.55s;
   }
 
   .modal_graph {
-    animation: graph-modal-in .18s ease-out;
+    animation: graph-modal-in 0.18s ease-out;
   }
 
-  .md-nav--secondary .md-nav__link:is(:hover, :focus-visible) .md-ellipsis[data-marquee] {
-    width: max-content;
-    max-width: none;
-    overflow: visible;
+  .md-nav--secondary
+    .md-nav__link:is(:hover, :focus-visible)
+    .md-ellipsis[data-marquee] {
     text-overflow: clip;
     animation: toc-marquee var(--marquee-duration) linear infinite;
   }
 
-  .md-nav--secondary .md-nav__link:is(:hover, :focus-visible) .md-ellipsis[data-marquee]::after {
+  .md-nav--secondary
+    .md-nav__link:is(:hover, :focus-visible)
+    .md-ellipsis[data-marquee]::after {
     padding-left: 1.5rem;
     content: attr(data-marquee);
   }
 
   @keyframes toc-marquee {
     to {
-      transform: translateX(var(--marquee-distance));
+      text-indent: var(--marquee-distance);
     }
   }
 
   @keyframes graph-sparkle {
     to {
-      opacity: .35;
-      transform: scale(.78);
+      opacity: 0.35;
+      transform: scale(0.78);
     }
   }
 
   @keyframes graph-modal-in {
     from {
       opacity: 0;
-      transform: scale(.985);
+      transform: scale(0.985);
     }
   }
 }
@@ -207,17 +229,17 @@
   .md-header__option[data-md-component="palette"] {
     order: 1;
     margin-left: auto;
-    padding-left: .8rem;
+    padding-left: 0.8rem;
   }
 
   .md-header__graph-option {
     order: 2;
-    margin-left: .2rem;
+    margin-left: 0.2rem;
   }
 
   .md-header__source {
     order: 3;
-    margin-left: .4rem;
+    margin-left: 0.4rem;
   }
 }
 

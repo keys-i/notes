@@ -2,6 +2,7 @@
 columns = 21
 rows = 15
 attempts = 96
+maximum_attempts = 384
 minimum_path = 36
 maximum_path = 90
 minimum_cycles = 7
@@ -19,6 +20,7 @@ pickups = 2
 symbols = 3
 hunt = 4
 effects = 5
+dialogue = 6
 
 [landmark]
 x = 4
@@ -88,6 +90,7 @@ lives = 3
 ghost_interval_ms = 320
 grace_ticks = 3
 predator_points = 200
+extra_life_score = 1000
 power_warning_ticks = 5
 
 [assets]

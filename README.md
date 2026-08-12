@@ -29,8 +29,9 @@ uv run serve
 Useful checks:
 
 ```sh
-uv run lint
 uv run fmt
+uv run lint
+uv run test
 uv run mkdocs build --strict
 ```
 

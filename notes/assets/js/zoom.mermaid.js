@@ -17,7 +17,8 @@
   }
 
   function closestElement(target, selector) {
-    target = target instanceof Element ? target : target && target.parentElement;
+    target =
+      target instanceof Element ? target : target && target.parentElement;
     return target ? target.closest(selector) : null;
   }
 
@@ -31,7 +32,10 @@
   }
 
   function getSvgViewBoxSize(svg) {
-    var values = (svg.getAttribute("viewBox") || "").trim().split(/[\s,]+/).map(Number);
+    var values = (svg.getAttribute("viewBox") || "")
+      .trim()
+      .split(/[\s,]+/)
+      .map(Number);
 
     if (
       values.length === 4 &&
@@ -56,11 +60,17 @@
     return {
       width: Math.max(
         1,
-        rect.width || parseSvgLength(svg.getAttribute("width")) || (viewBox && viewBox.width) || 800
+        rect.width ||
+          parseSvgLength(svg.getAttribute("width")) ||
+          (viewBox && viewBox.width) ||
+          800,
       ),
       height: Math.max(
         1,
-        rect.height || parseSvgLength(svg.getAttribute("height")) || (viewBox && viewBox.height) || 450
+        rect.height ||
+          parseSvgLength(svg.getAttribute("height")) ||
+          (viewBox && viewBox.height) ||
+          450,
       ),
     };
   }
@@ -71,7 +81,9 @@
         return script.src;
       }
 
-      var match = (script.textContent || "").match(/import\s+mermaid\s+from\s+["']([^"']+)["']/);
+      var match = (script.textContent || "").match(
+        /import\s+mermaid\s+from\s+["']([^"']+)["']/,
+      );
 
       if (match) {
         return match[1];
@@ -92,7 +104,7 @@
         module.initialize(
           (window.mermaidConfig && window.mermaidConfig.default) || {
             startOnLoad: false,
-          }
+          },
         );
         return (window.mermaid = module);
       });
@@ -102,7 +114,9 @@
   }
 
   function getMermaidSource(mermaidElement) {
-    return (mermaidElement.querySelector("code") || mermaidElement).textContent.trim();
+    return (
+      mermaidElement.querySelector("code") || mermaidElement
+    ).textContent.trim();
   }
 
   function replacePreWithDiv(mermaidElement) {
@@ -127,7 +141,9 @@
       !mermaidElement.dataset.mermaidRendering &&
       !mermaidElement.dataset.mermaidRendered &&
       !mermaidElement.dataset.mermaidRenderError &&
-      !mermaidElement.closest(".mermaid-zoom[data-mermaid-zoom-ready='true']") &&
+      !mermaidElement.closest(
+        ".mermaid-zoom[data-mermaid-zoom-ready='true']",
+      ) &&
       getMermaidSource(mermaidElement).length > 0
     );
   }
@@ -138,7 +154,7 @@
     try {
       var result = await mermaid.render(
         "mermaid-diagram-" + renderId++,
-        getMermaidSource(mermaidElement)
+        getMermaidSource(mermaidElement),
       );
       var target = replacePreWithDiv(mermaidElement);
 
@@ -173,7 +189,9 @@
   }
 
   function initDiagram(mermaidElement) {
-    if (mermaidElement.closest(".mermaid-zoom[data-mermaid-zoom-ready='true']")) {
+    if (
+      mermaidElement.closest(".mermaid-zoom[data-mermaid-zoom-ready='true']")
+    ) {
       return;
     }
 
@@ -255,7 +273,11 @@
 
     function zoomFromCenter(multiplier) {
       var rect = viewport.getBoundingClientRect();
-      zoomAt(multiplier, rect.left + rect.width / 2, rect.top + rect.height / 2);
+      zoomAt(
+        multiplier,
+        rect.left + rect.width / 2,
+        rect.top + rect.height / 2,
+      );
     }
 
     function resetZoom() {
@@ -292,15 +314,22 @@
         }
 
         event.preventDefault();
-        zoomAt(event.deltaY < 0 ? ZOOM_STEP : 1 / ZOOM_STEP, event.clientX, event.clientY);
+        zoomAt(
+          event.deltaY < 0 ? ZOOM_STEP : 1 / ZOOM_STEP,
+          event.clientX,
+          event.clientY,
+        );
       },
-      { passive: false }
+      { passive: false },
     );
 
     var dragStart = null;
 
     wrapper.addEventListener("pointerdown", function (event) {
-      if (event.button !== 0 || closestElement(event.target, ".mermaid-zoom__controls")) {
+      if (
+        event.button !== 0 ||
+        closestElement(event.target, ".mermaid-zoom__controls")
+      ) {
         return;
       }
 
@@ -321,8 +350,10 @@
         return;
       }
 
-      viewport.scrollLeft = dragStart.scrollLeft - (event.clientX - dragStart.clientX);
-      viewport.scrollTop = dragStart.scrollTop - (event.clientY - dragStart.clientY);
+      viewport.scrollLeft =
+        dragStart.scrollLeft - (event.clientX - dragStart.clientX);
+      viewport.scrollTop =
+        dragStart.scrollTop - (event.clientY - dragStart.clientY);
     });
 
     function endDrag(event) {
