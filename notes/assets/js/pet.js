@@ -62,19 +62,26 @@ function dockPetTarget(position, minimum, maximum, random) {
   );
 }
 
+var DOCK_PET_CELL_SIZE = 80;
+var DOCK_PET_COLUMNS = 20;
+var DOCK_PET_TRANSITION_FRAMES = 100;
+var DOCK_PET_ANCHOR_COUNT = 4;
+var DOCK_PET_FRAME_COUNT = DOCK_PET_TRANSITION_FRAMES * DOCK_PET_ANCHOR_COUNT;
+var DOCK_PET_ACTIVITY_ROWS = DOCK_PET_FRAME_COUNT / DOCK_PET_COLUMNS;
+
 var DOCK_PET_EYES = Object.freeze({
   climbing: Object.freeze([
     Object.freeze([
       [121, 86, 7, 12],
       [122, 87, 7, 12],
-      [91, 84, 7, 12],
-      [88, 85, 7, 12],
+      [125, 87, 8, 13],
+      [121, 86, 7, 12],
     ]),
     Object.freeze([
       [162, 84, 8, 13],
       [164, 85, 8, 13],
-      [130, 87, 8, 13],
-      [128, 88, 8, 13],
+      [164, 84, 7, 12],
+      [162, 84, 8, 13],
     ]),
   ]),
   walking: Object.freeze([
@@ -95,7 +102,26 @@ var DOCK_PET_EYES = Object.freeze({
 
 function dockPetFrame(state, progress) {
   if (state !== "walking" && state !== "climbing") return 0;
-  return Math.floor((((progress % 1) + 1) % 1) * 4) % 4;
+  return (
+    Math.floor((((progress % 1) + 1) % 1) * DOCK_PET_FRAME_COUNT) %
+    DOCK_PET_FRAME_COUNT
+  );
+}
+
+function dockPetEyes(state, frame) {
+  var eyes = DOCK_PET_EYES[state];
+  var position =
+    (((frame % DOCK_PET_FRAME_COUNT) + DOCK_PET_FRAME_COUNT) %
+      DOCK_PET_FRAME_COUNT) /
+    DOCK_PET_TRANSITION_FRAMES;
+  var first = Math.floor(position) % DOCK_PET_ANCHOR_COUNT;
+  var second = (first + 1) % DOCK_PET_ANCHOR_COUNT;
+  var amount = position - Math.floor(position);
+  return eyes.map(function (anchors) {
+    return anchors[first].map(function (value, index) {
+      return value + (anchors[second][index] - value) * amount;
+    });
+  });
 }
 
 function dockPetCloudPath(width, height) {
@@ -178,7 +204,6 @@ function dockPetCloudPath(width, height) {
       pet.dataset.spriteReady = "true";
       scheduleLook();
     };
-    lookImage.src = look.dataset.src;
   }
 
   function pixels(value) {
@@ -300,6 +325,11 @@ function dockPetCloudPath(width, height) {
       desktop.matches &&
       typeof pet.animate === "function"
     );
+  }
+
+  function loadSprite() {
+    if (!lookImage || lookImage.currentSrc || !canRoam()) return;
+    lookImage.src = look.dataset.src;
   }
 
   function clearRouteTimer() {
@@ -576,6 +606,7 @@ function dockPetCloudPath(width, height) {
     }
     restoredEdge = false;
     initialized = true;
+    loadSprite();
     rest(800);
   }
 
@@ -644,29 +675,35 @@ function dockPetCloudPath(width, height) {
     var y = centerY + lookVector.y * reachY;
     lookContext.save();
     lookContext.beginPath();
-    lookContext.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, Math.PI * 2);
-    lookContext.fillStyle = "#fff";
-    lookContext.fill();
+    lookContext.ellipse(
+      centerX,
+      centerY,
+      radiusX * 2.1,
+      radiusY * 1.25,
+      0,
+      0,
+      Math.PI * 2,
+    );
     lookContext.clip();
-    lookContext.fillStyle = "#1554c5";
+    lookContext.fillStyle = "#0b3ac7";
     lookContext.beginPath();
     lookContext.ellipse(
       x,
       y,
-      radiusX * 0.62,
-      radiusY * 0.52,
+      radiusX * 1.12,
+      radiusY * 1.08,
       0,
       0,
       Math.PI * 2,
     );
     lookContext.fill();
-    lookContext.fillStyle = "#111820";
+    lookContext.fillStyle = "#090b0d";
     lookContext.beginPath();
     lookContext.ellipse(
       x,
       y,
-      radiusX * 0.38,
-      radiusY * 0.39,
+      radiusX * 0.74,
+      radiusY * 0.76,
       0,
       0,
       Math.PI * 2,
@@ -677,8 +714,8 @@ function dockPetCloudPath(width, height) {
     lookContext.ellipse(
       x - radiusX * 0.12,
       y - radiusY * 0.13,
-      radiusX * 0.11,
-      radiusY * 0.1,
+      radiusX * 0.23,
+      radiusY * 0.18,
       0,
       0,
       Math.PI * 2,
@@ -704,16 +741,17 @@ function dockPetCloudPath(width, height) {
         : 0;
     var frame = dockPetFrame(state, progress);
     var eyeState = state === "climbing" ? "climbing" : "walking";
-    var eyes = DOCK_PET_EYES[eyeState].map(function (positions) {
-      return positions[frame];
-    });
+    var eyes = dockPetEyes(eyeState, frame);
+    var sourceRow =
+      Math.floor(frame / DOCK_PET_COLUMNS) +
+      (state === "climbing" ? DOCK_PET_ACTIVITY_ROWS : 0);
     lookContext.clearRect(0, 0, 256, 256);
     lookContext.drawImage(
       lookImage,
-      frame * 256,
-      state === "climbing" ? 256 : 0,
-      256,
-      256,
+      (frame % DOCK_PET_COLUMNS) * DOCK_PET_CELL_SIZE,
+      sourceRow * DOCK_PET_CELL_SIZE,
+      DOCK_PET_CELL_SIZE,
+      DOCK_PET_CELL_SIZE,
       0,
       0,
       256,
