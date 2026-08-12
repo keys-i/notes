@@ -1,6 +1,7 @@
 """Tests for site asset integration."""
 
 import unittest
+from hashlib import sha256
 from pathlib import Path
 
 ROOT = Path(__file__).parents[1]
@@ -43,6 +44,7 @@ class SiteAssetTests(unittest.TestCase):
         style = (ROOT / "notes/assets/styles/pet.css").read_text(encoding="utf-8")
         script = (ROOT / "notes/assets/js/pet.js").read_text(encoding="utf-8")
         image = ROOT / "notes/assets/images/game/koala/pet.webp"
+        poses = ROOT / "notes/assets/images/game/koala/pet-poses.webp"
 
         self.assertIn("assets/styles/pet.min.css", main)
         self.assertIn("assets/js/pet.min.js", main)
@@ -60,7 +62,8 @@ class SiteAssetTests(unittest.TestCase):
         self.assertIn(".dock-pet:focus-visible", style)
         self.assertIn('.dock-pet[data-direction="right"] .dock-pet__body', style)
         self.assertNotIn('.dock-pet[data-direction="left"] .dock-pet__body', style)
-        self.assertIn("../images/game/koala/pet.webp", style)
+        self.assertIn("../images/game/koala/pet-poses.webp", style)
+        self.assertNotIn("../images/game/koala/pet.webp", style)
         self.assertLess(
             style.index('.dock-pet[data-state="hanging"] .dock-pet__body'),
             style.index("@media (min-width: 60em)"),
@@ -84,6 +87,8 @@ class SiteAssetTests(unittest.TestCase):
         self.assertIn('"dock-pet-position-v1"', script)
         self.assertIn('window.addEventListener("pointermove"', script)
         self.assertIn("dockPetFrame", script)
+        self.assertIn("DOCK_PET_FRAME_COUNT =", script)
+        self.assertIn("DOCK_PET_TRANSITION_FRAMES = 100", script)
         self.assertIn("dockPetCloudPath", script)
         self.assertIn("lookContext.drawImage", script)
         self.assertIn("lookContext.ellipse", script)
@@ -92,6 +97,18 @@ class SiteAssetTests(unittest.TestCase):
         self.assertNotIn("jump", script.lower())
         self.assertEqual(image.read_bytes()[:4], b"RIFF")
         self.assertEqual(image.read_bytes()[8:12], b"WEBP")
+        self.assertEqual(poses.read_bytes()[:4], b"RIFF")
+        self.assertEqual(poses.read_bytes()[8:12], b"WEBP")
+        self.assertLess(len(image.read_bytes()), 2_100_000)
+        self.assertLess(len(poses.read_bytes()), 50_000)
+        self.assertEqual(
+            sha256(image.read_bytes()).hexdigest(),
+            "6e29fe14706adc88d3e7ac0da5e4bec496cc9a35a2ea5f9eaa773f25065492bf",
+        )
+        self.assertEqual(
+            sha256(poses.read_bytes()).hexdigest(),
+            "1a1e50b9ff2be942e0209e3a780282982c9ad62cd63bc023586f47c0e5ead5ec",
+        )
 
 
 if __name__ == "__main__":

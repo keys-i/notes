@@ -67,16 +67,34 @@ test("dock pet quote accepts safe API lines and handles failures", async () => {
   );
 });
 
-test("walking and climbing use every original illustrated frame", () => {
+test("walking and climbing use four 100-frame original-art transitions", () => {
+  assert.equal(pure.DOCK_PET_TRANSITION_FRAMES, 100);
+  assert.equal(pure.DOCK_PET_FRAME_COUNT, 400);
+  assert.equal(pure.DOCK_PET_COLUMNS, 20);
+  assert.equal(pure.DOCK_PET_CELL_SIZE, 80);
   ["walking", "climbing"].forEach((state) => {
     assert.deepEqual(
-      [0, 0.25, 0.5, 0.75].map((progress) =>
+      [0, 0.25, 0.5, 0.75, 0.999].map((progress) =>
         pure.dockPetFrame(state, progress),
       ),
-      [0, 1, 2, 3],
+      [0, 100, 200, 300, 399],
     );
   });
   assert.equal(pure.dockPetFrame("idle", 0.75), 0);
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(pure.dockPetEyes("climbing", 200))),
+    [
+      [125, 87, 8, 13],
+      [164, 84, 7, 12],
+    ],
+  );
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(pure.dockPetEyes("walking", 50))),
+    [
+      [63, 102.5, 4, 9],
+      [104, 108.5, 8, 13],
+    ],
+  );
 });
 
 test("thought cloud path scales as one closed scalloped outline", () => {
@@ -175,7 +193,7 @@ const createRuntime = function ({
       canvasCalls.push(["ellipse", ...args]);
     },
     fill() {
-      canvasCalls.push(["fill"]);
+      canvasCalls.push(["fill", this.fillStyle]);
     },
     fillStyle: "",
     lineCap: "",
@@ -341,12 +359,13 @@ const createRuntime = function ({
   math.random = () => 0.25;
   class FakeImage {
     complete = false;
+    currentSrc = "";
     naturalWidth = 0;
 
     set src(value) {
       this.currentSrc = value;
       this.complete = true;
-      this.naturalWidth = 1024;
+      this.naturalWidth = 1600;
       this.onload();
     }
   }
@@ -548,6 +567,76 @@ test("gaze follows arbitrary pointer angles inside the rendered sprite", () => {
   assert.equal(runtime.pet.dataset.gaze, undefined);
 });
 
+test("cursor eyes overlap the artwork without repainting white sclera", () => {
+  const runtime = createRuntime();
+  runtime.runAnimationFrames();
+  const fills = runtime.canvasCalls
+    .filter((call) => call[0] === "fill")
+    .slice(-6)
+    .map((call) => call[1]);
+  assert.deepEqual(fills, [
+    "#0b3ac7",
+    "#090b0d",
+    "#fff",
+    "#0b3ac7",
+    "#090b0d",
+    "#fff",
+  ]);
+  const ellipses = runtime.canvasCalls
+    .filter((call) => call[0] === "ellipse")
+    .slice(-8);
+  assert.ok(ellipses[1][3] > 4 && ellipses[1][4] > 9);
+  assert.ok(ellipses[5][3] > 8 && ellipses[5][4] > 13);
+});
+
+test("every animation frame renders with continuous omnidirectional gaze", () => {
+  const runtime = createRuntime();
+  const period = { climbing: 1450, walking: 1100 };
+
+  ["walking", "climbing"].forEach((state) => {
+    runtime.pet.dataset.state = state;
+    const sourceCells = new Set();
+    const gazeVectors = [];
+    for (let frame = 0; frame < 400; frame += 1) {
+      const angle = (Math.PI * 2 * frame) / 400;
+      const petLeft = Number.parseFloat(runtime.pet.style.left);
+      const petTop = Number.parseFloat(runtime.pet.style.top);
+      runtime.windowHandlers.pointermove({
+        clientX: petLeft + 40 + Math.cos(angle) * 180,
+        clientY: petTop + 40 + Math.sin(angle) * 180,
+      });
+      for (let settle = 0; settle < 32; settle += 1) {
+        runtime.runAnimationFrames(((frame + 0.25) / 400) * period[state]);
+      }
+      const draw = runtime.canvasCalls
+        .filter((call) => call[0] === "drawImage")
+        .at(-1);
+      assert.equal(draw[4], 80);
+      assert.equal(draw[5], 80);
+      sourceCells.add(`${draw[2]},${draw[3]}`);
+      const ellipses = runtime.canvasCalls.filter(
+        (call) => call[0] === "ellipse",
+      );
+      const iris = ellipses.at(-7);
+      const center = pure.dockPetEyes(state, frame)[0];
+      gazeVectors.push([iris[1] - center[0], iris[2] - center[1]]);
+    }
+    assert.equal(sourceCells.size, 400);
+    [0, 50, 100, 150, 200, 250, 300, 350].forEach((frame) => {
+      const expected = (Math.PI * 2 * frame) / 400;
+      const actual = Math.atan2(
+        gazeVectors[frame][1] / 4,
+        gazeVectors[frame][0] / 3,
+      );
+      assert.ok(
+        Math.abs(
+          Math.atan2(Math.sin(actual - expected), Math.cos(actual - expected)),
+        ) < 0.08,
+      );
+    });
+  });
+});
+
 test("original walk and climb frames animate while gaze keeps following", () => {
   const runtime = createRuntime();
   runtime.runNextTimer();
@@ -559,7 +648,7 @@ test("original walk and climb frames animate while gaze keeps following", () => 
   assert.ok(runtime.canvasCalls.length > beforeWalk);
   assert.ok(
     runtime.canvasCalls.some(
-      (call) => call[0] === "drawImage" && call[2] === 0,
+      (call) => call[0] === "drawImage" && call[3] < 1600 && call[4] === 80,
     ),
   );
 
@@ -574,7 +663,7 @@ test("original walk and climb frames animate while gaze keeps following", () => 
   assert.ok(runtime.canvasCalls.length > beforeClimb);
   assert.ok(
     runtime.canvasCalls.some(
-      (call) => call[0] === "drawImage" && call[2] === 256,
+      (call) => call[0] === "drawImage" && call[3] >= 1600 && call[4] === 80,
     ),
   );
 });
@@ -686,6 +775,8 @@ test("a footer near the viewport top never starts a downward climb", () => {
 test("reduced-motion pet stays stationary on the footer", () => {
   const runtime = createRuntime({ reduced: true });
   assert.equal(runtime.pet.hidden, false);
+  assert.equal(runtime.pet.dataset.spriteReady, undefined);
+  assert.equal(runtime.canvasCalls.length, 0);
   assert.equal(runtime.animations.length, 0);
   assert.equal(runtime.timers.size, 0);
   assert.equal(runtime.pet.style.left, "912px");
