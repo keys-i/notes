@@ -1,3 +1,16 @@
+.md-typeset h4 {
+  font-size: 1.1em;
+}
+
+.md-typeset h5 {
+  color: var(--md-default-fg-color);
+  font-size: 1em;
+}
+
+.md-typeset :is(.admonition, details) :is(h2, h3, h4) {
+  font-weight: 700;
+}
+
 .graph-preview-shell {
   position: relative;
   height: 14rem;
@@ -123,9 +136,6 @@
   }
 
   .md-nav--secondary .md-nav__link:is(:hover, :focus-visible) .md-ellipsis[data-marquee] {
-    width: max-content;
-    max-width: none;
-    overflow: visible;
     text-overflow: clip;
     animation: toc-marquee var(--marquee-duration) linear infinite;
   }
@@ -137,7 +147,7 @@
 
   @keyframes toc-marquee {
     to {
-      transform: translateX(var(--marquee-distance));
+      text-indent: var(--marquee-distance);
     }
   }
 
