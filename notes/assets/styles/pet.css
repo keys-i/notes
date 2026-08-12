@@ -1,4 +1,8 @@
 .dock-pet {
+  --dock-pet-cloud-fill: #343940;
+  --dock-pet-cloud-stroke: #1f2328;
+  --dock-pet-cloud-text: #fff;
+
   appearance: none;
   position: fixed;
   top: 0;
@@ -13,7 +17,12 @@
   border: 0;
   cursor: pointer;
   user-select: none;
-  transform: translate3d(0, 0, 0);
+}
+
+[data-md-color-scheme="slate"] .dock-pet {
+  --dock-pet-cloud-fill: #fff;
+  --dock-pet-cloud-stroke: #d8dde3;
+  --dock-pet-cloud-text: #202124;
 }
 
 .dock-pet[hidden] {
@@ -27,30 +36,36 @@
 }
 
 .dock-pet__body {
+  --dock-pet-facing: 1;
+
+  position: relative;
   display: block;
   width: 100%;
   height: 100%;
   background: url("../images/game/koala/pet.webp") 0 0 / 400% 200% no-repeat;
-  transform-origin: 50% 100%;
+  transform: scaleX(var(--dock-pet-facing));
+  transform-origin: 50% 92%;
 }
 
-.dock-pet[data-direction="left"] .dock-pet__body {
-  transform: scaleX(-1);
+.dock-pet[data-direction="right"] .dock-pet__body {
+  --dock-pet-facing: -1;
 }
 
 .dock-pet__bubble {
   position: absolute;
   bottom: calc(100% - 0.2rem);
-  width: max-content;
-  max-width: min(18rem, calc(100vw - 1rem));
-  padding: 0.55rem 0.7rem;
-  text-align: left;
-  color: var(--md-default-fg-color);
+  box-sizing: border-box;
+  width: fit-content;
+  min-width: 9rem;
+  max-width: min(18rem, calc(100vw - 2rem));
+  isolation: isolate;
+  padding: 0.85rem 1rem;
+  text-align: center;
+  color: var(--dock-pet-cloud-text);
   white-space: normal;
-  background: var(--md-default-bg-color);
-  border: 0.12rem solid var(--md-default-fg-color);
-  border-radius: 1rem;
-  box-shadow: var(--md-shadow-z1);
+  background: transparent;
+  border: 0;
+  filter: drop-shadow(0 0.18rem 0.22rem #0003);
 }
 
 .dock-pet[data-bubble-side="right"] .dock-pet__bubble {
@@ -61,45 +76,171 @@
   right: 60%;
 }
 
-.dock-pet__bubble::before,
-.dock-pet__bubble::after {
+.dock-pet[data-bubble-vertical="below"] .dock-pet__bubble {
+  top: calc(100% - 0.2rem);
+  bottom: auto;
+}
+
+.dock-pet__cloud {
+  position: absolute;
+  z-index: -1;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.dock-pet__cloud path {
+  fill: var(--dock-pet-cloud-fill);
+  stroke: var(--dock-pet-cloud-stroke);
+  stroke-linejoin: round;
+  stroke-width: 2.5;
+}
+
+.dock-pet__bubble-text {
+  position: relative;
+  z-index: 1;
+  display: block;
+  overflow-wrap: break-word;
+  hyphens: auto;
+  text-wrap: pretty;
+}
+
+.dock-pet__thought-tail,
+.dock-pet__thought-tail::before,
+.dock-pet__thought-tail::after {
   position: absolute;
   content: "";
-  background: var(--md-default-bg-color);
-  border: 0.12rem solid var(--md-default-fg-color);
+  background: var(--dock-pet-cloud-fill);
+  border: 0.12rem solid var(--dock-pet-cloud-stroke);
   border-radius: 50%;
 }
 
-.dock-pet__bubble::before {
-  bottom: -0.65rem;
-  width: 0.55rem;
-  height: 0.55rem;
+.dock-pet__thought-tail {
+  bottom: -0.72rem;
+  width: 0.52rem;
+  height: 0.52rem;
 }
 
-.dock-pet__bubble::after {
-  bottom: -1rem;
-  width: 0.25rem;
-  height: 0.25rem;
+.dock-pet__thought-tail::before {
+  bottom: -0.45rem;
+  width: 0.3rem;
+  height: 0.3rem;
 }
 
-.dock-pet[data-bubble-side="right"] .dock-pet__bubble::before {
-  left: 0.7rem;
+.dock-pet__thought-tail::after {
+  bottom: -0.72rem;
+  width: 0.14rem;
+  height: 0.14rem;
 }
 
-.dock-pet[data-bubble-side="right"] .dock-pet__bubble::after {
-  left: 0.35rem;
+.dock-pet[data-bubble-side="right"] .dock-pet__thought-tail {
+  left: 1rem;
 }
 
-.dock-pet[data-bubble-side="left"] .dock-pet__bubble::before {
-  right: 0.7rem;
+.dock-pet[data-bubble-side="right"] .dock-pet__thought-tail::before {
+  left: -0.38rem;
 }
 
-.dock-pet[data-bubble-side="left"] .dock-pet__bubble::after {
-  right: 0.35rem;
+.dock-pet[data-bubble-side="right"] .dock-pet__thought-tail::after {
+  left: -0.58rem;
+}
+
+.dock-pet[data-bubble-side="left"] .dock-pet__thought-tail {
+  right: 1rem;
+}
+
+.dock-pet[data-bubble-side="left"] .dock-pet__thought-tail::before {
+  right: -0.38rem;
+}
+
+.dock-pet[data-bubble-side="left"] .dock-pet__thought-tail::after {
+  right: -0.58rem;
+}
+
+.dock-pet[data-bubble-vertical="below"] .dock-pet__thought-tail {
+  top: -0.72rem;
+  bottom: auto;
+}
+
+.dock-pet[data-bubble-vertical="below"] .dock-pet__thought-tail::before {
+  top: -0.45rem;
+  bottom: auto;
+}
+
+.dock-pet[data-bubble-vertical="below"] .dock-pet__thought-tail::after {
+  top: -0.72rem;
+  bottom: auto;
 }
 
 .dock-pet__bubble[hidden] {
   display: none;
+}
+
+.dock-pet__look {
+  display: none;
+  width: 100%;
+  height: 100%;
+}
+
+.dock-pet[data-sprite-ready][data-state="idle"] .dock-pet__body,
+.dock-pet[data-sprite-ready][data-state="walking"] .dock-pet__body,
+.dock-pet[data-sprite-ready][data-state="climbing"] .dock-pet__body {
+  background-image: none;
+}
+
+.dock-pet[data-sprite-ready][data-state="idle"] .dock-pet__look,
+.dock-pet[data-sprite-ready][data-state="walking"] .dock-pet__look,
+.dock-pet[data-sprite-ready][data-state="climbing"] .dock-pet__look {
+  display: block;
+}
+
+.dock-pet[data-state="hanging"] .dock-pet__body {
+  --dock-pet-facing: 1;
+
+  background-image: url("../images/game/koala/pet.webp");
+  background-size: 400% 200%;
+  transform-origin: 87% 22%;
+}
+
+.dock-pet[data-state="hanging"][data-pose="0"] .dock-pet__body {
+  background-position: 0 100%;
+}
+
+.dock-pet[data-state="hanging"][data-pose="1"] .dock-pet__body {
+  background-position: 33.333% 100%;
+}
+
+.dock-pet[data-state="hanging"][data-pose="2"] .dock-pet__body {
+  background-position: 66.667% 100%;
+}
+
+.dock-pet[data-state="hanging"][data-pose="3"] .dock-pet__body {
+  background-position: 100% 100%;
+}
+
+.dock-pet__scratch {
+  position: absolute;
+  right: 0.12rem;
+  z-index: 4;
+  width: 0.05rem;
+  height: 0.7rem;
+  color: color-mix(in srgb, var(--md-default-fg-color) 38%, transparent);
+  pointer-events: none;
+  background: currentcolor;
+  border-radius: 50%;
+  box-shadow:
+    0.2rem 0.04rem currentcolor,
+    0.4rem 0.1rem currentcolor;
+  rotate: -18deg;
+}
+
+.dock-pet__scratch[data-turn="1"] {
+  translate: -0.08rem 0;
+  rotate: -12deg;
+}
+
+.dock-pet__scratch[data-turn="2"] {
+  translate: 0.04rem 0;
+  rotate: -23deg;
 }
 
 .dock-pet__status {
@@ -116,18 +257,85 @@
 
 html.freebsd-booting .dock-pet,
 html.freebsd-booting .dock-pet__status,
+html.freebsd-booting .dock-pet__scratch,
 html.freebsd-shutting-down .dock-pet,
-html.freebsd-shutting-down .dock-pet__status {
+html.freebsd-shutting-down .dock-pet__status,
+html.freebsd-shutting-down .dock-pet__scratch {
   display: none;
 }
 
 @media (min-width: 60em) and (prefers-reduced-motion: no-preference) {
+  .dock-pet[data-state="idle"] .dock-pet__body {
+    animation: dock-pet-breathe 4.8s ease-in-out infinite;
+  }
+
+  .dock-pet[data-state="idle"][data-pose="1"] .dock-pet__body {
+    animation-delay: -1.6s;
+  }
+
+  .dock-pet[data-state="idle"][data-pose="2"] .dock-pet__body {
+    animation-delay: -3.2s;
+  }
+
   .dock-pet[data-state="walking"] .dock-pet__body {
-    animation: dock-pet-walk 1s linear infinite;
+    animation:
+      dock-pet-walk 1.1s linear infinite,
+      dock-pet-stride 1.1s ease-in-out infinite;
+  }
+
+  .dock-pet[data-sprite-ready][data-state="walking"] .dock-pet__body {
+    animation: dock-pet-stride 1.1s ease-in-out infinite;
   }
 
   .dock-pet[data-state="climbing"] .dock-pet__body {
-    animation: dock-pet-climb 0.9s linear infinite;
+    --dock-pet-facing: 1;
+
+    transform-origin: 87% 22%;
+    animation:
+      dock-pet-climb 1.45s linear infinite,
+      dock-pet-climb-sway 3.1s ease-in-out infinite;
+  }
+
+  .dock-pet[data-sprite-ready][data-state="climbing"] .dock-pet__body {
+    animation: dock-pet-climb-sway 3.1s ease-in-out infinite;
+  }
+
+  .dock-pet[data-state="hanging"] .dock-pet__body {
+    animation: dock-pet-hang-sway 4.6s ease-in-out infinite;
+  }
+
+  .dock-pet[data-state="hanging"][data-pose="1"] .dock-pet__body {
+    animation-delay: -1.3s;
+  }
+
+  .dock-pet[data-state="hanging"][data-pose="2"] .dock-pet__body {
+    animation-delay: -3.1s;
+  }
+
+  .dock-pet[data-state="hanging"][data-pose="3"] .dock-pet__body {
+    animation-delay: -2.2s;
+  }
+
+  .dock-pet[data-paused] .dock-pet__body {
+    animation-play-state: paused;
+  }
+}
+
+@keyframes dock-pet-breathe {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg) scaleX(var(--dock-pet-facing))
+      scaleY(1);
+  }
+
+  45% {
+    transform: translateY(1.5%) rotate(-0.8deg) scaleX(var(--dock-pet-facing))
+      scaleY(0.975);
+  }
+
+  58% {
+    transform: translateY(0.5%) rotate(0.6deg) scaleX(var(--dock-pet-facing))
+      scaleY(1.012);
   }
 }
 
@@ -153,6 +361,22 @@ html.freebsd-shutting-down .dock-pet__status {
   }
 }
 
+@keyframes dock-pet-stride {
+  0%,
+  50%,
+  100% {
+    transform: translateY(0) rotate(0deg) scaleX(var(--dock-pet-facing));
+  }
+
+  25% {
+    transform: translateY(-3%) rotate(-1.5deg) scaleX(var(--dock-pet-facing));
+  }
+
+  75% {
+    transform: translateY(-2%) rotate(1deg) scaleX(var(--dock-pet-facing));
+  }
+}
+
 @keyframes dock-pet-climb {
   0%,
   24.99% {
@@ -175,9 +399,44 @@ html.freebsd-shutting-down .dock-pet__status {
   }
 }
 
+@keyframes dock-pet-climb-sway {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg) scaleX(var(--dock-pet-facing));
+  }
+
+  25% {
+    transform: translate(-2%, -1%) rotate(-3deg) scaleX(var(--dock-pet-facing));
+  }
+
+  50% {
+    transform: translate(1%, 1.5%) rotate(2deg) scaleX(var(--dock-pet-facing));
+  }
+
+  75% {
+    transform: translate(-1%, -1%) rotate(-2deg) scaleX(var(--dock-pet-facing));
+  }
+}
+
+@keyframes dock-pet-hang-sway {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(1deg) scaleX(var(--dock-pet-facing));
+  }
+
+  32% {
+    transform: translate(-2%, 2%) rotate(-5deg) scaleX(var(--dock-pet-facing));
+  }
+
+  68% {
+    transform: translate(1%, -1%) rotate(3deg) scaleX(var(--dock-pet-facing));
+  }
+}
+
 @media print {
   .dock-pet,
-  .dock-pet__status {
+  .dock-pet__status,
+  .dock-pet__scratch {
     display: none;
   }
 }
