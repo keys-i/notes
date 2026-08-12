@@ -79,38 +79,35 @@
 
   function shutdownLines(uptime) {
     return [
-      "shutdown: [pid 1] Shutdown NOW!",
+      "Shutdown NOW!",
+      "shutdown: [pid 404]",
+      "",
+      "*** FINAL System shutdown message from rad@recv ***",
+      "",
+      "System going down IMMEDIATELY",
+      "",
+      "System shutdown time has arrived",
       "",
       "Stopping cron.",
-      "Waiting for PIDS: " + (404 + (uptime % 90)) + ".",
+      "Waiting for PIDS: 404.",
       "Stopping sshd.",
-      "Waiting for PIDS: " + (520 + (uptime % 40)) + ".",
-      "Stopping sendmail.",
-      "Waiting for PIDS: .",
-      "Stopping powerd.",
+      "Waiting for PIDS: 520.",
       "Stopping koala recovery console.",
       "Waiting for PIDS: 404.",
-      "Stopping krad.",
-      "Waiting for PIDS: 404.",
-      "Stopping dingo.",
-      "Waiting for PIDS: 8.",
-      "Stopping eagle.",
-      "Waiting for PIDS: 9.",
       "Stopping devd.",
       "Waiting for PIDS: 33.",
+      "Writing entropy file: .",
+      "Writing early boot entropy file: .",
       ".",
       "Terminated",
       "",
-      "Waiting (max 60 seconds) for system process `vnlru' to stop...done",
-      "Waiting (max 60 seconds) for system process `bufdaemon' to stop...done",
-      "Waiting (max 60 seconds) for system process `bufspacedaemon' to stop...done",
+      "Waiting (max 60 seconds) for system process `vnlru' to stop... done",
+      "Waiting (max 60 seconds) for system process `bufdaemon' to stop... done",
+      "Waiting (max 60 seconds) for system process `bufspacedaemon' to stop... done",
       "Waiting (max 60 seconds) for system process `syncer' to stop...",
       "Syncing disks, vnodes remaining... 3 2 1 0 0 done",
       "All buffers synced.",
       "Uptime: " + uptime,
-      "The operating system has halted.",
-      "Please press any key to reboot.",
-      "",
       "Rebooting..."
     ];
   }
@@ -170,7 +167,6 @@
           ? "FreeBSD/amd64 · rebooting"
           : "FreeBSD/amd64 · multiuser");
       layer.classList.add("is-ready");
-      if (mode === "shutdown") layer.classList.add("is-halted");
       schedule(function () {
         if (options.keep !== true) {
           document.documentElement.classList.remove(
@@ -208,7 +204,7 @@
           ? 140
           : line === "."
             ? 420
-            : /Shutdown NOW|Terminated|halted|Rebooting|Syncing disks/.test(line)
+            : /Shutdown NOW|FINAL System|going down|shutdown time|Terminated|Rebooting|Syncing disks/.test(line)
               ? 380
               : /Waiting \(max|Waiting for PIDS|Stopping /.test(line)
                 ? 300

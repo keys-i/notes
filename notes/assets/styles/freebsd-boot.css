@@ -74,25 +74,6 @@ body.freebsd-shutting-down {
   z-index: 10050;
 }
 
-.freebsd-boot--shutdown .freebsd-boot__banner {
-  border-color: #888;
-  color: #eee;
-}
-
-.freebsd-boot--shutdown.is-halted {
-  background: #000;
-}
-
-.freebsd-boot--shutdown.is-halted .freebsd-boot__banner {
-  border-color: #f2ff3d;
-  color: #f2ff3d;
-  background: #061273;
-}
-
-.freebsd-boot--shutdown.is-halted .freebsd-boot__log {
-  opacity: .4;
-}
-
 .freebsd-boot.is-handoff {
   opacity: 0;
   filter: brightness(0);
@@ -105,14 +86,4 @@ body.freebsd-shutting-down {
     transition: none;
     opacity: 1;
   }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .freebsd-boot--shutdown.is-halted .freebsd-boot__banner {
-    animation: freebsd-halt-blink .55s steps(2, jump-none) infinite;
-  }
-}
-
-@keyframes freebsd-halt-blink {
-  50% { opacity: .45; }
 }
