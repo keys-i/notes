@@ -115,6 +115,7 @@ strict_bonus = 96.0
 [heuristic.braid]
 extra_min = 3
 extra_span = 5
+minimum_cycle_length = 8
 
 [heuristic.tunnel]
 minimum_home_distance = 3
