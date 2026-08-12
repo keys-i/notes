@@ -13,9 +13,17 @@ SECTIONS = (
     "assets",
     "heuristic",
 )
-STREAMS = ("topology", "loops", "pickups", "symbols", "hunt", "effects")
+STREAMS = (
+    "topology",
+    "loops",
+    "pickups",
+    "symbols",
+    "hunt",
+    "effects",
+    "dialogue",
+)
 ASSETS = ("goal", "neutral", "scared", "happy", "dead")
-MAP_TOML = Path("assets") / "game" / "map.toml"
+MAP_TOML = Path("assets") / "game.map.toml"
 
 REWARD_KEYS = (
     "junctions",
@@ -119,20 +127,32 @@ def validate_heuristic(heuristic, board):
     require(isinstance(penalties, dict), "heuristic.penalties is required")
     require(isinstance(strict, dict), "heuristic.strict is required")
     require(isinstance(combos, dict), "heuristic.combos is required")
-    require(all(number(rewards.get(key)) for key in REWARD_KEYS), "heuristic.rewards values are invalid")
-    require(all(number(penalties.get(key)) for key in PENALTY_KEYS), "heuristic.penalties values are invalid")
+    require(
+        all(number(rewards.get(key)) for key in REWARD_KEYS),
+        "heuristic.rewards values are invalid",
+    )
+    require(
+        all(number(penalties.get(key)) for key in PENALTY_KEYS),
+        "heuristic.penalties values are invalid",
+    )
     require(
         all(type(strict.get(key)) is int and strict[key] >= 0 for key in STRICT_KEYS),
         "heuristic.strict values are invalid",
     )
-    require(all(number(combos.get(key)) for key in COMBO_KEYS), "heuristic.combos values are invalid")
+    require(
+        all(number(combos.get(key)) for key in COMBO_KEYS),
+        "heuristic.combos values are invalid",
+    )
     require(
         type(penalties["straight_free"]) is int and penalties["straight_free"] >= 0,
         "straight_free must be a non-negative integer",
     )
 
     chambers = heuristic.get("chambers")
-    require(isinstance(chambers, list) and chambers, "heuristic.chambers must be a non-empty list")
+    require(
+        isinstance(chambers, list) and chambers,
+        "heuristic.chambers must be a non-empty list",
+    )
     for chamber in chambers:
         require(
             isinstance(chamber, dict)
@@ -161,6 +181,7 @@ def load_map(path, docs_dir):
         "columns",
         "rows",
         "attempts",
+        "maximum_attempts",
         "minimum_path",
         "maximum_path",
         "minimum_cycles",
@@ -172,8 +193,14 @@ def load_map(path, docs_dir):
         "map values must be integers",
     )
     columns, rows = board["columns"], board["rows"]
-    require(columns >= 9 and rows >= 9 and columns % 2 and rows % 2, "dimensions must be odd and at least 9")
-    require(board["attempts"] > 0, "attempts must be positive")
+    require(
+        columns >= 9 and rows >= 9 and columns % 2 and rows % 2,
+        "dimensions must be odd and at least 9",
+    )
+    require(
+        0 < board["attempts"] <= board["maximum_attempts"],
+        "attempt range is invalid",
+    )
     require(0 < board["minimum_path"] <= board["maximum_path"], "path range is invalid")
     require(
         board["minimum_cycles"] >= 0
@@ -235,10 +262,7 @@ def load_map(path, docs_dir):
         and landmark["pen_exit"]
         and all(coordinate(point, columns, rows) for point in landmark["pen_exit"])
         and all(
-            not (
-                x <= point[0] < x + len(mask[0])
-                and y <= point[1] < y + len(mask)
-            )
+            not (x <= point[0] < x + len(mask[0]) and y <= point[1] < y + len(mask))
             or mask[point[1] - y][point[0] - x] == "."
             for point in landmark["ghosts"] + landmark["pen_exit"]
         ),
@@ -254,11 +278,16 @@ def load_map(path, docs_dir):
         and isinstance(tunnel_rows, list)
         and tunnel_rows
         and len(set(tunnel_rows)) == len(tunnel_rows)
-        and all(type(row) is int and row % 2 and 0 < row < rows - 1 for row in tunnel_rows),
+        and all(
+            type(row) is int and row % 2 and 0 < row < rows - 1 for row in tunnel_rows
+        ),
         "tunnel probability or rows are invalid",
     )
     require(
-        all(row < y - clearance or row >= y + len(mask) + clearance for row in tunnel_rows),
+        all(
+            row < y - clearance or row >= y + len(mask) + clearance
+            for row in tunnel_rows
+        ),
         "tunnel rows must avoid landmark clearance",
     )
 
@@ -295,12 +324,17 @@ def load_map(path, docs_dir):
             and item["power_ticks"] >= 0
             and isinstance(item["anchor"], list)
             and len(item["anchor"]) == 2
-            and all(type(part) in (int, float) and 0 <= part <= 1 for part in item["anchor"])
+            and all(
+                type(part) in (int, float) and 0 <= part <= 1 for part in item["anchor"]
+            )
             for item in items
         ),
         "pickup values must be unique, typed, and normalized",
     )
-    require(sum(item["power_ticks"] > 0 for item in items) == 2, "exactly two power pickups are required")
+    require(
+        sum(item["power_ticks"] > 0 for item in items) == 2,
+        "exactly two power pickups are required",
+    )
 
     play = data["play"]
     require(
@@ -313,7 +347,13 @@ def load_map(path, docs_dir):
     require(
         all(
             type(play.get(key)) is int and play[key] > 0
-            for key in ("lives", "ghost_interval_ms", "grace_ticks", "predator_points")
+            for key in (
+                "lives",
+                "ghost_interval_ms",
+                "grace_ticks",
+                "predator_points",
+                "extra_life_score",
+            )
         )
         and type(play.get("power_warning_ticks")) is int
         and play["power_warning_ticks"] >= 0,
@@ -321,10 +361,16 @@ def load_map(path, docs_dir):
     )
 
     docs = Path(docs_dir).resolve()
-    require(all(isinstance(data["assets"].get(name), str) for name in ASSETS), "asset paths are missing")
+    require(
+        all(isinstance(data["assets"].get(name), str) for name in ASSETS),
+        "asset paths are missing",
+    )
     for name in ASSETS:
         asset = (docs / data["assets"][name]).resolve()
-        require(asset.is_relative_to(docs) and asset.is_file(), f"{name} asset is outside docs or missing")
+        require(
+            asset.is_relative_to(docs) and asset.is_file(),
+            f"{name} asset is outside docs or missing",
+        )
 
     validate_heuristic(data["heuristic"], board)
     return data
