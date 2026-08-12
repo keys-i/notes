@@ -1,32 +1,46 @@
-{% extends "base.html" %}
-{% set has_math = page and page.content and 'class="arithmatex"' in page.content %}
-{% set has_mermaid = page and page.content and 'class="mermaid"' in page.content %}
-{% block extrahead %}
-{% set title = config.site_name %}
-{% if page and page.title and not page.is_homepage %}
-  {% set title = (page.title | striptags) ~ " · " ~ config.site_name %}
-{% endif %}
-{% set description = config.site_description %}
-{% if page and page.meta and page.meta.description %}
-  {% set description = page.meta.description %}
-{% endif %}
-{% set image = config.site_url ~ 'assets/images/logo.png' %}
-{% if page and page.meta and page.meta.image %}
-  {% set image = config.site_url ~ page.meta.image %}
-{% endif %}
-<link rel="apple-touch-icon" sizes="180x180" href="{{ 'assets/images/apple-touch-icon.png' | url }}" />
-<link rel="apple-touch-icon-precomposed" sizes="180x180" href="{{ 'assets/images/apple-touch-icon-precomposed.png' | url }}" />
-<link rel="stylesheet" href="{{ 'assets/styles/freebsd-boot.min.css' | url }}" />
+{% extends "base.html" %} {% set has_math = page and page.content and
+'class="arithmatex"' in page.content %} {% set has_mermaid = page and
+page.content and 'class="mermaid"' in page.content %} {% block extrahead %} {%
+set title = config.site_name %} {% if page and page.title and not
+page.is_homepage %} {% set title = (page.title | striptags) ~ " · " ~
+config.site_name %} {% endif %} {% set description = config.site_description %}
+{% if page and page.meta and page.meta.description %} {% set description =
+page.meta.description %} {% endif %} {% set image = config.site_url ~
+'assets/images/logo.png' %} {% if page and page.meta and page.meta.image %} {%
+set image = config.site_url ~ page.meta.image %} {% endif %}
+<link
+  rel="apple-touch-icon"
+  sizes="180x180"
+  href="{{ 'assets/images/apple-touch-icon.png' | url }}"
+/>
+<link
+  rel="apple-touch-icon-precomposed"
+  sizes="180x180"
+  href="{{ 'assets/images/apple-touch-icon-precomposed.png' | url }}"
+/>
+<link
+  rel="stylesheet"
+  href="{{ 'assets/styles/freebsd.boot.min.css' | url }}"
+/>
 <link rel="stylesheet" href="{{ 'assets/styles/graph.min.css' | url }}" />
+<link rel="stylesheet" href="{{ 'assets/styles/pet.min.css' | url }}" />
 {% if has_mermaid %}
-<link rel="stylesheet" href="{{ 'assets/styles/zoom.mermaid.min.css?v=20260512-resolution2' | url }}" />
-{% endif %}
-{% if not page or page.url == "print_page/" %}
+<link
+  rel="stylesheet"
+  href="{{ 'assets/styles/zoom.mermaid.min.css?v=20260512-resolution2' | url }}"
+/>
+{% endif %} {% if not page or page.url == "print_page/" %}
 <meta name="robots" content="noindex,follow" />
 {% else %}
-<meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
+<meta
+  name="robots"
+  content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1"
+/>
 {% endif %}
-<meta property="og:type" content="{{ 'website' if page and page.is_homepage else 'article' }}" />
+<meta
+  property="og:type"
+  content="{{ 'website' if page and page.is_homepage else 'article' }}"
+/>
 <meta property="og:site_name" content="{{ config.site_name }}" />
 <meta property="og:title" content="{{ title }}" />
 <meta property="og:description" content="{{ description }}" />
@@ -40,122 +54,143 @@
 <meta name="twitter:image" content="{{ image }}" />
 {% if page and page.canonical_url and page.url != "print_page/" %}
 <script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": {{ ("WebSite" if page.is_homepage else "TechArticle") | tojson }},
-  "name": {{ title | tojson }},
-  "description": {{ description | tojson }},
-  "url": {{ page.canonical_url | tojson }},
-  "image": {{ image | tojson }},
-  "inLanguage": "en-AU",
-  "author": {
-    "@type": "Person",
-    "name": {{ config.site_author | tojson }},
-    "url": "https://github.com/keys-i"
+  {
+    "@context": "https://schema.org",
+    "@type": {{ ("WebSite" if page.is_homepage else "TechArticle") | tojson }},
+    "name": {{ title | tojson }},
+    "description": {{ description | tojson }},
+    "url": {{ page.canonical_url | tojson }},
+    "image": {{ image | tojson }},
+    "inLanguage": "en-AU",
+    "author": {
+      "@type": "Person",
+      "name": {{ config.site_author | tojson }},
+      "url": "https://github.com/keys-i"
+    }
   }
-}
 </script>
-{% endif %}
-{% endblock %}
+{% endif %} {% endblock %}
 
 <!-- printing pdf -->
-{% block repo %}
-    {% if page.url_to_pdf %}
-        <li class="nav-item">
-            <a href="{{ page.url_to_pdf }}" title="Site PDF" class="nav-link">
-                <i class="fas fa-file-pdf"></i> PDF
-            </a>
-        </li>
-    {% endif %}
-
-{{ super() }}
-{% endblock repo %}
+{% block repo %} {% if page.url_to_pdf %}
+<li class="nav-item">
+  <a href="{{ page.url_to_pdf }}" title="Site PDF" class="nav-link">
+    <i class="fas fa-file-pdf"></i> PDF
+  </a>
+</li>
+{% endif %} {{ super() }} {% endblock repo %}
 
 <!-- outdated version - remove suffix: off -->
 {% block outdatedoff %} You're not viewing the latest version.
 <a href="{{ '../' ~ base_url }}">
-    <strong>Click here to go to latest.</strong>
+  <strong>Click here to go to latest.</strong>
 </a>
 {% endblock %}
 
 <!-- Announcements - remove suffix: off -->
 {% block announceoff %}
-<a href="https://github.com/keys-i/notes/releases"> For updates, follow our announcements. </a>
+<a href="https://github.com/keys-i/notes/releases">
+  For updates, follow our announcements.
+</a>
 {% endblock %} {% block content %} {% if page and page.meta and page.meta.wip ==
 true %}
 <div class="admonition warning">
-    <p class="admonition-title">🚧 Work in Progress 🚧</p>
-    <p>
-        Following page is work in progress. Feel free to contribute by clicking
-        <span class="twemoji"
-            ><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                <path
-                    d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25z"
-                ></path></svg
-        ></span>
-        icon located next to the title of this page. If you land on a GitHub 404
-        page, you may either not have logged into your GitHub account or not
-        have been added to a required GitHub group of writers. For the latter,
-        tweet <code>@{{ config.extra.twitter }}</code> to be added into a valid
-        group.
-    </p>
-        <p><small>
-            Powered by
-            <a href="{{ config.repo_url }}/{{ config.extra.comments.type }}">GitHub {{ config.extra.comments.type }}</a>
-        </small></p>
+  <p class="admonition-title">🚧 Work in Progress 🚧</p>
+  <p>
+    Following page is work in progress. Feel free to contribute by clicking
+    <span class="twemoji"
+      ><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+        <path
+          d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25z"
+        ></path></svg
+    ></span>
+    icon located next to the title of this page. If you land on a GitHub 404
+    page, you may either not have logged into your GitHub account or not have
+    been added to a required GitHub group of writers. For the latter, tweet
+    <code>@{{ config.extra.twitter }}</code> to be added into a valid group.
+  </p>
+  <p>
+    <small>
+      Powered by
+      <a href="{{ config.repo_url }}/{{ config.extra.comments.type }}"
+        >GitHub {{ config.extra.comments.type }}</a
+      >
+    </small>
+  </p>
 </div>
 {% endif %} {{ super() }} {% if git_page_authors %}
 <div class="md-source-date">
-    <small>
-        <a
-            href="{{ page.edit_url | replace('edit', 'blob') }}"
-            title="Requires a valid access to github repository"
-            >Contributors</a
-        >: {{ git_page_authors | default('enable mkdocs-git-authors-plugin') }}
-    </small>
+  <small>
+    <a
+      href="{{ page.edit_url | replace('edit', 'blob') }}"
+      title="Requires a valid access to github repository"
+      >Contributors</a
+    >: {{ git_page_authors | default('enable mkdocs-git-authors-plugin') }}
+  </small>
 </div>
 {% endif %} {% if config.extra.comments.enabled and page and page.meta and
 page.meta.comments == false %}
 <!-- disable comments -->
 {% else %}
 <h2 id="__comments">{{ lang.t("meta.comments") }}</h2>
-<p><small>
+<p>
+  <small>
     Powered by
     <a href="{{ config.repo_url }}/{{ config.extra.comments.type }}"
-        >GitHub {{ config.extra.comments.type }}</a
+      >GitHub {{ config.extra.comments.type }}</a
     >
-</small></p>
+  </small>
+</p>
 
 {% if config.extra.comments.mode == "giscus" %}
-<div id="comments-provider"
-     data-mode="giscus"
-     data-repo="keys-i/notes"
-     data-repo-id="R_kgDORv7gZA"
-     data-category="General"
-     data-category-id="DIC_kwDORv7gZM4C5NrE"
-     data-mapping="pathname"
-     data-strict="0"
-     data-reactions-enabled="1"
-     data-emit-metadata="0"
-     data-input-position="bottom"
-     data-lang="en"></div>
+<div
+  id="comments-provider"
+  data-mode="giscus"
+  data-repo="keys-i/notes"
+  data-repo-id="R_kgDORv7gZA"
+  data-category="General"
+  data-category-id="DIC_kwDORv7gZM4C5NrE"
+  data-mapping="pathname"
+  data-strict="0"
+  data-reactions-enabled="1"
+  data-emit-metadata="0"
+  data-input-position="bottom"
+  data-lang="en"
+></div>
 {% else %}
-<div id="comments-provider"
-     data-mode="utterances"
-     data-repo="keys-i/notes"
-     data-issue-term="title"></div>
+<div
+  id="comments-provider"
+  data-mode="utterances"
+  data-repo="keys-i/notes"
+  data-issue-term="title"
+></div>
 {% endif %}
 
 <script src="{{ 'assets/js/comments.min.js' | url }}"></script>
-{% endif %} {% endblock %}
-
-{% block scripts %}
-{{ super() }}
-<script src="{{ 'assets/js/freebsd-boot.min.js' | url }}"></script>
+{% endif %} {% endblock %} {% block footer %} {{ super() }}
+<button
+  class="dock-pet"
+  id="dock-pet"
+  type="button"
+  hidden
+  aria-label="Greet the KoalaBSD dock pet"
+  data-state="idle"
+  data-direction="left"
+>
+  <span class="dock-pet__bubble" hidden aria-hidden="true"></span>
+  <span class="dock-pet__body" aria-hidden="true"></span>
+</button>
+<span
+  class="dock-pet__status"
+  id="dock-pet-status"
+  role="status"
+  aria-live="polite"
+></span>
+{% endblock %} {% block scripts %} {{ super() }}
+<script src="{{ 'assets/js/freebsd.boot.min.js' | url }}"></script>
+<script src="{{ 'assets/js/pet.min.js' | url }}"></script>
 {% if has_math %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-MML-AM_CHTML"></script>
-{% endif %}
-{% if has_mermaid %}
+{% endif %} {% if has_mermaid %}
 <script src="{{ 'assets/js/zoom.mermaid.min.js?v=20260512-resolution2' | url }}"></script>
-{% endif %}
-{% endblock %}
+{% endif %} {% endblock %}

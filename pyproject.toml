@@ -26,7 +26,10 @@ clean = "hooks.tools:clean"
 fmt = "hooks.tools:fmt"
 lint = "hooks.tools:lint"
 serve = "hooks.tools:serve"
-test = "hooks.test:main"
+test = "hooks.tools:test"
+
+[dependency-groups]
+dev = ["ruff==0.16.2"]
 
 [tool.uv.build-backend]
 module-name = "hooks"
@@ -40,7 +43,7 @@ MD013 = { line_length = 80, code_blocks = false, tables = false }
 MD024 = false
 MD025 = { front_matter_title = "" }
 
-[tool.ruff]
+[tool.ruff.lint]
 ignore = ["E731"]
 
 [build-system]
