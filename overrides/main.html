@@ -177,8 +177,21 @@ page.meta.comments == false %}
   data-state="idle"
   data-direction="left"
 >
-  <span class="dock-pet__bubble" hidden aria-hidden="true"></span>
-  <span class="dock-pet__body" aria-hidden="true"></span>
+  <span class="dock-pet__bubble" hidden aria-hidden="true">
+    <svg class="dock-pet__cloud" aria-hidden="true" focusable="false">
+      <path></path>
+    </svg>
+    <span class="dock-pet__bubble-text"></span>
+    <span class="dock-pet__thought-tail" aria-hidden="true"></span>
+  </span>
+  <span class="dock-pet__body" aria-hidden="true">
+    <canvas
+      class="dock-pet__look"
+      width="256"
+      height="256"
+      data-src="{{ 'assets/images/game/koala/pet.webp' | url }}"
+    ></canvas>
+  </span>
 </button>
 <span
   class="dock-pet__status"
