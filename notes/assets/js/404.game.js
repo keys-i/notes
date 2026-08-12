@@ -1388,8 +1388,8 @@ function startShutdownSequence(url) {
     telemetry.dialect.textContent = "FreeBSD/amd64";
     telemetry.phase.textContent = /reboot/i.test(line)
       ? "REBOOT"
-      : /halt|Uptime|synced|Terminated/i.test(line)
-        ? "HALT"
+      : /Uptime|synced|Syncing disks|Waiting \(max|Terminated/i.test(line)
+        ? "SYNC"
         : "SHUTDOWN";
   }
 
