@@ -181,6 +181,7 @@ function dockPetCloudPath(width, height) {
   var eyeFrame = 0;
   var cloudFrame = 0;
   var pointerPaused = false;
+  var pressedState = "";
   var focusPaused = false;
   var initialized = false;
   var quoteLine = "";
@@ -192,6 +193,11 @@ function dockPetCloudPath(width, height) {
   var restoredEdge = false;
   var spriteStartedAt = 0;
   var spriteState = "";
+  var idleBehavior = "";
+  var behaviorUntil = 0;
+  var behaviorAt = 5000 + Math.random() * 5000;
+  var winkUntil = 0;
+  var winkAt = 2500 + Math.random() * 5000;
   var lookVector = { x: 0, y: 0 };
   var position = { x: 0, y: 0 };
 
@@ -353,6 +359,7 @@ function dockPetCloudPath(width, height) {
   }
 
   function setState(state) {
+    if (state !== "idle") idleBehavior = "";
     pet.dataset.state = state;
     scheduleLook();
   }
@@ -381,9 +388,7 @@ function dockPetCloudPath(width, height) {
       {
         duration: duration,
         easing:
-          state === "walking"
-            ? "cubic-bezier(0.4, 0, 0.2, 1)"
-            : "cubic-bezier(0.45, 0.05, 0.25, 1)",
+          state === "walking" ? "linear" : "cubic-bezier(0.35, 0.05, 0.25, 1)",
         fill: "forwards",
       },
     );
@@ -431,12 +436,7 @@ function dockPetCloudPath(width, height) {
       return;
     }
     move(
-      [
-        { x: position.x, y: position.y, offset: 0 },
-        { x: position.x, y: position.y, offset: 0.08 },
-        { x: target.x, y: target.y, offset: 0.92 },
-        { x: target.x, y: target.y, offset: 1 },
-      ],
+      [position, target],
       Math.max(1800, (Math.abs(target.x - position.x) / 44) * 1000),
       "walking",
       rest,
@@ -462,12 +462,10 @@ function dockPetCloudPath(width, height) {
     var distance = to.y - from.y;
     return [
       { x: from.x, y: from.y, offset: 0 },
-      { x: from.x, y: from.y + distance * 0.24, offset: 0.18 },
-      { x: from.x, y: from.y + distance * 0.24, offset: 0.29 },
-      { x: from.x, y: from.y + distance * 0.54, offset: 0.47 },
-      { x: from.x, y: from.y + distance * 0.54, offset: 0.58 },
-      { x: from.x, y: from.y + distance * 0.82, offset: 0.76 },
-      { x: from.x, y: from.y + distance * 0.82, offset: 0.87 },
+      { x: from.x, y: from.y + distance * 0.18, offset: 0.16 },
+      { x: from.x, y: from.y + distance * 0.38, offset: 0.36 },
+      { x: from.x, y: from.y + distance * 0.61, offset: 0.58 },
+      { x: from.x, y: from.y + distance * 0.82, offset: 0.79 },
       { x: to.x, y: to.y, offset: 1 },
     ];
   }
@@ -671,16 +669,31 @@ function dockPetCloudPath(width, height) {
     });
   }
 
-  function drawPupil(centerX, centerY, radiusX, radiusY, reachX, reachY) {
-    var x = centerX + lookVector.x * reachX;
-    var y = centerY + lookVector.y * reachY;
+  function drawPupil(centerX, centerY, radiusX, radiusY, closed) {
+    var x = centerX + lookVector.x * 2.6;
+    var y = centerY + lookVector.y * 3.4;
     lookContext.save();
     lookContext.beginPath();
+    if (closed) {
+      lookContext.strokeStyle = "#17191d";
+      lookContext.lineCap = "round";
+      lookContext.lineWidth = Math.max(2, radiusX * 0.35);
+      lookContext.moveTo(centerX - radiusX * 0.8, centerY);
+      lookContext.quadraticCurveTo(
+        centerX,
+        centerY + radiusY * 0.25,
+        centerX + radiusX * 0.8,
+        centerY,
+      );
+      lookContext.stroke();
+      lookContext.restore();
+      return;
+    }
     lookContext.ellipse(
       centerX,
       centerY,
-      radiusX * 2.1,
-      radiusY * 1.25,
+      radiusX * 1.05,
+      radiusY * 1.05,
       0,
       0,
       Math.PI * 2,
@@ -691,8 +704,8 @@ function dockPetCloudPath(width, height) {
     lookContext.ellipse(
       x,
       y,
-      radiusX * 1.12,
-      radiusY * 1.08,
+      radiusX * 0.76,
+      radiusY * 0.72,
       0,
       0,
       Math.PI * 2,
@@ -703,8 +716,8 @@ function dockPetCloudPath(width, height) {
     lookContext.ellipse(
       x,
       y,
-      radiusX * 0.74,
-      radiusY * 0.76,
+      radiusX * 0.44,
+      radiusY * 0.47,
       0,
       0,
       Math.PI * 2,
@@ -715,8 +728,8 @@ function dockPetCloudPath(width, height) {
     lookContext.ellipse(
       x - radiusX * 0.12,
       y - radiusY * 0.13,
-      radiusX * 0.23,
-      radiusY * 0.18,
+      radiusX * 0.13,
+      radiusY * 0.11,
       0,
       0,
       Math.PI * 2,
@@ -737,31 +750,80 @@ function dockPetCloudPath(width, height) {
       state === "walking" || state === "climbing"
         ? ((timestamp - spriteStartedAt) % period) / period
         : 0;
+    var pressedBehavior = pet.dataset.behavior || "";
+    if (state === "idle" && !pressedBehavior && timestamp >= behaviorAt) {
+      idleBehavior = Math.random() < 0.5 ? "yawn" : "rub";
+      behaviorUntil = timestamp + 1200 + Math.random() * 700;
+      behaviorAt = behaviorUntil + 6500 + Math.random() * 9000;
+    }
+    if (timestamp >= behaviorUntil) idleBehavior = "";
+    var behavior = pressedBehavior || (state === "idle" ? idleBehavior : "");
     var frame =
       state === "walking" || state === "climbing"
         ? dockPetFrame(state, progress)
-        : (Number(pet.dataset.pose) || 0) * DOCK_PET_TRANSITION_FRAMES;
+        : behavior === "rub"
+          ? Math.floor(timestamp / 260) % 2 === 0
+            ? 0
+            : DOCK_PET_TRANSITION_FRAMES
+          : behavior === "yawn"
+            ? DOCK_PET_TRANSITION_FRAMES * 2
+            : behavior === "sit"
+              ? DOCK_PET_TRANSITION_FRAMES * 3
+              : (Number(pet.dataset.pose) || 0) * DOCK_PET_TRANSITION_FRAMES;
     var eyeState =
-      state === "climbing" || state === "hanging" ? "climbing" : "walking";
+      state === "climbing" || state === "hanging" || behavior
+        ? "climbing"
+        : "walking";
     var eyes = dockPetEyes(eyeState, frame);
     var sourceRow =
       Math.floor(frame / DOCK_PET_COLUMNS) +
       (eyeState === "climbing" ? DOCK_PET_ACTIVITY_ROWS : 0);
+    var scale = eyeState === "climbing" ? 1.08 : 1;
+    var inset = (256 - 256 * scale) / 2;
+    if (timestamp >= winkAt) {
+      winkUntil = timestamp + 130;
+      winkAt = winkUntil + 3500 + Math.random() * 6500;
+    }
+    var closed = timestamp < winkUntil || behavior === "yawn";
     lookContext.clearRect(0, 0, 256, 256);
+    if (state === "walking") {
+      lookContext.drawImage(lookImage, 82, 108, 34, 52, 131, 173, 54, 83);
+      lookContext.drawImage(lookImage, 120, 905, 40, 55, 173, 168, 64, 88);
+    }
     lookContext.drawImage(
       lookImage,
       (frame % DOCK_PET_COLUMNS) * DOCK_PET_CELL_SIZE,
       sourceRow * DOCK_PET_CELL_SIZE,
       DOCK_PET_CELL_SIZE,
       DOCK_PET_CELL_SIZE,
-      0,
-      0,
-      256,
-      256,
+      inset,
+      inset,
+      256 * scale,
+      256 * scale,
     );
     eyes.forEach(function (eye) {
-      drawPupil(eye[0], eye[1], eye[2], eye[3], 4, 5);
+      drawPupil(
+        inset + eye[0] * scale,
+        inset + eye[1] * scale,
+        eye[2] * scale,
+        eye[3] * scale,
+        closed,
+      );
     });
+    if (behavior === "yawn") {
+      lookContext.fillStyle = "#5b1720";
+      lookContext.beginPath();
+      lookContext.ellipse(
+        inset + 143 * scale,
+        inset + 126 * scale,
+        7 * scale,
+        10 * scale,
+        0,
+        0,
+        Math.PI * 2,
+      );
+      lookContext.fill();
+    }
   }
 
   function scheduleCloud() {
@@ -837,7 +899,13 @@ function dockPetCloudPath(width, height) {
       var settling =
         Math.abs(lookTarget.x - lookVector.x) > 0.01 ||
         Math.abs(lookTarget.y - lookVector.y) > 0.01;
-      if (moving || settling) scheduleLook();
+      var naturalIdle =
+        pet.dataset.spriteReady &&
+        !pet.hidden &&
+        !pet.dataset.paused &&
+        !reducedMotion.matches &&
+        !document.hidden;
+      if (moving || settling || naturalIdle) scheduleLook();
     });
   }
 
@@ -881,14 +949,25 @@ function dockPetCloudPath(width, height) {
   }
 
   pet.addEventListener("click", greet);
-  pet.addEventListener("pointerenter", function () {
+  pet.addEventListener("pointerdown", function (event) {
+    if (event.button !== undefined && event.button !== 0) return;
     pointerPaused = true;
+    pressedState = pet.dataset.state;
     pauseMotion();
+    pet.dataset.behavior = "sit";
+    setState("idle");
   });
-  pet.addEventListener("pointerleave", function () {
+  function releasePress() {
+    if (!pointerPaused) return;
+    delete pet.dataset.behavior;
+    if (routeAnimation && pressedState) setState(pressedState);
+    pressedState = "";
     pointerPaused = false;
     resumeMotion();
-  });
+  }
+  pet.addEventListener("pointerup", releasePress);
+  pet.addEventListener("pointercancel", releasePress);
+  pet.addEventListener("pointerleave", releasePress);
   pet.addEventListener("focus", function () {
     focusPaused = true;
     pauseMotion();
