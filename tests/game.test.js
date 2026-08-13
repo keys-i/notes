@@ -75,7 +75,9 @@ vm.runInContext(
   game,
 );
 
-const seeds = [0, 10, 12, 22, 404];
+const seeds = Array.from({ length: 16 }, (_, seed) => seed).concat([
+  22, 30, 404,
+]);
 const samples = new Map();
 const sample = function (seed) {
   if (!samples.has(seed)) samples.set(seed, game.generateMaze(seed));
@@ -106,6 +108,37 @@ test("generated mazes are deterministic and satisfy strict constraints", () => {
     assert.ok(metrics.deadEnds <= strict.maximum_dead_ends);
     assert.ok(metrics.fourWays <= strict.maximum_four_ways);
     assert.ok(metrics.chambers <= strict.maximum_chambers);
+  });
+});
+
+test("generated corridors stay narrow outside the fixed landmark", () => {
+  const fixedPen = new Set(
+    settings.landmark.pen_exit.map(([x, y]) => x + "," + y),
+  );
+  seeds.forEach(function (seed) {
+    const maze = sample(seed).maze;
+    for (let y = 0; y < settings.map.rows - 1; y += 1) {
+      for (let x = 0; x < settings.map.columns - 1; x += 1) {
+        const square = [
+          [x, y],
+          [x + 1, y],
+          [x, y + 1],
+          [x + 1, y + 1],
+        ];
+        if (
+          square.some(
+            ([cellX, cellY]) =>
+              game.inLandmarkHalo(cellX, cellY) ||
+              fixedPen.has(cellX + "," + cellY),
+          )
+        )
+          continue;
+        assert.ok(
+          square.some(([cellX, cellY]) => !game.openIn(maze, cellX, cellY)),
+          "seed " + seed + " has a 2x2 corridor at " + x + "," + y,
+        );
+      }
+    }
   });
 });
 

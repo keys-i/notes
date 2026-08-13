@@ -790,6 +790,41 @@ function openBranches(cells, origin, branches) {
   });
 }
 
+function opensWideCorridor(cells, x, y) {
+  for (var dx = -1; dx <= 1; dx += 2) {
+    for (var dy = -1; dy <= 1; dy += 2) {
+      if (
+        openIn(cells, x + dx, y) &&
+        openIn(cells, x, y + dy) &&
+        openIn(cells, x + dx, y + dy)
+      ) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+function routeWithin(cells, origin, goal, maximum) {
+  var distances = new Map([[key(origin.x, origin.y), 0]]);
+  var queue = [origin];
+  var goalKey = key(goal.x, goal.y);
+  for (var cursor = 0; cursor < queue.length; cursor += 1) {
+    var current = queue[cursor];
+    var distance = distances.get(key(current.x, current.y)) + 1;
+    if (distance > maximum) continue;
+    for (var next of neighboursIn(cells, current)) {
+      var nextKey = key(next.x, next.y);
+      if (nextKey === goalKey) return true;
+      if (!distances.has(nextKey)) {
+        distances.set(nextKey, distance);
+        queue.push(next);
+      }
+    }
+  }
+  return false;
+}
+
 function braidMaze(cells, random, seed, hasTunnel) {
   var candidates = [];
   for (var y = 1; y < rows - 1; y += 1) {
@@ -803,7 +838,8 @@ function braidMaze(cells, random, seed, hasTunnel) {
       }
       var horizontal = openIn(cells, x - 1, y) && openIn(cells, x + 1, y);
       var vertical = openIn(cells, x, y - 1) && openIn(cells, x, y + 1);
-      if (horizontal || vertical) candidates.push([x, y]);
+      if (horizontal) candidates.push([x, y, x - 1, y, x + 1, y]);
+      else if (vertical) candidates.push([x, y, x, y - 1, x, y + 1]);
     }
   }
 
@@ -817,7 +853,19 @@ function braidMaze(cells, random, seed, hasTunnel) {
     index < candidates.length && cycleCount(cells) < target;
     index += 1
   ) {
-    cells[candidates[index][1]][candidates[index][0]] = ".";
+    var candidate = candidates[index];
+    if (
+      opensWideCorridor(cells, candidate[0], candidate[1]) ||
+      routeWithin(
+        cells,
+        { x: candidate[2], y: candidate[3] },
+        { x: candidate[4], y: candidate[5] },
+        braid.minimum_cycle_length - 3,
+      )
+    ) {
+      continue;
+    }
+    cells[candidate[1]][candidate[0]] = ".";
   }
 }
 
