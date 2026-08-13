@@ -22,7 +22,21 @@ STREAMS = (
     "effects",
     "dialogue",
 )
-ASSETS = ("goal", "neutral", "scared", "happy", "dead")
+ASSETS = (
+    "goal",
+    "neutral",
+    "scared",
+    "happy",
+    "dead",
+    "beginning",
+    "chomp",
+    "death",
+    "fruit",
+    "ghost",
+    "life",
+    "danger",
+    "launch",
+)
 MAP_TOML = Path("assets") / "game.map.toml"
 
 REWARD_KEYS = (
