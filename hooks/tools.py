@@ -37,16 +37,21 @@ lint = lambda: (
     or call(["ruff", "format", "--check", "."])
     or call(["ruff", "check", "."])
 )
-test = lambda: (
-    call([executable, "-m", "unittest", "discover", "-s", "tests", "-p", "test_*.py"])
-    or call(
+
+
+def test():
+    for path in sorted(Path("tests").glob("*.test.py")):
+        if result := call([executable, str(path)]):
+            return result
+    return call(
         [
             "node",
             "--test",
             *(str(path) for path in sorted(Path("tests").glob("*.test.js"))),
         ]
     )
-)
+
+
 serve = lambda: call(
     [
         "mkdocs",
