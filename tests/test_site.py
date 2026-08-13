@@ -103,7 +103,7 @@ class SiteAssetTests(unittest.TestCase):
         self.assertLess(len(poses.read_bytes()), 50_000)
         self.assertEqual(
             sha256(image.read_bytes()).hexdigest(),
-            "6e29fe14706adc88d3e7ac0da5e4bec496cc9a35a2ea5f9eaa773f25065492bf",
+            "267edd2e6029d9df56b214367208529e0d4ffd86e933baebbcfe691465c3a78c",
         )
         self.assertEqual(
             sha256(poses.read_bytes()).hexdigest(),
