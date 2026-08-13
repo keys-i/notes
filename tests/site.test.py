@@ -76,7 +76,6 @@ class SiteAssetTests(unittest.TestCase):
         style = (ROOT / "notes/assets/styles/pet.css").read_text(encoding="utf-8")
         script = (ROOT / "notes/assets/js/pet.js").read_text(encoding="utf-8")
         image = ROOT / "notes/assets/images/game/koala/pet.webp"
-        poses = ROOT / "notes/assets/images/game/koala/pet-poses.webp"
 
         self.assertIn("assets/styles/pet.min.css", main)
         self.assertIn("assets/js/pet.min.js", main)
@@ -94,8 +93,11 @@ class SiteAssetTests(unittest.TestCase):
         self.assertIn(".dock-pet:focus-visible", style)
         self.assertIn('.dock-pet[data-direction="right"] .dock-pet__body', style)
         self.assertNotIn('.dock-pet[data-direction="left"] .dock-pet__body', style)
-        self.assertIn("../images/game/koala/pet-poses.webp", style)
-        self.assertNotIn("../images/game/koala/pet.webp", style)
+        self.assertIn("../images/game/koala/pet.webp", style)
+        self.assertNotIn("pet-poses.webp", style)
+        self.assertFalse(
+            (ROOT / "notes/assets/images/game/koala/pet-poses.webp").exists()
+        )
         self.assertLess(
             style.index('.dock-pet[data-state="hanging"] .dock-pet__body'),
             style.index("@media (min-width: 60em)"),
@@ -129,17 +131,18 @@ class SiteAssetTests(unittest.TestCase):
         self.assertNotIn("jump", script.lower())
         self.assertEqual(image.read_bytes()[:4], b"RIFF")
         self.assertEqual(image.read_bytes()[8:12], b"WEBP")
-        self.assertEqual(poses.read_bytes()[:4], b"RIFF")
-        self.assertEqual(poses.read_bytes()[8:12], b"WEBP")
-        self.assertLess(len(image.read_bytes()), 2_100_000)
-        self.assertLess(len(poses.read_bytes()), 50_000)
+        header = image.read_bytes()[:30]
+        self.assertEqual(
+            (
+                1 + int.from_bytes(header[24:27], "little"),
+                1 + int.from_bytes(header[27:30], "little"),
+            ),
+            (3200, 6400),
+        )
+        self.assertLess(len(image.read_bytes()), 5_000_000)
         self.assertEqual(
             sha256(image.read_bytes()).hexdigest(),
-            "267edd2e6029d9df56b214367208529e0d4ffd86e933baebbcfe691465c3a78c",
-        )
-        self.assertEqual(
-            sha256(poses.read_bytes()).hexdigest(),
-            "1a1e50b9ff2be942e0209e3a780282982c9ad62cd63bc023586f47c0e5ead5ec",
+            "b4c4a25e00b5f34513e0f5829c5c71a12c5016b6ae843faeb0131efbf9ef2acb",
         )
 
 

@@ -11,6 +11,7 @@ var scoreElement = document.getElementById("score");
 var movesElement = document.getElementById("moves");
 var livesElement = document.getElementById("lives");
 var soundElement = document.getElementById("sound");
+var volumeElement = document.getElementById("volume");
 var statusElement = document.getElementById("status");
 var dialogueElement = document.getElementById("dialogue");
 var dumpElement = document.getElementById("dump");
@@ -144,8 +145,8 @@ ghostPen.add(
 
 var GAME_DIALOGUE = {
   ready: [
-    "koala0: maze0 mounted; snacks indexed; predators disagree.",
     "kradkrnl: route lottery complete; keep clear of dingo.exe.",
+    "koala0: ready for snacks; the predators can wait.",
   ],
   power: [
     "koala0: power block mounted; now the predators look nervous.",
@@ -206,8 +207,15 @@ function soundtrackMood(powered, danger, collected, total) {
   };
 }
 
-function createGameAudio(AudioContextClass, control, storage, page) {
+function createGameAudio(
+  AudioContextClass,
+  control,
+  volumeControl,
+  storage,
+  page,
+) {
   var muted = false;
+  var volume = 0.8;
   var unlocked = false;
   var context;
   var master;
@@ -251,6 +259,10 @@ function createGameAudio(AudioContextClass, control, storage, page) {
 
   try {
     muted = Boolean(storage && storage.getItem("404-sound-muted") === "1");
+    var storedVolume = storage && storage.getItem("404-sound-volume");
+    if (storedVolume !== null && Number.isFinite(Number(storedVolume))) {
+      volume = Math.max(0, Math.min(1, Number(storedVolume)));
+    }
   } catch (error) {
     // Sound remains usable when storage is unavailable.
   }
@@ -261,15 +273,15 @@ function createGameAudio(AudioContextClass, control, storage, page) {
     context = null;
     if (!control) return;
     control.disabled = true;
-    control.textContent = "♫ N/A";
     control.setAttribute("aria-label", "Game sound unavailable");
+    if (volumeControl) volumeControl.disabled = true;
   }
 
   function renderControl() {
     if (!control) return;
-    control.textContent = muted ? "♫ OFF" : "♫ ON";
     control.setAttribute("aria-pressed", String(muted));
     control.setAttribute("aria-label", "Mute game sound");
+    if (volumeControl) volumeControl.value = volume;
   }
 
   function ensureContext() {
@@ -278,7 +290,7 @@ function createGameAudio(AudioContextClass, control, storage, page) {
       if (!context) {
         context = new AudioContextClass();
         master = context.createGain();
-        master.gain.value = 0.24;
+        master.gain.value = volume * 0.38;
         master.connect(context.destination);
       }
       if (context.state === "suspended") {
@@ -292,12 +304,12 @@ function createGameAudio(AudioContextClass, control, storage, page) {
     }
   }
 
-  function tone(at, frequency, duration, volume, bend, wave) {
+  function tone(at, frequency, duration, volume, bend) {
     if (!context || muted) return;
     try {
       var oscillator = context.createOscillator();
       var envelope = context.createGain();
-      oscillator.type = wave || "triangle";
+      oscillator.type = "sine";
       oscillator.frequency.setValueAtTime(Math.max(40, frequency), at);
       oscillator.frequency.exponentialRampToValueAtTime(
         Math.max(40, frequency * bend),
@@ -316,20 +328,8 @@ function createGameAudio(AudioContextClass, control, storage, page) {
   }
 
   function meow(at, frequency, duration, volume, bend) {
-    tone(at, frequency, duration, volume, bend, "triangle");
-    tone(at, frequency * 2.02, duration * 0.8, volume * 0.16, bend, "sine");
-  }
-
-  function koala(at, frequency, duration, volume) {
-    tone(at, frequency, duration, volume, 0.72, "sawtooth");
-    tone(
-      at + 0.035,
-      frequency * 1.48,
-      duration * 0.72,
-      volume * 0.3,
-      0.9,
-      "sine",
-    );
+    tone(at, frequency, duration, volume, bend);
+    tone(at, frequency * 2.02, duration * 0.82, volume * 0.18, bend);
   }
 
   function mood() {
@@ -362,7 +362,7 @@ function createGameAudio(AudioContextClass, control, storage, page) {
       at,
       440 * Math.pow(2, (note[0] - 69) / 12) * currentMood.pitch,
       (wait / 1000) * 0.9,
-      0.036,
+      0.052,
       musicStep % 2 ? 0.94 : 1.06,
     );
     musicStep = (musicStep + 1) % melody.length;
@@ -406,38 +406,36 @@ function createGameAudio(AudioContextClass, control, storage, page) {
     var at = context.currentTime + 0.008;
     var offset = ((variant || 0) % 4) * 32;
     if (kind === "pellet") {
-      meow(at, 620 + offset, 0.075, 0.055, 1.18);
+      meow(at, 620 + offset, 0.075, 0.07, 1.18);
     } else if (kind === "power") {
-      koala(at, 92, 0.28, 0.075);
-      meow(at + 0.04, 330, 0.3, 0.075, 1.72);
-      meow(at + 0.2, 494, 0.24, 0.06, 1.34);
+      [330, 415, 494].forEach(function (frequency, index) {
+        meow(at + index * 0.09, frequency, 0.25, 0.09, 1.18);
+      });
     } else if (kind === "capture") {
       [392, 523, 659].forEach(function (frequency, index) {
-        meow(at + index * 0.075, frequency, 0.16, 0.065, 1.08);
+        meow(at + index * 0.075, frequency, 0.16, 0.085, 1.08);
       });
-      koala(at + 0.18, 78, 0.2, 0.045);
     } else if (kind === "hurt") {
-      meow(at, 440, 0.34, 0.085, 0.38);
-      koala(at + 0.05, 86, 0.4, 0.065);
+      meow(at, 330, 0.22, 0.09, 0.78);
     } else if (kind === "win") {
       [262, 330, 392, 523].forEach(function (frequency, index) {
-        meow(at + index * 0.11, frequency, 0.24, 0.075, 1.12);
+        meow(at + index * 0.11, frequency, 0.24, 0.09, 1.12);
       });
-      koala(at + 0.36, 104, 0.32, 0.06);
     } else if (kind === "countdown") {
       var count = Math.max(1, Math.min(5, Number(variant) || 1));
-      tone(at, 150 + (6 - count) * 34, 0.18, 0.065, 1.35, "sawtooth");
-      tone(at + 0.018, 620 + (6 - count) * 75, 0.11, 0.045, 0.82, "sine");
+      tone(at, 72 + (6 - count) * 10, 0.28, 0.11, 0.62);
+      meow(at + 0.025, 420 + (6 - count) * 70, 0.16, 0.07, 1.08);
     } else if (kind === "launch") {
-      tone(at, 52, 0.72, 0.095, 4.6, "sawtooth");
-      tone(at + 0.14, 94, 0.58, 0.075, 0.42, "square");
-      meow(at + 0.22, 330, 0.46, 0.07, 1.8);
+      tone(at, 64, 0.9, 0.14, 0.35);
+      [262, 330, 392, 523].forEach(function (frequency, index) {
+        meow(at + 0.08 + index * 0.1, frequency, 0.32, 0.09, 1.16);
+      });
     } else if (kind === "shutdown") {
-      tone(at, 180, 0.52, 0.065, 0.32, "sawtooth");
-      tone(at + 0.12, 110, 0.46, 0.05, 0.42, "sine");
+      tone(at, 160, 0.65, 0.11, 0.28);
+      tone(at + 0.12, 92, 0.55, 0.09, 0.48);
     } else if (kind === "boot") {
-      tone(at, 82, 0.48, 0.065, 2.8, "sawtooth");
-      tone(at + 0.13, 164, 0.38, 0.05, 1.9, "sine");
+      tone(at, 72, 0.65, 0.11, 3.2);
+      tone(at + 0.12, 144, 0.48, 0.09, 2.1);
     }
   }
 
@@ -469,12 +467,23 @@ function createGameAudio(AudioContextClass, control, storage, page) {
     else start();
   }
 
+  function setVolume(event) {
+    volume = Math.max(0, Math.min(1, Number(event.target.value)));
+    if (master) master.gain.value = volume * 0.38;
+    try {
+      if (storage) storage.setItem("404-sound-volume", String(volume));
+    } catch (error) {
+      // A rejected preference write must not break play.
+    }
+  }
+
   renderControl();
   if (!AudioContextClass && control) {
     disable();
   } else if (control) {
     control.addEventListener("click", toggle);
   }
+  if (volumeControl) volumeControl.addEventListener("input", setVolume);
   page.addEventListener("visibilitychange", function () {
     if (page.hidden) pause();
     else if (unlocked && running && !paused) start();
@@ -1594,6 +1603,7 @@ try {
 gameAudio = createGameAudio(
   globalThis.AudioContext || globalThis.webkitAudioContext,
   soundElement,
+  volumeElement,
   soundStorage,
   document,
 );
