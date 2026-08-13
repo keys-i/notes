@@ -99,6 +99,16 @@ var shell = {
   },
 };
 
+shell.engine = ShellJS.createShell({
+  profile: "freebsd",
+  wasm: {
+    url: new URL(
+      "../../vendor/shell.js/shell.wasm",
+      document.currentScript.src,
+    ),
+  },
+});
+
 function moduleName(value) {
   value = value.split("/").pop();
   if (!value) return "";
@@ -1113,7 +1123,9 @@ function shellCommand(source) {
         })
         .join("\n");
     case "echo":
-      return (argument === "-n" ? parts.slice(1) : parts).join(" ");
+      return shell.engine.exec(source).then(function (result) {
+        return (result.stdout || result.stderr).replace(/\n$/, "");
+      });
     case "clear":
       return "";
     case "exit":
