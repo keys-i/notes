@@ -111,8 +111,15 @@
   text-align: right;
 }
 
+.score__audio {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
 .score__sound {
-  min-width: 3.8rem;
+  position: relative;
+  min-width: 2rem;
   min-height: 1.75rem;
   padding: 0.15rem 0.3rem;
   border: 1px solid #fff;
@@ -121,6 +128,36 @@
   cursor: pointer;
   font: inherit;
   letter-spacing: inherit;
+}
+
+.score__sound[aria-pressed="true"]::after {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1.25rem;
+  height: 0.12rem;
+  content: "";
+  background: currentcolor;
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+.score__volume {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 0.4rem);
+  width: 6rem;
+  padding: 0.35rem;
+  visibility: hidden;
+  accent-color: #f2ff3d;
+  background: #00065b;
+  border: 1px solid #fff;
+  opacity: 0;
+}
+
+.score__audio:hover .score__volume,
+.score__audio:focus-within .score__volume {
+  visibility: visible;
+  opacity: 1;
 }
 
 .score__sound:hover,

@@ -62,7 +62,7 @@ function dockPetTarget(position, minimum, maximum, random) {
   );
 }
 
-var DOCK_PET_CELL_SIZE = 80;
+var DOCK_PET_CELL_SIZE = 160;
 var DOCK_PET_COLUMNS = 20;
 var DOCK_PET_TRANSITION_FRAMES = 100;
 var DOCK_PET_ANCHOR_COUNT = 4;
@@ -86,16 +86,10 @@ var DOCK_PET_EYES = Object.freeze({
   ]),
   walking: Object.freeze([
     Object.freeze([
-      [58, 101, 4, 9],
-      [68, 104, 4, 9],
-      [47, 102, 4, 9],
-      [37, 101, 4, 9],
-    ]),
-    Object.freeze([
-      [99, 107, 8, 13],
-      [109, 110, 8, 13],
-      [88, 109, 8, 13],
-      [78, 108, 8, 13],
+      [104, 134, 7, 11],
+      [112, 136, 7, 11],
+      [95, 135, 7, 11],
+      [87, 135, 7, 11],
     ]),
   ]),
 });
@@ -196,6 +190,8 @@ function dockPetCloudPath(width, height) {
   var scratches = [];
   var savedPosition = loadPosition();
   var restoredEdge = false;
+  var spriteStartedAt = 0;
+  var spriteState = "";
   var lookVector = { x: 0, y: 0 };
   var position = { x: 0, y: 0 };
 
@@ -435,7 +431,12 @@ function dockPetCloudPath(width, height) {
       return;
     }
     move(
-      [position, target],
+      [
+        { x: position.x, y: position.y, offset: 0 },
+        { x: position.x, y: position.y, offset: 0.08 },
+        { x: target.x, y: target.y, offset: 0.92 },
+        { x: target.x, y: target.y, offset: 1 },
+      ],
       Math.max(1800, (Math.abs(target.x - position.x) / 44) * 1000),
       "walking",
       rest,
@@ -554,6 +555,7 @@ function dockPetCloudPath(width, height) {
     clearRouteTimer();
     cancelRoute();
     pet.hidden = false;
+    loadSprite();
     var ground = footerGeometry();
     if (!ground.visible) {
       if (
@@ -606,7 +608,6 @@ function dockPetCloudPath(width, height) {
     }
     restoredEdge = false;
     initialized = true;
-    loadSprite();
     rest(800);
   }
 
@@ -725,26 +726,27 @@ function dockPetCloudPath(width, height) {
   }
 
   function drawSprite(timestamp) {
-    if (
-      !lookImage ||
-      !lookImage.complete ||
-      !lookImage.naturalWidth ||
-      pet.dataset.state === "hanging"
-    ) {
-      return;
-    }
+    if (!lookImage || !lookImage.complete || !lookImage.naturalWidth) return;
     var state = pet.dataset.state;
+    if (state !== spriteState) {
+      spriteState = state;
+      spriteStartedAt = timestamp || 0;
+    }
     var period = state === "climbing" ? 1450 : 1100;
     var progress =
       state === "walking" || state === "climbing"
-        ? ((timestamp || 0) % period) / period
+        ? ((timestamp - spriteStartedAt) % period) / period
         : 0;
-    var frame = dockPetFrame(state, progress);
-    var eyeState = state === "climbing" ? "climbing" : "walking";
+    var frame =
+      state === "walking" || state === "climbing"
+        ? dockPetFrame(state, progress)
+        : (Number(pet.dataset.pose) || 0) * DOCK_PET_TRANSITION_FRAMES;
+    var eyeState =
+      state === "climbing" || state === "hanging" ? "climbing" : "walking";
     var eyes = dockPetEyes(eyeState, frame);
     var sourceRow =
       Math.floor(frame / DOCK_PET_COLUMNS) +
-      (state === "climbing" ? DOCK_PET_ACTIVITY_ROWS : 0);
+      (eyeState === "climbing" ? DOCK_PET_ACTIVITY_ROWS : 0);
     lookContext.clearRect(0, 0, 256, 256);
     lookContext.drawImage(
       lookImage,
@@ -757,8 +759,9 @@ function dockPetCloudPath(width, height) {
       256,
       256,
     );
-    drawPupil(eyes[0][0], eyes[0][1], eyes[0][2], eyes[0][3], 3, 4);
-    drawPupil(eyes[1][0], eyes[1][1], eyes[1][2], eyes[1][3], 4, 5);
+    eyes.forEach(function (eye) {
+      drawPupil(eye[0], eye[1], eye[2], eye[3], 4, 5);
+    });
   }
 
   function scheduleCloud() {
