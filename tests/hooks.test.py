@@ -133,3 +133,7 @@ class HookTests(unittest.TestCase):
         self.assertEqual(data["aliases"], man.ALIASES)
         self.assertEqual(set(data["pages"]), set(man.PAGES))
         self.assertTrue(data["pages"]["man"]["text"].startswith("MAN(1)"))
+
+
+if __name__ == "__main__":
+    unittest.main()
