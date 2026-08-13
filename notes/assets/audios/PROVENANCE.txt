@@ -1,6 +1,7 @@
-The meow_*.wav files are locally rendered cartoon meow performances mixed
-with a quiet copy of the supplied arcade reference. That keeps the original
-note timing and melody recognisable while the meow remains the lead voice.
+The meow_*.wav files are locally rendered cartoon meow performances derived
+from the supplied arcade references. The two looping music tracks keep the
+recognisable retro cue in front and add a low-passed meow vocal layer; the
+short gameplay cues remain meow-led.
 
 meow_launch.wav adds a low-frequency rocket transient to the extra-life meow
 for the final countdown hit.
