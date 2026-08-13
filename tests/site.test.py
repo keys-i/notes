@@ -2,7 +2,6 @@
 
 import unittest
 import wave
-from hashlib import sha256
 from pathlib import Path
 
 ROOT = Path(__file__).parents[1]
@@ -101,41 +100,48 @@ class SiteAssetTests(unittest.TestCase):
         not_found = (ROOT / "overrides/404.html").read_text(encoding="utf-8")
         style = (ROOT / "notes/assets/styles/pet.css").read_text(encoding="utf-8")
         script = (ROOT / "notes/assets/js/pet.js").read_text(encoding="utf-8")
-        image = ROOT / "notes/assets/images/game/koala/pet.webp"
 
-        self.assertIn("assets/styles/pet.min.css", main)
-        self.assertIn("assets/js/pet.min.js", main)
-        self.assertIn('aria-label="Greet the KoalaBSD dock pet"', main)
-        self.assertIn('class="dock-pet__status"', main)
-        self.assertIn('class="dock-pet__body" aria-hidden="true"', main)
-        self.assertIn('class="dock-pet__look"', main)
-        self.assertIn('class="dock-pet__cloud"', main)
-        self.assertIn("assets/images/game/koala/pet.webp", main)
-        self.assertNotIn("dock-pet__motion", main)
-        self.assertNotIn('class="dock-pet__eyes"', main)
-        self.assertIn('id="dock-pet"', main)
-        self.assertIn("hidden", main)
+        for expected in (
+            "assets/styles/pet.min.css",
+            "assets/js/pet.min.js",
+            'aria-label="Greet the KoalaBSD dock pet"',
+            'class="dock-pet__status"',
+            'class="dock-pet__body" aria-hidden="true"',
+            'class="dock-pet__art"',
+            'class="dock-pet__cloud"',
+            'id="dock-pet"',
+            "hidden",
+        ):
+            with self.subTest(expected=expected):
+                self.assertIn(expected, main)
+        self.assertEqual(main.count('class="dock-pet__limb '), 4)
+        self.assertEqual(main.count('class="dock-pet__iris"'), 2)
+        self.assertEqual(main.count('clip-path="url(#dock-pet-eye-'), 2)
+        self.assertNotIn("<canvas", main)
+        self.assertNotIn("pet.webp", main)
         self.assertNotIn("dock-pet", not_found)
         self.assertIn(".dock-pet:focus-visible", style)
-        self.assertIn('.dock-pet[data-direction="right"] .dock-pet__body', style)
-        self.assertNotIn('.dock-pet[data-direction="left"] .dock-pet__body', style)
-        self.assertIn("../images/game/koala/pet.webp", style)
+        self.assertIn('.dock-pet[data-direction="right"] .dock-pet__art', style)
+        self.assertNotIn("url(", style)
         self.assertNotIn("pet-poses.webp", style)
+        self.assertFalse((ROOT / "notes/assets/images/game/koala/pet.webp").exists())
         self.assertFalse(
             (ROOT / "notes/assets/images/game/koala/pet-poses.webp").exists()
         )
         self.assertLess(
-            style.index('.dock-pet[data-state="hanging"] .dock-pet__body'),
+            style.index('.dock-pet[data-state="hanging"] .dock-pet__art'),
             style.index("@media (min-width: 60em)"),
         )
         self.assertIn("--dock-pet-cloud-fill: #343940", style)
         self.assertIn("--dock-pet-cloud-fill: #fff", style)
         self.assertIn("--dock-pet-cloud-text: #202124", style)
         self.assertIn("text-wrap: pretty", style)
-        self.assertIn("@keyframes dock-pet-walk", style)
-        self.assertIn("@keyframes dock-pet-climb", style)
+        self.assertIn("@keyframes dock-pet-step-a", style)
+        self.assertIn("@keyframes dock-pet-climb-fore-a", style)
         self.assertIn("@keyframes dock-pet-breathe", style)
         self.assertIn("@keyframes dock-pet-hang-sway", style)
+        self.assertIn('[data-state="sitting"] .dock-pet__rump', style)
+        self.assertIn('[data-state="sitting"] .dock-pet__limb--fore-near', style)
         self.assertIn(".dock-pet__thought-tail::before", style)
         self.assertIn("prefers-reduced-motion: no-preference", style)
         self.assertIn("html.freebsd-booting .dock-pet", style)
@@ -146,30 +152,14 @@ class SiteAssetTests(unittest.TestCase):
         self.assertIn("https://dummyjson.com/quotes/random", script)
         self.assertIn('"dock-pet-position-v1"', script)
         self.assertIn('window.addEventListener("pointermove"', script)
-        self.assertIn("dockPetFrame", script)
-        self.assertIn("DOCK_PET_FRAME_COUNT =", script)
-        self.assertIn("DOCK_PET_TRANSITION_FRAMES = 100", script)
+        self.assertIn("dockPetGaze", script)
         self.assertIn("dockPetCloudPath", script)
-        self.assertIn("lookContext.drawImage", script)
-        self.assertIn("lookContext.ellipse", script)
+        self.assertIn('iris.setAttribute(\n          "transform"', script)
+        self.assertNotIn("new Image", script)
+        self.assertNotIn("drawImage", script)
         self.assertIn('document.addEventListener("visibilitychange"', script)
         self.assertIn("dockPetDialogue", script)
         self.assertNotIn("jump", script.lower())
-        self.assertEqual(image.read_bytes()[:4], b"RIFF")
-        self.assertEqual(image.read_bytes()[8:12], b"WEBP")
-        header = image.read_bytes()[:30]
-        self.assertEqual(
-            (
-                1 + int.from_bytes(header[24:27], "little"),
-                1 + int.from_bytes(header[27:30], "little"),
-            ),
-            (3200, 6400),
-        )
-        self.assertLess(len(image.read_bytes()), 5_000_000)
-        self.assertEqual(
-            sha256(image.read_bytes()).hexdigest(),
-            "b4c4a25e00b5f34513e0f5829c5c71a12c5016b6ae843faeb0131efbf9ef2acb",
-        )
 
 
 if __name__ == "__main__":

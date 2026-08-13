@@ -185,12 +185,175 @@ page.meta.comments == false %}
     <span class="dock-pet__thought-tail" aria-hidden="true"></span>
   </span>
   <span class="dock-pet__body" aria-hidden="true">
-    <canvas
-      class="dock-pet__look"
-      width="256"
-      height="256"
-      data-src="{{ 'assets/images/game/koala/pet.webp' | url }}"
-    ></canvas>
+    <svg
+      class="dock-pet__art"
+      viewBox="0 0 120 120"
+      role="presentation"
+      focusable="false"
+    >
+      <defs>
+        <clipPath id="dock-pet-eye-left" clipPathUnits="userSpaceOnUse">
+          <ellipse cx="49" cy="42" rx="9" ry="12" />
+        </clipPath>
+        <clipPath id="dock-pet-eye-right" clipPathUnits="userSpaceOnUse">
+          <ellipse cx="69" cy="42" rx="9" ry="12" />
+        </clipPath>
+      </defs>
+      <g class="dock-pet__character">
+        <g class="dock-pet__limb dock-pet__limb--hind-far">
+          <g class="dock-pet__limb-ground">
+            <path
+              class="dock-pet__limb-edge"
+              d="M45 82 Q37 85 35 93 Q34 100 37 103"
+            />
+            <path
+              class="dock-pet__limb-fur"
+              d="M45 82 Q37 85 35 93 Q34 100 37 103"
+            />
+            <circle class="dock-pet__joint" cx="35" cy="93" r="4" />
+            <ellipse class="dock-pet__paw" cx="37" cy="105" rx="7" ry="4" />
+          </g>
+          <g class="dock-pet__limb-grip">
+            <path
+              class="dock-pet__limb-edge"
+              d="M45 82 Q61 69 78 79 Q94 91 113 82"
+            />
+            <path
+              class="dock-pet__limb-fur"
+              d="M45 82 Q61 69 78 79 Q94 91 113 82"
+            />
+            <circle class="dock-pet__joint" cx="78" cy="79" r="4" />
+            <ellipse class="dock-pet__paw" cx="113" cy="82" rx="7" ry="4" />
+          </g>
+        </g>
+        <g class="dock-pet__limb dock-pet__limb--fore-far">
+          <g class="dock-pet__limb-ground">
+            <path
+              class="dock-pet__limb-edge"
+              d="M43 65 Q34 68 32 76 Q31 83 34 88"
+            />
+            <path
+              class="dock-pet__limb-fur"
+              d="M43 65 Q34 68 32 76 Q31 83 34 88"
+            />
+            <circle class="dock-pet__joint" cx="32" cy="76" r="4" />
+            <ellipse class="dock-pet__paw" cx="34" cy="91" rx="6" ry="4.5" />
+          </g>
+          <g class="dock-pet__limb-grip">
+            <path
+              class="dock-pet__limb-edge"
+              d="M43 65 Q58 48 75 54 Q91 61 113 46"
+            />
+            <path
+              class="dock-pet__limb-fur"
+              d="M43 65 Q58 48 75 54 Q91 61 113 46"
+            />
+            <circle class="dock-pet__joint" cx="75" cy="54" r="4" />
+            <ellipse class="dock-pet__paw" cx="113" cy="46" rx="7" ry="4" />
+          </g>
+        </g>
+        <ellipse class="dock-pet__rump" cx="59" cy="83" rx="25" ry="25" />
+        <path
+          class="dock-pet__shirt"
+          d="M38 65 Q59 56 80 65 L78 89 Q59 99 40 89 Z"
+        />
+        <circle class="dock-pet__ear" cx="31" cy="31" r="15" />
+        <circle class="dock-pet__ear-inner" cx="31" cy="31" r="8" />
+        <circle class="dock-pet__ear" cx="87" cy="31" r="15" />
+        <circle class="dock-pet__ear-inner" cx="87" cy="31" r="8" />
+        <ellipse class="dock-pet__head" cx="59" cy="43" rx="34" ry="30" />
+        <g class="dock-pet__eye dock-pet__eye--left">
+          <ellipse class="dock-pet__socket" cx="49" cy="42" rx="9" ry="12" />
+          <g clip-path="url(#dock-pet-eye-left)">
+            <g class="dock-pet__iris">
+              <circle class="dock-pet__iris-color" cx="49" cy="42" r="5.2" />
+              <circle class="dock-pet__pupil" cx="49" cy="42" r="2.9" />
+              <circle
+                class="dock-pet__eye-shine"
+                cx="47.5"
+                cy="40.4"
+                r="1.25"
+              />
+            </g>
+          </g>
+          <path class="dock-pet__lid" d="M41 42 Q49 47 57 42" />
+        </g>
+        <g class="dock-pet__eye dock-pet__eye--right">
+          <ellipse class="dock-pet__socket" cx="69" cy="42" rx="9" ry="12" />
+          <g clip-path="url(#dock-pet-eye-right)">
+            <g class="dock-pet__iris">
+              <circle class="dock-pet__iris-color" cx="69" cy="42" r="5.2" />
+              <circle class="dock-pet__pupil" cx="69" cy="42" r="2.9" />
+              <circle
+                class="dock-pet__eye-shine"
+                cx="67.5"
+                cy="40.4"
+                r="1.25"
+              />
+            </g>
+          </g>
+          <path class="dock-pet__lid" d="M61 42 Q69 47 77 42" />
+        </g>
+        <ellipse class="dock-pet__nose" cx="59" cy="55" rx="8" ry="6" />
+        <path
+          class="dock-pet__mouth"
+          d="M59 61 Q54 65 51 62 M59 61 Q64 65 67 62"
+        />
+        <ellipse class="dock-pet__yawn" cx="59" cy="65" rx="5" ry="7" />
+        <g class="dock-pet__limb dock-pet__limb--hind-near">
+          <g class="dock-pet__limb-ground">
+            <path
+              class="dock-pet__limb-edge"
+              d="M71 82 Q80 86 81 94 Q82 101 78 104"
+            />
+            <path
+              class="dock-pet__limb-fur"
+              d="M71 82 Q80 86 81 94 Q82 101 78 104"
+            />
+            <circle class="dock-pet__joint" cx="81" cy="94" r="4" />
+            <ellipse class="dock-pet__paw" cx="79" cy="106" rx="7" ry="4" />
+          </g>
+          <g class="dock-pet__limb-grip">
+            <path
+              class="dock-pet__limb-edge"
+              d="M71 82 Q80 101 93 93 Q103 87 113 101"
+            />
+            <path
+              class="dock-pet__limb-fur"
+              d="M71 82 Q80 101 93 93 Q103 87 113 101"
+            />
+            <circle class="dock-pet__joint" cx="93" cy="93" r="4" />
+            <ellipse class="dock-pet__paw" cx="113" cy="101" rx="7" ry="4" />
+          </g>
+        </g>
+        <g class="dock-pet__limb dock-pet__limb--fore-near">
+          <g class="dock-pet__limb-ground">
+            <path
+              class="dock-pet__limb-edge"
+              d="M75 65 Q84 68 86 76 Q87 83 83 88"
+            />
+            <path
+              class="dock-pet__limb-fur"
+              d="M75 65 Q84 68 86 76 Q87 83 83 88"
+            />
+            <circle class="dock-pet__joint" cx="86" cy="76" r="4" />
+            <ellipse class="dock-pet__paw" cx="83" cy="91" rx="6" ry="4.5" />
+          </g>
+          <g class="dock-pet__limb-grip">
+            <path
+              class="dock-pet__limb-edge"
+              d="M75 65 Q85 75 94 68 Q102 60 113 60"
+            />
+            <path
+              class="dock-pet__limb-fur"
+              d="M75 65 Q85 75 94 68 Q102 60 113 60"
+            />
+            <circle class="dock-pet__joint" cx="94" cy="68" r="4" />
+            <ellipse class="dock-pet__paw" cx="113" cy="60" rx="7" ry="4" />
+          </g>
+        </g>
+      </g>
+    </svg>
   </span>
 </button>
 <span
