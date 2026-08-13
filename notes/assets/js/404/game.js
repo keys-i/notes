@@ -145,44 +145,44 @@ ghostPen.add(
 
 var GAME_DIALOGUE = {
   ready: [
-    "kradkrnl: route lottery complete; keep clear of dingo.exe.",
-    "koala0: ready for snacks; the predators can wait.",
+    "Snack run ready—keep one eye on those hungry shadows.",
+    "Tiny paws, big maze. Let’s go.",
   ],
   power: [
-    "koala0: power block mounted; now the predators look nervous.",
-    "devd: blue-mode quarantine armed; chase window open.",
+    "Now the hunters look nervous.",
+    "Blue means brave. Chase them while it lasts!",
   ],
   bonus: [
-    "koala0: /var/snacks yielded a clean bonus block.",
-    "savecore: fruit cache recovered before dingo.exe found it.",
+    "Bonus snack secured before anyone noticed.",
+    "Fruit tastes better when it comes with points.",
   ],
   warp: [
-    "kradkrnl: gray randomiser picked chaos and called it routing.",
-    "koala0: that vnode jump was absolutely intentional.",
+    "That surprise jump was absolutely intentional.",
+    "New spot, same excellent koala.",
   ],
   tunnel: [
-    "eagle.sys: edge route lost; koala0 crossed the black tunnel.",
-    "dingo.exe: target wrapped off one edge and into the other.",
+    "Out one edge, in through the other.",
+    "The long way around was secretly the short way.",
   ],
   predator: [
-    "koala0: predator module detached; eyes sent back to the 0.",
-    "kradkrnl: blue-mode capture logged; chain multiplier rising.",
+    "Got one! The others are already pretending not to worry.",
+    "Another hunter sent home with a tiny meow.",
   ],
   life: [
-    "init: score journal restored one koala0 restart slot.",
-    "koala0: bonus life mounted; crash budget increased by one.",
+    "One more chance joined the adventure.",
+    "Extra life! That deserves a victory wiggle.",
   ],
   caught: [
-    "dingo.exe: koala0 fault confirmed; restart slot consumed.",
-    "eagle.sys: target grounded; init is respawning koala0.",
+    "Ouch. Shake it off and try a sneakier route.",
+    "Caught this time—not for long.",
   ],
   clear: [
-    "fsck_krad: every snack block accounted for; head for home.",
-    "koala0: route bitmap clean; eucalyptus is the last vnode.",
+    "Every snack is safe. Head for the eucalyptus!",
+    "The maze is clear; home is the last stop.",
   ],
   win: [
-    "koala0: all route bits clean; eucalyptus mount is ready.",
-    "init: maze0 recovered; handing /home back to the koala.",
+    "Home at last—and not a snack left behind.",
+    "Maze conquered. Time for a well-earned nap.",
   ],
 };
 
@@ -197,65 +197,35 @@ function damageLevel(remainingLives) {
   return Math.max(0, Math.min(3, settings.play.lives - remainingLives));
 }
 
-function soundtrackMood(powered, danger, collected, total) {
-  var progress = total > 0 ? Math.max(0, Math.min(1, collected / total)) : 0;
-  return {
-    stepMs: Math.round(
-      285 - progress * 40 - (danger ? 50 : 0) - (powered ? 25 : 0),
-    ),
-    pitch: 1 + progress * 0.08 + (danger ? 0.08 : 0) + (powered ? 0.12 : 0),
-  };
-}
-
 function createGameAudio(
-  AudioContextClass,
+  AudioClass,
   control,
   volumeControl,
   storage,
   page,
+  assets,
 ) {
   var muted = false;
   var volume = 0.8;
   var unlocked = false;
-  var context;
-  var master;
-  var musicTimer;
-  var finishTimer;
-  var musicStep = 0;
-  // Transcribed from the supplied four-second intro; every voice is a meow.
-  var melody = [
-    [71, 136],
-    [83, 136],
-    [78, 136],
-    [75, 136],
-    [83, 68],
-    [78, 204],
-    [75, 272],
-    [72, 136],
-    [84, 136],
-    [79, 136],
-    [76, 136],
-    [84, 68],
-    [79, 204],
-    [76, 272],
-    [71, 136],
-    [83, 136],
-    [78, 136],
-    [75, 136],
-    [83, 68],
-    [78, 204],
-    [75, 272],
-    [75, 68],
-    [76, 68],
-    [77, 68],
-    [77, 68],
-    [78, 68],
-    [79, 68],
-    [79, 68],
-    [80, 68],
-    [81, 136],
-    [83, 272],
-  ];
+  var danger = false;
+  var voices = new Set();
+  var music;
+  var dangerMusic;
+  var root = control ? control.dataset.audioRoot : "";
+  var cues = {
+    pellet: "chomp",
+    power: "fruit",
+    bonus: "fruit",
+    capture: "ghost",
+    hurt: "death",
+    life: "life",
+    win: "life",
+    countdown: "chomp",
+    launch: "launch",
+    shutdown: "death",
+    boot: "beginning",
+  };
 
   try {
     muted = Boolean(storage && storage.getItem("404-sound-muted") === "1");
@@ -268,9 +238,8 @@ function createGameAudio(
   }
 
   function disable() {
-    AudioContextClass = null;
-    stopMusic();
-    context = null;
+    AudioClass = null;
+    pause();
     if (!control) return;
     control.disabled = true;
     control.setAttribute("aria-label", "Game sound unavailable");
@@ -280,182 +249,114 @@ function createGameAudio(
   function renderControl() {
     if (!control) return;
     control.setAttribute("aria-pressed", String(muted));
-    control.setAttribute("aria-label", "Mute game sound");
+    control.setAttribute(
+      "aria-label",
+      muted ? "Unmute game sound" : "Mute game sound",
+    );
     if (volumeControl) volumeControl.value = volume;
   }
 
-  function ensureContext() {
-    if (!AudioContextClass || muted || page.hidden) return null;
+  function make(name, loop) {
+    if (!AudioClass || !assets[name]) return null;
     try {
-      if (!context) {
-        context = new AudioContextClass();
-        master = context.createGain();
-        master.gain.value = volume * 0.38;
-        master.connect(context.destination);
-      }
-      if (context.state === "suspended") {
-        var resumed = context.resume();
-        if (resumed && resumed.catch) resumed.catch(disable);
-      }
-      return context;
+      var audio = new AudioClass(root + assets[name]);
+      audio.loop = Boolean(loop);
+      audio.preload = "auto";
+      return audio;
     } catch (error) {
       disable();
       return null;
     }
   }
 
-  function tone(at, frequency, duration, volume, bend) {
-    if (!context || muted) return;
+  function begin(audio) {
+    if (!audio) return;
     try {
-      var oscillator = context.createOscillator();
-      var envelope = context.createGain();
-      oscillator.type = "sine";
-      oscillator.frequency.setValueAtTime(Math.max(40, frequency), at);
-      oscillator.frequency.exponentialRampToValueAtTime(
-        Math.max(40, frequency * bend),
-        at + duration,
-      );
-      envelope.gain.setValueAtTime(0.0001, at);
-      envelope.gain.exponentialRampToValueAtTime(volume, at + 0.012);
-      envelope.gain.exponentialRampToValueAtTime(0.0001, at + duration);
-      oscillator.connect(envelope);
-      envelope.connect(master);
-      oscillator.start(at);
-      oscillator.stop(at + duration + 0.02);
+      var started = audio.play();
+      if (started && started.catch) started.catch(function () {});
     } catch (error) {
-      // A failed voice must not interrupt the game.
+      // Playback rejection must not interrupt the game loop.
     }
   }
 
-  function meow(at, frequency, duration, volume, bend) {
-    tone(at, frequency, duration, volume, bend);
-    tone(at, frequency * 2.02, duration * 0.82, volume * 0.18, bend);
-  }
-
-  function mood() {
-    var total = pelletStarts.length;
-    var remaining = pellets ? pellets.size : total;
-    return soundtrackMood(
-      panicTicks > 0,
-      playerElement.classList.contains("frightened"),
-      total - remaining,
-      total,
-    );
-  }
-
-  function musicTick() {
-    musicTimer = 0;
-    if (
-      !unlocked ||
-      muted ||
-      page.hidden ||
-      !running ||
-      paused ||
-      !ensureContext()
-    )
+  function syncMusic() {
+    if (!unlocked || muted || page.hidden || !running || paused) {
+      [music, dangerMusic].forEach(function (track) {
+        if (track) track.pause();
+      });
       return;
-    var currentMood = mood();
-    var note = melody[musicStep % melody.length];
-    var at = context.currentTime + 0.015;
-    var wait = Math.round((note[1] * currentMood.stepMs) / 285);
-    meow(
-      at,
-      440 * Math.pow(2, (note[0] - 69) / 12) * currentMood.pitch,
-      (wait / 1000) * 0.9,
-      0.052,
-      musicStep % 2 ? 0.94 : 1.06,
-    );
-    musicStep = (musicStep + 1) % melody.length;
-    musicTimer = setTimeout(musicTick, wait);
+    }
+    if (!music) music = make("beginning", true);
+    if (!dangerMusic) dangerMusic = make("danger", true);
+    if (!music || !dangerMusic) return;
+    music.volume = danger ? 0 : volume * 0.62;
+    dangerMusic.volume = danger ? volume * 0.72 : 0;
+    if (music.paused) begin(music);
+    if (dangerMusic.paused) begin(dangerMusic);
   }
 
   function start() {
     unlocked = true;
-    clearTimeout(finishTimer);
-    finishTimer = 0;
-    if (!running || paused || !ensureContext() || musicTimer) return;
-    musicTick();
-  }
-
-  function stopMusic() {
-    clearTimeout(musicTimer);
-    musicTimer = 0;
+    syncMusic();
   }
 
   function pause() {
-    stopMusic();
-    if (context && context.state === "running") {
-      try {
-        var suspended = context.suspend();
-        if (suspended && suspended.catch) suspended.catch(function () {});
-      } catch (error) {
-        context = null;
-      }
-    }
+    [music, dangerMusic].forEach(function (track) {
+      if (track) track.pause();
+    });
+    voices.forEach(function (voice) {
+      voice.pause();
+    });
+    voices.clear();
   }
 
   function stop() {
     unlocked = false;
-    clearTimeout(finishTimer);
-    finishTimer = 0;
     pause();
   }
 
   function play(kind, variant) {
-    if (!unlocked || !ensureContext()) return;
-    var at = context.currentTime + 0.008;
-    var offset = ((variant || 0) % 4) * 32;
-    if (kind === "pellet") {
-      meow(at, 620 + offset, 0.075, 0.07, 1.18);
-    } else if (kind === "power") {
-      [330, 415, 494].forEach(function (frequency, index) {
-        meow(at + index * 0.09, frequency, 0.25, 0.09, 1.18);
-      });
-    } else if (kind === "capture") {
-      [392, 523, 659].forEach(function (frequency, index) {
-        meow(at + index * 0.075, frequency, 0.16, 0.085, 1.08);
-      });
-    } else if (kind === "hurt") {
-      meow(at, 330, 0.22, 0.09, 0.78);
-    } else if (kind === "win") {
-      [262, 330, 392, 523].forEach(function (frequency, index) {
-        meow(at + index * 0.11, frequency, 0.24, 0.09, 1.12);
-      });
-    } else if (kind === "countdown") {
+    var name = cues[kind];
+    if (!name || !unlocked || muted || page.hidden) return;
+    var voice = make(name, false);
+    if (!voice) return;
+    voice._gain = kind === "pellet" ? 0.48 : 1;
+    voice.volume = volume * voice._gain;
+    if (kind === "pellet")
+      voice.playbackRate = 0.94 + ((variant || 0) % 4) * 0.04;
+    if (kind === "countdown") {
       var count = Math.max(1, Math.min(5, Number(variant) || 1));
-      tone(at, 72 + (6 - count) * 10, 0.28, 0.11, 0.62);
-      meow(at + 0.025, 420 + (6 - count) * 70, 0.16, 0.07, 1.08);
-    } else if (kind === "launch") {
-      tone(at, 64, 0.9, 0.14, 0.35);
-      [262, 330, 392, 523].forEach(function (frequency, index) {
-        meow(at + 0.08 + index * 0.1, frequency, 0.32, 0.09, 1.16);
-      });
-    } else if (kind === "shutdown") {
-      tone(at, 160, 0.65, 0.11, 0.28);
-      tone(at + 0.12, 92, 0.55, 0.09, 0.48);
-    } else if (kind === "boot") {
-      tone(at, 72, 0.65, 0.11, 3.2);
-      tone(at + 0.12, 144, 0.48, 0.09, 2.1);
+      voice.playbackRate = 0.84 + (5 - count) * 0.08;
     }
+    voice.addEventListener("ended", function () {
+      voices.delete(voice);
+    });
+    voices.add(voice);
+    begin(voice);
   }
 
   function finish(kind) {
-    stopMusic();
+    pause();
     play(kind);
     unlocked = false;
-    finishTimer = setTimeout(pause, kind === "win" ? 900 : 600);
   }
 
   function sequence(kind, variant) {
-    stopMusic();
+    pause();
     unlocked = true;
-    clearTimeout(finishTimer);
-    finishTimer = 0;
     play(kind, variant);
   }
 
+  function mood(afraid, powered, collected, total) {
+    danger = Boolean(afraid && !powered);
+    var progress = total > 0 ? Math.max(0, Math.min(1, collected / total)) : 0;
+    if (music) music.playbackRate = 1 + progress * 0.08 + (powered ? 0.08 : 0);
+    if (dangerMusic) dangerMusic.playbackRate = 1 + progress * 0.05;
+    syncMusic();
+  }
+
   function toggle() {
-    if (!AudioContextClass) return;
+    if (!AudioClass) return;
     muted = !muted;
     try {
       if (storage) storage.setItem("404-sound-muted", muted ? "1" : "0");
@@ -463,13 +364,17 @@ function createGameAudio(
       // A rejected preference write must not break play.
     }
     renderControl();
-    if (muted) pause();
-    else start();
+    if (muted) {
+      pause();
+    } else start();
   }
 
   function setVolume(event) {
     volume = Math.max(0, Math.min(1, Number(event.target.value)));
-    if (master) master.gain.value = volume * 0.38;
+    voices.forEach(function (voice) {
+      voice.volume = volume * voice._gain;
+    });
+    syncMusic();
     try {
       if (storage) storage.setItem("404-sound-volume", String(volume));
     } catch (error) {
@@ -478,7 +383,7 @@ function createGameAudio(
   }
 
   renderControl();
-  if (!AudioContextClass && control) {
+  if (!AudioClass && control) {
     disable();
   } else if (control) {
     control.addEventListener("click", toggle);
@@ -496,6 +401,7 @@ function createGameAudio(
     play: play,
     sequence: sequence,
     finish: finish,
+    mood: mood,
     toggle: toggle,
   };
 }
@@ -1254,6 +1160,7 @@ function mazeMetrics(candidate) {
     longestStraight: shape.longestStraight,
     nodes: 0,
     openRings: chambers.rings,
+    smallRings: chambers.smallRings,
     playerNodes: 0,
     playerOptions: routeOptions(candidate, playerOrigin, homeOrigin, ghostPen),
     powerDistance: 0,
@@ -1298,7 +1205,7 @@ function mazeMetrics(candidate) {
 }
 
 function chamberStats(candidate) {
-  var result = { count: 0, penalty: 0, rings: 0 };
+  var result = { count: 0, penalty: 0, rings: 0, smallRings: 0 };
   settings.heuristic.chambers.forEach(function (shape) {
     var width = shape.width;
     var height = shape.height;
@@ -1325,21 +1232,26 @@ function chamberStats(candidate) {
       }
     }
   });
-  for (var y = 2; y < rows - 2; y += 1) {
-    for (var x = 2; x < columns - 2; x += 1) {
-      if (openRingAt(candidate, x, y)) result.rings += 1;
+  [1, 2].forEach(function (radius) {
+    for (var y = radius; y < rows - radius; y += 1) {
+      for (var x = radius; x < columns - radius; x += 1) {
+        if (openRingAt(candidate, x, y, radius)) {
+          if (radius === 1) result.smallRings += 1;
+          else result.rings += 1;
+        }
+      }
     }
-  }
+  });
   return result;
 }
 
-function openRingAt(candidate, x, y) {
+function openRingAt(candidate, x, y, radius) {
   if (inLandmarkHalo(x, y)) return false;
-  for (var dy = -2; dy <= 2; dy += 1) {
-    for (var dx = -2; dx <= 2; dx += 1) {
+  for (var dy = -radius; dy <= radius; dy += 1) {
+    for (var dx = -radius; dx <= radius; dx += 1) {
       if (
-        Math.max(Math.abs(dx), Math.abs(dy)) === 2 &&
-        !openIn(candidate, x + dx, y + dy)
+        Math.max(Math.abs(dx), Math.abs(dy)) === radius &&
+        (inLandmarkHalo(x + dx, y + dy) || !openIn(candidate, x + dx, y + dy))
       ) {
         return false;
       }
@@ -1357,7 +1269,7 @@ function opensLargeRing(candidate, x, y) {
     ) {
       if (
         Math.max(Math.abs(cx - x), Math.abs(cy - y)) === 2 &&
-        openRingAt(candidate, cx, cy)
+        openRingAt(candidate, cx, cy, 2)
       ) {
         return true;
       }
@@ -1414,6 +1326,7 @@ function mazeHeuristic(metrics, seed, hasTunnel) {
   score -=
     metrics.chamberPenalty *
     jitteredWeight(penalties.chambers, penalties.chambers_jitter, 24, mix);
+  score -= metrics.smallRings * penalties.chambers * 0.5;
   score -= pathError * heuristic.path_deviation;
 
   // Nonlinear epic combos — reward intertwined topology, tax mushy openness.
@@ -1601,11 +1514,12 @@ try {
   soundStorage = null;
 }
 gameAudio = createGameAudio(
-  globalThis.AudioContext || globalThis.webkitAudioContext,
+  globalThis.Audio,
   soundElement,
   volumeElement,
   soundStorage,
   document,
+  settings.assets,
 );
 
 function fruitHue(range, random) {
@@ -1804,6 +1718,7 @@ function updateFear(fearMap) {
   ) {
     playerElement.classList.remove("frightened");
     osElement.classList.remove("frightened");
+    gameAudio.mood(false, panicTicks > 0, 0, pelletStarts.length);
     return;
   }
   var distances = fearMap || distancesFor(maze, player);
@@ -1812,6 +1727,12 @@ function updateFear(fearMap) {
   });
   playerElement.classList.toggle("frightened", afraid);
   osElement.classList.toggle("frightened", afraid);
+  gameAudio.mood(
+    afraid,
+    panicTicks > 0,
+    pelletStarts.length - (pellets ? pellets.size : pelletStarts.length),
+    pelletStarts.length,
+  );
 }
 
 function drawActors() {
@@ -2406,8 +2327,8 @@ function resolveCollision() {
       powerCombo += 1;
       devourPredator(index);
     });
-    gameAudio.play("capture");
     var restoredLife = addScore(capturePoints);
+    gameAudio.play(restoredLife ? "life" : "capture");
     updateScore();
     showDialogue(restoredLife ? "life" : "predator");
     statusElement.textContent =
@@ -2749,7 +2670,10 @@ function movePlayer(dx, dy) {
     } else if (bonus) {
       if (!surgeSaiyan()) setFruitAura(bonus);
     }
-    gameAudio.play(boost ? "power" : "pellet", turn);
+    gameAudio.play(
+      restoredLife ? "life" : boost ? "power" : bonus ? "bonus" : "pellet",
+      turn,
+    );
     grid.children[player.y * columns + player.x].classList.add("eaten");
     updateScore();
   }

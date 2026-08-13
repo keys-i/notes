@@ -1,0 +1,10 @@
+id,role,type,description,size/ratio,style line ref,source
+koala_atlas,dock pet walking climbing and rest poses,webp,"existing crisp cartoon koala art, transparent background",3200x6400,"existing rounded blue-grey top-down mascot art",reference_media[0]
+maze_beginning,maze start and calm music,wav,"cartoon-meow performance of supplied intro melody",mono 24000Hz,"friendly meme vocal shaped to the original notes and timing",reference_media[1]
+maze_chomp,pellet movement feedback,wav,"cartoon-meow performance of supplied chomp rhythm",mono 24000Hz,"short alternating mew syllables",reference_media[2]
+maze_death,life loss and terminal loss,wav,"cartoon-meow performance of supplied death contour",mono 24000Hz,"descending mew phrase without yowling",reference_media[3]
+maze_fruit,bonus pickup feedback,wav,"cartoon-meow performance of supplied fruit cue",mono 24000Hz,"compact descending mew phrase",reference_media[4]
+maze_ghost,predator capture feedback,wav,"cartoon-meow performance of supplied predator cue",mono 24000Hz,"fast rising mew phrase",reference_media[5]
+maze_life,extra life and win resolution,wav,"cartoon-meow performance of supplied extra-life cue",mono 24000Hz,"bright repeating meow melody",reference_media[6]
+maze_danger,predator proximity music,wav,"cartoon-meow performance of supplied intermission cue",mono 24000Hz,"tense but playful looping meow melody",reference_media[7]
+maze_launch,countdown launch hit,wav,"extra-life meow with a low rocket transient",mono 24000Hz,"short arcade fanfare ending in a weighty boom",reference_media[6]
