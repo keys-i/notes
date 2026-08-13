@@ -24,6 +24,13 @@ const shellSource = fs.readFileSync(
   new URL("../notes/assets/js/404/shell.js", import.meta.url),
   "utf8",
 );
+const shellBundle = fs.readFileSync(
+  new URL("../notes/assets/vendor/shell.js/shell.min.js", import.meta.url),
+  "utf8",
+);
+const shellWasm = fs.readFileSync(
+  new URL("../notes/assets/vendor/shell.js/shell.wasm", import.meta.url),
+);
 const elements = new Map();
 const element = function (id) {
   if (!elements.has(id)) elements.set(id, { dataset: {}, textContent: "" });
@@ -54,6 +61,35 @@ const game = vm.createContext({
   setTimeout,
 });
 vm.runInContext(source.slice(0, source.indexOf("var FRUIT_FLAME")), game);
+
+test("vendored shell runtime executes without Wasm imports", async () => {
+  const runtime = vm.createContext({
+    AbortController,
+    AbortSignal,
+    DOMException,
+    Response,
+    TextDecoder,
+    TextEncoder,
+    URL,
+    WebAssembly,
+    clearTimeout,
+    fetch,
+    performance,
+    setTimeout,
+  });
+  vm.runInContext(shellBundle, runtime);
+  const result = await runtime.ShellJS.createShell({ profile: "freebsd" }).exec(
+    "echo notes",
+  );
+  const module = new WebAssembly.Module(shellWasm);
+  const instance = await WebAssembly.instantiate(module, {});
+
+  assert.equal(result.code, 0);
+  assert.equal(result.stdout, "notes\n");
+  assert.equal(result.stderr, "");
+  assert.deepEqual(WebAssembly.Module.imports(module), []);
+  assert.equal(instance.exports.abi(), 1);
+});
 
 const functionSource = function (name) {
   const start = source.indexOf("function " + name + "(");
