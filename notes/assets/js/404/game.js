@@ -214,8 +214,40 @@ function createGameAudio(AudioContextClass, control, storage, page) {
   var musicTimer;
   var finishTimer;
   var musicStep = 0;
-  var melody = [0, 3, 7, 10, 7, 5, 3, null];
-  var roots = [0, 5, 2, -2];
+  // Transcribed from the supplied four-second intro; every voice is a meow.
+  var melody = [
+    [71, 136],
+    [83, 136],
+    [78, 136],
+    [75, 136],
+    [83, 68],
+    [78, 204],
+    [75, 272],
+    [72, 136],
+    [84, 136],
+    [79, 136],
+    [76, 136],
+    [84, 68],
+    [79, 204],
+    [76, 272],
+    [71, 136],
+    [83, 136],
+    [78, 136],
+    [75, 136],
+    [83, 68],
+    [78, 204],
+    [75, 272],
+    [75, 68],
+    [76, 68],
+    [77, 68],
+    [77, 68],
+    [78, 68],
+    [79, 68],
+    [79, 68],
+    [80, 68],
+    [81, 136],
+    [83, 272],
+  ];
 
   try {
     muted = Boolean(storage && storage.getItem("404-sound-muted") === "1");
@@ -323,33 +355,18 @@ function createGameAudio(AudioContextClass, control, storage, page) {
     )
       return;
     var currentMood = mood();
-    var chord = roots[Math.floor(musicStep / melody.length) % roots.length];
     var note = melody[musicStep % melody.length];
     var at = context.currentTime + 0.015;
-    if (note !== null) {
-      meow(
-        at,
-        220 * Math.pow(2, (chord + note) / 12) * currentMood.pitch,
-        (currentMood.stepMs / 1000) * 0.78,
-        0.028,
-        musicStep % 2 ? 0.86 : 1.12,
-      );
-    }
-    if (musicStep % 2 === 0) {
-      tone(
-        at,
-        82.41 * Math.pow(2, chord / 12),
-        (currentMood.stepMs / 1000) * 0.62,
-        0.024,
-        0.92,
-        "square",
-      );
-    }
-    if (musicStep % melody.length === melody.length - 1) {
-      koala(at, 68 + chord, 0.16, 0.018);
-    }
-    musicStep = (musicStep + 1) % (melody.length * roots.length);
-    musicTimer = setTimeout(musicTick, currentMood.stepMs);
+    var wait = Math.round((note[1] * currentMood.stepMs) / 285);
+    meow(
+      at,
+      440 * Math.pow(2, (note[0] - 69) / 12) * currentMood.pitch,
+      (wait / 1000) * 0.9,
+      0.036,
+      musicStep % 2 ? 0.94 : 1.06,
+    );
+    musicStep = (musicStep + 1) % melody.length;
+    musicTimer = setTimeout(musicTick, wait);
   }
 
   function start() {
@@ -407,6 +424,20 @@ function createGameAudio(AudioContextClass, control, storage, page) {
         meow(at + index * 0.11, frequency, 0.24, 0.075, 1.12);
       });
       koala(at + 0.36, 104, 0.32, 0.06);
+    } else if (kind === "countdown") {
+      var count = Math.max(1, Math.min(5, Number(variant) || 1));
+      tone(at, 150 + (6 - count) * 34, 0.18, 0.065, 1.35, "sawtooth");
+      tone(at + 0.018, 620 + (6 - count) * 75, 0.11, 0.045, 0.82, "sine");
+    } else if (kind === "launch") {
+      tone(at, 52, 0.72, 0.095, 4.6, "sawtooth");
+      tone(at + 0.14, 94, 0.58, 0.075, 0.42, "square");
+      meow(at + 0.22, 330, 0.46, 0.07, 1.8);
+    } else if (kind === "shutdown") {
+      tone(at, 180, 0.52, 0.065, 0.32, "sawtooth");
+      tone(at + 0.12, 110, 0.46, 0.05, 0.42, "sine");
+    } else if (kind === "boot") {
+      tone(at, 82, 0.48, 0.065, 2.8, "sawtooth");
+      tone(at + 0.13, 164, 0.38, 0.05, 1.9, "sine");
     }
   }
 
@@ -415,6 +446,14 @@ function createGameAudio(AudioContextClass, control, storage, page) {
     play(kind);
     unlocked = false;
     finishTimer = setTimeout(pause, kind === "win" ? 900 : 600);
+  }
+
+  function sequence(kind, variant) {
+    stopMusic();
+    unlocked = true;
+    clearTimeout(finishTimer);
+    finishTimer = 0;
+    play(kind, variant);
   }
 
   function toggle() {
@@ -446,6 +485,7 @@ function createGameAudio(AudioContextClass, control, storage, page) {
     pause: pause,
     stop: stop,
     play: play,
+    sequence: sequence,
     finish: finish,
     toggle: toggle,
   };
@@ -866,6 +906,9 @@ function braidMaze(cells, random, seed, hasTunnel) {
       continue;
     }
     cells[candidate[1]][candidate[0]] = ".";
+    if (opensLargeRing(cells, candidate[0], candidate[1])) {
+      cells[candidate[1]][candidate[0]] = "#";
+    }
   }
 }
 
@@ -1201,6 +1244,7 @@ function mazeMetrics(candidate) {
     junctions: 0,
     longestStraight: shape.longestStraight,
     nodes: 0,
+    openRings: chambers.rings,
     playerNodes: 0,
     playerOptions: routeOptions(candidate, playerOrigin, homeOrigin, ghostPen),
     powerDistance: 0,
@@ -1245,7 +1289,7 @@ function mazeMetrics(candidate) {
 }
 
 function chamberStats(candidate) {
-  var result = { count: 0, penalty: 0 };
+  var result = { count: 0, penalty: 0, rings: 0 };
   settings.heuristic.chambers.forEach(function (shape) {
     var width = shape.width;
     var height = shape.height;
@@ -1272,7 +1316,45 @@ function chamberStats(candidate) {
       }
     }
   });
+  for (var y = 2; y < rows - 2; y += 1) {
+    for (var x = 2; x < columns - 2; x += 1) {
+      if (openRingAt(candidate, x, y)) result.rings += 1;
+    }
+  }
   return result;
+}
+
+function openRingAt(candidate, x, y) {
+  if (inLandmarkHalo(x, y)) return false;
+  for (var dy = -2; dy <= 2; dy += 1) {
+    for (var dx = -2; dx <= 2; dx += 1) {
+      if (
+        Math.max(Math.abs(dx), Math.abs(dy)) === 2 &&
+        !openIn(candidate, x + dx, y + dy)
+      ) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+function opensLargeRing(candidate, x, y) {
+  for (var cy = Math.max(2, y - 2); cy <= Math.min(rows - 3, y + 2); cy += 1) {
+    for (
+      var cx = Math.max(2, x - 2);
+      cx <= Math.min(columns - 3, x + 2);
+      cx += 1
+    ) {
+      if (
+        Math.max(Math.abs(cx - x), Math.abs(cy - y)) === 2 &&
+        openRingAt(candidate, cx, cy)
+      ) {
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 function jitteredWeight(base, span, lane, mix) {
@@ -1428,7 +1510,8 @@ function validateMaze(candidate, strict) {
     metrics.cycles < settings.map.minimum_cycles ||
     metrics.junctions < settings.map.minimum_junctions ||
     metrics.playerOptions < settings.map.route_options ||
-    metrics.homeOptions < settings.map.route_options
+    metrics.homeOptions < settings.map.route_options ||
+    metrics.openRings
   ) {
     return false;
   }
@@ -1815,7 +1898,7 @@ function homeUrl() {
 
 function startShutdownSequence(url) {
   if (shuttingDown) return;
-  gameAudio.stop();
+  gameAudio.sequence("shutdown");
   running = false;
   paused = true;
   if (typeof stopGhosts === "function") stopGhosts();
@@ -1857,6 +1940,7 @@ function startShutdownSequence(url) {
   }
 
   function beginFreeBSDBoot() {
+    gameAudio.sequence("boot");
     if (telemetry) {
       telemetry.phase.textContent = "BOOT";
       telemetry.dialect.textContent = "FreeBSD/amd64";
@@ -2036,6 +2120,7 @@ function startWinSequence() {
     countEl.classList.add("is-boom");
     statusElement.textContent = "init: route restored; remounting /";
     burstConfetti(28, 0.7);
+    gameAudio.sequence("launch");
     scheduleWin(goHome, 700);
     return;
   }
@@ -2049,6 +2134,7 @@ function startWinSequence() {
   function tick() {
     countEl.classList.remove("is-boom", "is-tick");
     if (n > 0) {
+      gameAudio.sequence("countdown", n);
       setRouteCount(n);
       countEl.textContent = String(n);
       void countEl.offsetWidth;
@@ -2067,6 +2153,7 @@ function startWinSequence() {
     osElement.classList.add("routing-boom");
     hintEl.textContent = "route vnode remounted";
     statusElement.textContent = "init: BOOM — jumping back to /";
+    gameAudio.sequence("launch");
     burstConfetti(160, 1.8);
     scheduleWin(goHome, 750);
   }
