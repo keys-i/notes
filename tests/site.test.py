@@ -18,14 +18,17 @@ class SiteAssetTests(unittest.TestCase):
         }.items():
             extension = "js" if kind == "js" else "css"
             for name in names:
-                source = f"assets/{kind}/404/{name}.{extension}"
-                built = f"assets/{kind}/404/{name}.min.{extension}"
-                self.assertTrue((ROOT / "notes" / source).is_file(), source)
-                self.assertIn(source, config)
-                self.assertIn(built, template)
-                self.assertFalse(
-                    (ROOT / "notes/assets" / kind / f"404.{name}.{extension}").exists()
-                )
+                with self.subTest(kind=kind, name=name):
+                    source = f"assets/{kind}/404/{name}.{extension}"
+                    built = f"assets/{kind}/404/{name}.min.{extension}"
+                    self.assertTrue((ROOT / "notes" / source).is_file(), source)
+                    self.assertIn(source, config)
+                    self.assertIn(built, template)
+                    self.assertFalse(
+                        (
+                            ROOT / "notes/assets" / kind / f"404.{name}.{extension}"
+                        ).exists()
+                    )
 
     def test_404_shell_loads_local_manual_database(self):
         script = (ROOT / "notes/assets/js/404/shell.js").read_text(encoding="utf-8")
@@ -37,6 +40,24 @@ class SiteAssetTests(unittest.TestCase):
             r"\s*document\.currentScript\.src,?\s*\)\.href",
         )
         self.assertIn("fetch(shell.manualUrl)", script)
+
+    def test_404_sound_control_is_accessible(self):
+        template = (ROOT / "overrides/404.html").read_text(encoding="utf-8")
+        script = (ROOT / "notes/assets/js/404/game.js").read_text(encoding="utf-8")
+        shell = (ROOT / "notes/assets/js/404/shell.js").read_text(encoding="utf-8")
+
+        for name, body, expected in (
+            ("control", template, 'id="sound"'),
+            ("label", template, 'aria-label="Mute game sound"'),
+            ("pressed state", template, 'aria-pressed="false"'),
+            ("preference", script, 'storage.getItem("404-sound-muted")'),
+            ("visibility", script, 'page.addEventListener("visibilitychange"'),
+            ("shell pause", shell, "gameAudio.pause()"),
+            ("shell start", shell, "gameAudio.start()"),
+        ):
+            with self.subTest(name=name):
+                self.assertIn(expected, body)
+        self.assertNotIn("new Audio(", script)
 
     def test_dock_pet_integration(self):
         main = (ROOT / "overrides/main.html").read_text(encoding="utf-8")
