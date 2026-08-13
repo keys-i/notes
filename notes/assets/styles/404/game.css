@@ -113,6 +113,7 @@
 
 .score__audio {
   position: relative;
+  z-index: 2;
   display: flex;
   align-items: center;
 }
@@ -144,7 +145,7 @@
 .score__volume {
   position: absolute;
   right: 0;
-  bottom: calc(100% + 0.4rem);
+  bottom: 100%;
   width: 6rem;
   padding: 0.35rem;
   visibility: hidden;
