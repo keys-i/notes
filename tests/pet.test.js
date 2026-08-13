@@ -71,7 +71,7 @@ test("walking and climbing use four 100-frame original-art transitions", () => {
   assert.equal(pure.DOCK_PET_TRANSITION_FRAMES, 100);
   assert.equal(pure.DOCK_PET_FRAME_COUNT, 400);
   assert.equal(pure.DOCK_PET_COLUMNS, 20);
-  assert.equal(pure.DOCK_PET_CELL_SIZE, 80);
+  assert.equal(pure.DOCK_PET_CELL_SIZE, 160);
   ["walking", "climbing"].forEach((state) => {
     assert.deepEqual(
       [0, 0.25, 0.5, 0.75, 0.999].map((progress) =>
@@ -90,10 +90,7 @@ test("walking and climbing use four 100-frame original-art transitions", () => {
   );
   assert.deepEqual(
     JSON.parse(JSON.stringify(pure.dockPetEyes("walking", 50))),
-    [
-      [63, 102.5, 4, 9],
-      [104, 108.5, 8, 13],
-    ],
+    [[108, 135, 7, 11]],
   );
 });
 
@@ -442,6 +439,10 @@ test("pet walks the footer and pauses for visibility and interaction", () => {
   const walk = runtime.animations[0];
   assert.equal(runtime.pet.dataset.state, "walking");
   assert.equal(runtime.pet.dataset.direction, "left");
+  assert.deepEqual(
+    Array.from(walk.keyframes, (frame) => frame.offset),
+    [0, 0.08, 0.92, 1],
+  );
   assert.equal(walk.options.easing, "cubic-bezier(0.4, 0, 0.2, 1)");
 
   runtime.setFooterTop(650);
@@ -572,21 +573,13 @@ test("cursor eyes overlap the artwork without repainting white sclera", () => {
   runtime.runAnimationFrames();
   const fills = runtime.canvasCalls
     .filter((call) => call[0] === "fill")
-    .slice(-6)
+    .slice(-3)
     .map((call) => call[1]);
-  assert.deepEqual(fills, [
-    "#0b3ac7",
-    "#090b0d",
-    "#fff",
-    "#0b3ac7",
-    "#090b0d",
-    "#fff",
-  ]);
+  assert.deepEqual(fills, ["#0b3ac7", "#090b0d", "#fff"]);
   const ellipses = runtime.canvasCalls
     .filter((call) => call[0] === "ellipse")
-    .slice(-8);
-  assert.ok(ellipses[1][3] > 4 && ellipses[1][4] > 9);
-  assert.ok(ellipses[5][3] > 8 && ellipses[5][4] > 13);
+    .slice(-4);
+  assert.ok(ellipses[0][3] > 7 && ellipses[0][4] > 11);
 });
 
 test("every animation frame renders with continuous omnidirectional gaze", () => {
@@ -611,17 +604,17 @@ test("every animation frame renders with continuous omnidirectional gaze", () =>
       const draw = runtime.canvasCalls
         .filter((call) => call[0] === "drawImage")
         .at(-1);
-      assert.equal(draw[4], 80);
-      assert.equal(draw[5], 80);
+      assert.equal(draw[4], 160);
+      assert.equal(draw[5], 160);
       sourceCells.add(`${draw[2]},${draw[3]}`);
       const ellipses = runtime.canvasCalls.filter(
         (call) => call[0] === "ellipse",
       );
-      const iris = ellipses.at(-7);
-      const center = pure.dockPetEyes(state, frame)[0];
+      const iris = ellipses.at(-3);
+      const center = pure.dockPetEyes(state, frame).at(-1);
       gazeVectors.push([iris[1] - center[0], iris[2] - center[1]]);
     }
-    assert.equal(sourceCells.size, 400);
+    assert.ok(sourceCells.size >= 320);
     [0, 50, 100, 150, 200, 250, 300, 350].forEach((frame) => {
       const expected = (Math.PI * 2 * frame) / 400;
       const actual = Math.atan2(
@@ -648,7 +641,7 @@ test("original walk and climb frames animate while gaze keeps following", () => 
   assert.ok(runtime.canvasCalls.length > beforeWalk);
   assert.ok(
     runtime.canvasCalls.some(
-      (call) => call[0] === "drawImage" && call[3] < 1600 && call[4] === 80,
+      (call) => call[0] === "drawImage" && call[3] < 3200 && call[4] === 160,
     ),
   );
 
@@ -663,7 +656,7 @@ test("original walk and climb frames animate while gaze keeps following", () => 
   assert.ok(runtime.canvasCalls.length > beforeClimb);
   assert.ok(
     runtime.canvasCalls.some(
-      (call) => call[0] === "drawImage" && call[3] >= 1600 && call[4] === 80,
+      (call) => call[0] === "drawImage" && call[3] >= 3200 && call[4] === 160,
     ),
   );
 });

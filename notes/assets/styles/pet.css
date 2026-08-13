@@ -42,8 +42,7 @@
   display: block;
   width: 100%;
   height: 100%;
-  background: url("../images/game/koala/pet-poses.webp") 0 0 / 400% 200%
-    no-repeat;
+  background: url("../images/game/koala/pet.webp") 0 0 / 2000% 4000% no-repeat;
   transform: scaleX(var(--dock-pet-facing));
   transform-origin: 50% 92%;
 }
@@ -184,38 +183,38 @@
 
 .dock-pet[data-sprite-ready][data-state="idle"] .dock-pet__body,
 .dock-pet[data-sprite-ready][data-state="walking"] .dock-pet__body,
-.dock-pet[data-sprite-ready][data-state="climbing"] .dock-pet__body {
+.dock-pet[data-sprite-ready][data-state="climbing"] .dock-pet__body,
+.dock-pet[data-sprite-ready][data-state="hanging"] .dock-pet__body {
   background-image: none;
 }
 
 .dock-pet[data-sprite-ready][data-state="idle"] .dock-pet__look,
 .dock-pet[data-sprite-ready][data-state="walking"] .dock-pet__look,
-.dock-pet[data-sprite-ready][data-state="climbing"] .dock-pet__look {
+.dock-pet[data-sprite-ready][data-state="climbing"] .dock-pet__look,
+.dock-pet[data-sprite-ready][data-state="hanging"] .dock-pet__look {
   display: block;
 }
 
 .dock-pet[data-state="hanging"] .dock-pet__body {
   --dock-pet-facing: 1;
 
-  background-image: url("../images/game/koala/pet-poses.webp");
-  background-size: 400% 200%;
   transform-origin: 87% 22%;
 }
 
 .dock-pet[data-state="hanging"][data-pose="0"] .dock-pet__body {
-  background-position: 0 100%;
+  background-position: 0 51.282%;
 }
 
 .dock-pet[data-state="hanging"][data-pose="1"] .dock-pet__body {
-  background-position: 33.333% 100%;
+  background-position: 0 64.103%;
 }
 
 .dock-pet[data-state="hanging"][data-pose="2"] .dock-pet__body {
-  background-position: 66.667% 100%;
+  background-position: 0 76.923%;
 }
 
 .dock-pet[data-state="hanging"][data-pose="3"] .dock-pet__body {
-  background-position: 100% 100%;
+  background-position: 0 89.744%;
 }
 
 .dock-pet__scratch {
@@ -348,17 +347,17 @@ html.freebsd-shutting-down .dock-pet__scratch {
 
   25%,
   49.99% {
-    background-position: 33.333% 0;
+    background-position: 0 12.821%;
   }
 
   50%,
   74.99% {
-    background-position: 66.667% 0;
+    background-position: 0 25.641%;
   }
 
   75%,
   100% {
-    background-position: 100% 0;
+    background-position: 0 38.462%;
   }
 }
 
@@ -381,22 +380,22 @@ html.freebsd-shutting-down .dock-pet__scratch {
 @keyframes dock-pet-climb {
   0%,
   24.99% {
-    background-position: 0 100%;
+    background-position: 0 51.282%;
   }
 
   25%,
   49.99% {
-    background-position: 33.333% 100%;
+    background-position: 0 64.103%;
   }
 
   50%,
   74.99% {
-    background-position: 66.667% 100%;
+    background-position: 0 76.923%;
   }
 
   75%,
   100% {
-    background-position: 100% 100%;
+    background-position: 0 89.744%;
   }
 }
 
