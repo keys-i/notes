@@ -264,15 +264,20 @@ test("soundtrack mood covers every modifier and progress boundary", () => {
 
 const createAudioHarness = function (options = {}) {
   const controlListeners = new Map();
+  const volumeListeners = new Map();
   const pageListeners = new Map();
   const attributes = new Map();
   const contexts = [];
+  const gains = [];
   const voices = [];
   const scheduled = [];
   const timers = new Map();
   const writes = [];
   let nextTimer = 1;
-  let stored = options.stored ?? null;
+  const stored = new Map([
+    ["404-sound-muted", options.stored ?? null],
+    ["404-sound-volume", options.volume ?? null],
+  ]);
   let gainCount = 0;
 
   game.running = options.running ?? true;
@@ -317,16 +322,22 @@ const createAudioHarness = function (options = {}) {
     options.storage === false
       ? null
       : {
-          getItem() {
+          getItem(name) {
             if (options.readError) throw new Error("read blocked");
-            return stored;
+            return stored.get(name);
           },
           setItem(name, value) {
             if (options.writeError) throw new Error("write blocked");
-            stored = value;
+            stored.set(name, value);
             writes.push([name, value]);
           },
         };
+  const volumeControl = {
+    addEventListener(name, listener) {
+      volumeListeners.set(name, listener);
+    },
+    value: "0.8",
+  };
   const page = {
     addEventListener(name, listener) {
       pageListeners.set(name, listener);
@@ -348,7 +359,7 @@ const createAudioHarness = function (options = {}) {
       gainCount += 1;
       if (options.voiceError === "gain" && gainCount > 1)
         throw new Error("gain blocked");
-      return {
+      const gain = {
         connect() {},
         gain: {
           exponentialRampToValueAtTime() {},
@@ -356,6 +367,8 @@ const createAudioHarness = function (options = {}) {
           value: 0,
         },
       };
+      gains.push(gain);
+      return gain;
     }
     createOscillator() {
       if (options.voiceError === "oscillator") throw new Error("voice blocked");
@@ -397,6 +410,7 @@ const createAudioHarness = function (options = {}) {
   const audio = game.createGameAudio(
     options.api === false ? null : AudioContextStub,
     control,
+    volumeControl,
     storage,
     page,
   );
@@ -404,6 +418,7 @@ const createAudioHarness = function (options = {}) {
     attributes,
     audio,
     contexts,
+    gains,
     control,
     controlListeners,
     page,
@@ -420,6 +435,8 @@ const createAudioHarness = function (options = {}) {
     scheduled,
     timers,
     voices,
+    volumeControl,
+    volumeListeners,
     writes,
   };
 };
@@ -441,11 +458,9 @@ test("audio state matrix covers guards, persistence, and failures", async () => 
   });
 
   const muted = createAudioHarness({ stored: "1" });
-  assert.equal(muted.control.textContent, "♫ OFF");
   assert.equal(muted.attributes.get("aria-pressed"), "true");
   muted.controlListeners.get("click")();
   assert.deepEqual(muted.writes, [["404-sound-muted", "0"]]);
-  assert.equal(muted.control.textContent, "♫ ON");
   muted.controlListeners.get("click")();
   assert.equal(muted.contexts[0].state, "suspended");
   assert.equal(muted.attributes.get("aria-label"), "Mute game sound");
@@ -469,7 +484,7 @@ test("audio state matrix covers guards, persistence, and failures", async () => 
     assert.doesNotThrow(harness.audio.start, name + " start");
     assert.doesNotThrow(() => harness.audio.play("pellet"), name + " play");
     assert.equal(harness.control.disabled, true, name + " disabled");
-    assert.equal(harness.control.textContent, "♫ N/A", name + " text");
+    assert.equal(harness.volumeControl.disabled, true, name + " volume");
     assert.equal(
       harness.attributes.get("aria-label"),
       "Game sound unavailable",
@@ -514,6 +529,16 @@ test("audio state matrix covers guards, persistence, and failures", async () => 
       voiceError + " remains usable",
     );
   }
+
+  const volume = createAudioHarness({ volume: "0.4" });
+  assert.equal(volume.volumeControl.value, 0.4);
+  volume.audio.start();
+  assert.equal(volume.gains[0].gain.value, 0.4 * 0.38);
+  volume.volumeControl.value = "0.65";
+  volume.volumeListeners.get("input")({ target: volume.volumeControl });
+  assert.deepEqual(volume.writes, [["404-sound-volume", "0.65"]]);
+  assert.equal(volume.gains[0].gain.value, 0.65 * 0.38);
+  assert.equal(volume.contexts.length, 1);
 });
 
 test("audio lifecycle keeps one timer and respects page state", () => {
@@ -559,7 +584,7 @@ test("soundtrack follows the supplied intro timing and uses only meow voices", (
   const expectedTiming = [136, 136, 136, 136, 68, 204, 272];
   assert.deepEqual(
     harness.voices
-      .filter((voice) => voice.type === "triangle")
+      .filter((_, index) => index % 2 === 0)
       .map((voice) =>
         Math.round(69 + 12 * Math.log2(voice.frequencyValue / 440)),
       ),
@@ -575,11 +600,11 @@ test("soundtrack follows the supplied intro timing and uses only meow voices", (
   );
   assert.deepEqual(
     new Set(harness.voices.map((voice) => voice.type)),
-    new Set(["sine", "triangle"]),
+    new Set(["sine"]),
   );
 });
 
-test("every cue has its intended meow and koala voice mix", () => {
+test("every cue uses musical sine meows without harsh synth waves", () => {
   const waveCounts = function (voices) {
     return [
       ...voices.reduce(function (counts, voice) {
@@ -589,75 +614,15 @@ test("every cue has its intended meow and koala voice mix", () => {
     ].sort();
   };
   [
-    [
-      "pellet",
-      [
-        ["sine", 1],
-        ["triangle", 1],
-      ],
-    ],
-    [
-      "power",
-      [
-        ["sawtooth", 1],
-        ["sine", 3],
-        ["triangle", 2],
-      ],
-    ],
-    [
-      "capture",
-      [
-        ["sawtooth", 1],
-        ["sine", 4],
-        ["triangle", 3],
-      ],
-    ],
-    [
-      "hurt",
-      [
-        ["sawtooth", 1],
-        ["sine", 2],
-        ["triangle", 1],
-      ],
-    ],
-    [
-      "win",
-      [
-        ["sawtooth", 1],
-        ["sine", 5],
-        ["triangle", 4],
-      ],
-    ],
-    [
-      "countdown",
-      [
-        ["sawtooth", 1],
-        ["sine", 1],
-      ],
-    ],
-    [
-      "launch",
-      [
-        ["sawtooth", 1],
-        ["sine", 1],
-        ["square", 1],
-        ["triangle", 1],
-      ],
-    ],
-    [
-      "shutdown",
-      [
-        ["sawtooth", 1],
-        ["sine", 1],
-      ],
-    ],
-    [
-      "boot",
-      [
-        ["sawtooth", 1],
-        ["sine", 1],
-      ],
-    ],
+    ["pellet", [["sine", 2]]],
+    ["power", [["sine", 6]]],
+    ["capture", [["sine", 6]]],
+    ["hurt", [["sine", 2]]],
+    ["win", [["sine", 8]]],
+    ["countdown", [["sine", 3]]],
+    ["launch", [["sine", 9]]],
+    ["shutdown", [["sine", 2]]],
+    ["boot", [["sine", 2]]],
     ["unknown", []],
   ].forEach(function ([kind, expected]) {
     const harness = createAudioHarness();

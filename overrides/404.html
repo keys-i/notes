@@ -104,19 +104,29 @@ Dumping 404 out of 404 MB</pre>
         <span aria-live="polite">Score <strong id="score">0000</strong></span>
         <span aria-live="polite">Moves <strong id="moves">000</strong></span>
         <span aria-live="polite">Lives <strong id="lives">♥♥♥</strong></span>
-        <button
-          class="score__sound"
-          id="sound"
-          type="button"
-          aria-label="Mute game sound"
-          aria-pressed="false"
-        >
-          ♫ ON
-        </button>
+        <span class="score__audio">
+          <button
+            class="score__sound"
+            id="sound"
+            type="button"
+            aria-label="Mute game sound"
+            aria-pressed="false"
+          >
+            <span aria-hidden="true">♫</span>
+          </button>
+          <input
+            class="score__volume"
+            id="volume"
+            type="range"
+            min="0"
+            max="1"
+            step="0.05"
+            value="0.8"
+            aria-label="Game sound volume"
+          />
+        </span>
       </div>
-      <p class="game__dialogue" id="dialogue" aria-hidden="true">
-        koala0: maze0 mounted; snacks indexed; predators disagree.
-      </p>
+      <p class="game__dialogue" id="dialogue" aria-hidden="true"></p>
 
       <div
         class="board"
