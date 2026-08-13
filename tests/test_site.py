@@ -38,6 +38,21 @@ class SiteAssetTests(unittest.TestCase):
         )
         self.assertIn("fetch(shell.manualUrl)", script)
 
+    def test_404_sound_control_is_accessible(self):
+        template = (ROOT / "overrides/404.html").read_text(encoding="utf-8")
+        script = (ROOT / "notes/assets/js/404/game.js").read_text(encoding="utf-8")
+
+        self.assertIn('id="sound"', template)
+        self.assertIn('aria-label="Mute game sound"', template)
+        self.assertIn('aria-pressed="false"', template)
+        self.assertIn('storage.getItem("404-sound-muted")', script)
+        self.assertIn('page.addEventListener("visibilitychange"', script)
+        self.assertNotIn("new Audio(", script)
+
+        shell = (ROOT / "notes/assets/js/404/shell.js").read_text(encoding="utf-8")
+        self.assertIn("gameAudio.pause()", shell)
+        self.assertIn("gameAudio.start()", shell)
+
     def test_dock_pet_integration(self):
         main = (ROOT / "overrides/main.html").read_text(encoding="utf-8")
         not_found = (ROOT / "overrides/404.html").read_text(encoding="utf-8")

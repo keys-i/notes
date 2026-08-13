@@ -40,12 +40,14 @@ const document = {
 };
 const game = vm.createContext({
   Array,
+  clearTimeout,
   console,
   document,
   JSON,
   Map,
   Math,
   Set,
+  setTimeout,
 });
 vm.runInContext(source.slice(0, source.indexOf("var FRUIT_FLAME")), game);
 
@@ -57,7 +59,13 @@ const functionSource = function (name) {
   return source.slice(start, end);
 };
 vm.runInContext(
-  ["shouldRestoreLife", "addScore", "predatorCapturePoints"]
+  [
+    "shouldRestoreLife",
+    "addScore",
+    "predatorCapturePoints",
+    "soundtrackMood",
+    "createGameAudio",
+  ]
     .map(functionSource)
     .join("\n"),
   game,
@@ -160,4 +168,142 @@ test("dialogue varies without perturbing the effects random stream", () => {
   const expectedValues = Array.from({ length: 8 }, expected);
   for (let index = 0; index < 8; index += 1) game.showDialogue("ready");
   assert.deepEqual(Array.from({ length: 8 }, actual), expectedValues);
+});
+
+test("soundtrack adapts without consuming a random stream", () => {
+  const calm = game.soundtrackMood(false, false, 0, 100);
+  const danger = game.soundtrackMood(false, true, 0, 100);
+  const powered = game.soundtrackMood(true, false, 0, 100);
+  const nearlyHome = game.soundtrackMood(false, false, 90, 100);
+
+  assert.ok(danger.stepMs < calm.stepMs);
+  assert.ok(powered.stepMs < calm.stepMs);
+  assert.ok(nearlyHome.stepMs < calm.stepMs);
+  assert.ok(danger.pitch > calm.pitch);
+  assert.ok(powered.pitch > danger.pitch);
+  assert.equal(game.soundtrackMood(false, false, -10, 100).stepMs, calm.stepMs);
+  assert.equal(
+    game.soundtrackMood(false, false, 200, 100).stepMs,
+    game.soundtrackMood(false, false, 100, 100).stepMs,
+  );
+});
+
+test("sound preference persists and hidden pages suspend audio", () => {
+  game.running = true;
+  game.paused = false;
+  game.pelletStarts = [];
+  game.pellets = new Set();
+  game.panicTicks = 0;
+  game.playerElement.classList = {
+    contains() {
+      return false;
+    },
+  };
+  const attributes = new Map();
+  const listeners = new Map();
+  const values = new Map([["404-sound-muted", "1"]]);
+  const control = {
+    addEventListener(name, listener) {
+      listeners.set(name, listener);
+    },
+    setAttribute(name, value) {
+      attributes.set(name, value);
+    },
+    textContent: "",
+  };
+  const storage = {
+    getItem(name) {
+      return values.get(name);
+    },
+    setItem(name, value) {
+      values.set(name, value);
+    },
+  };
+  const page = {
+    addEventListener(name, listener) {
+      listeners.set(name, listener);
+    },
+    hidden: false,
+  };
+  let context;
+  class AudioContextStub {
+    constructor() {
+      context = this;
+      this.currentTime = 0;
+      this.destination = {};
+      this.state = "suspended";
+    }
+    createGain() {
+      return {
+        connect() {},
+        gain: {
+          exponentialRampToValueAtTime() {},
+          setValueAtTime() {},
+          value: 0,
+        },
+      };
+    }
+    createOscillator() {
+      return {
+        connect() {},
+        frequency: {
+          exponentialRampToValueAtTime() {},
+          setValueAtTime() {},
+        },
+        start() {},
+        stop() {},
+      };
+    }
+    resume() {
+      this.state = "running";
+      return Promise.resolve();
+    }
+    suspend() {
+      this.state = "suspended";
+      return Promise.resolve();
+    }
+  }
+
+  game.createGameAudio(AudioContextStub, control, storage, page);
+  assert.equal(control.textContent, "♫ OFF");
+  assert.equal(attributes.get("aria-pressed"), "true");
+  assert.equal(attributes.get("aria-label"), "Mute game sound");
+  listeners.get("click")();
+  assert.equal(values.get("404-sound-muted"), "0");
+  assert.equal(attributes.get("aria-label"), "Mute game sound");
+  assert.equal(context.state, "running");
+  page.hidden = true;
+  listeners.get("visibilitychange")();
+  assert.equal(context.state, "suspended");
+  page.hidden = false;
+  game.paused = true;
+  listeners.get("visibilitychange")();
+  assert.equal(context.state, "suspended");
+});
+
+test("blocked audio degrades without breaking play", () => {
+  game.running = true;
+  const control = {
+    addEventListener() {},
+    setAttribute(name, value) {
+      this[name] = value;
+    },
+  };
+  const page = { addEventListener() {}, hidden: false };
+  class BlockedAudioContext {
+    constructor() {
+      throw new Error("blocked");
+    }
+  }
+
+  const audio = game.createGameAudio(BlockedAudioContext, control, null, page);
+  assert.equal(control["aria-pressed"], "false");
+  assert.doesNotThrow(audio.start);
+  assert.doesNotThrow(() => audio.play("pellet"));
+  assert.equal(control.disabled, true);
+  assert.equal(control.textContent, "♫ N/A");
+  assert.equal(control["aria-label"], "Game sound unavailable");
+  audio.toggle();
+  assert.equal(control.textContent, "♫ N/A");
+  assert.equal(control["aria-label"], "Game sound unavailable");
 });

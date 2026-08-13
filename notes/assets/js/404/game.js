@@ -10,6 +10,7 @@ var playerElement = document.getElementById("player");
 var scoreElement = document.getElementById("score");
 var movesElement = document.getElementById("moves");
 var livesElement = document.getElementById("lives");
+var soundElement = document.getElementById("sound");
 var statusElement = document.getElementById("status");
 var dialogueElement = document.getElementById("dialogue");
 var dumpElement = document.getElementById("dump");
@@ -116,6 +117,7 @@ var devoured = new Set();
 var ghostsStarted;
 var graceTicks;
 var lastDirection;
+var gameAudio;
 var ntPanel = document.querySelector(".trace--nt");
 var ghostPen;
 
@@ -192,6 +194,261 @@ function showDialogue(kind) {
 
 function damageLevel(remainingLives) {
   return Math.max(0, Math.min(3, settings.play.lives - remainingLives));
+}
+
+function soundtrackMood(powered, danger, collected, total) {
+  var progress = total > 0 ? Math.max(0, Math.min(1, collected / total)) : 0;
+  return {
+    stepMs: Math.round(
+      285 - progress * 40 - (danger ? 50 : 0) - (powered ? 25 : 0),
+    ),
+    pitch: 1 + progress * 0.08 + (danger ? 0.08 : 0) + (powered ? 0.12 : 0),
+  };
+}
+
+function createGameAudio(AudioContextClass, control, storage, page) {
+  var muted = false;
+  var unlocked = false;
+  var context;
+  var master;
+  var musicTimer;
+  var finishTimer;
+  var musicStep = 0;
+  var melody = [0, 3, 7, 10, 7, 5, 3, null];
+  var roots = [0, 5, 2, -2];
+
+  try {
+    muted = Boolean(storage && storage.getItem("404-sound-muted") === "1");
+  } catch (error) {
+    // Sound remains usable when storage is unavailable.
+  }
+
+  function disable() {
+    AudioContextClass = null;
+    stopMusic();
+    context = null;
+    if (!control) return;
+    control.disabled = true;
+    control.textContent = "♫ N/A";
+    control.setAttribute("aria-label", "Game sound unavailable");
+  }
+
+  function renderControl() {
+    if (!control) return;
+    control.textContent = muted ? "♫ OFF" : "♫ ON";
+    control.setAttribute("aria-pressed", String(muted));
+    control.setAttribute("aria-label", "Mute game sound");
+  }
+
+  function ensureContext() {
+    if (!AudioContextClass || muted || page.hidden) return null;
+    try {
+      if (!context) {
+        context = new AudioContextClass();
+        master = context.createGain();
+        master.gain.value = 0.24;
+        master.connect(context.destination);
+      }
+      if (context.state === "suspended") {
+        var resumed = context.resume();
+        if (resumed && resumed.catch) resumed.catch(disable);
+      }
+      return context;
+    } catch (error) {
+      disable();
+      return null;
+    }
+  }
+
+  function tone(at, frequency, duration, volume, bend, wave) {
+    if (!context || muted) return;
+    try {
+      var oscillator = context.createOscillator();
+      var envelope = context.createGain();
+      oscillator.type = wave || "triangle";
+      oscillator.frequency.setValueAtTime(Math.max(40, frequency), at);
+      oscillator.frequency.exponentialRampToValueAtTime(
+        Math.max(40, frequency * bend),
+        at + duration,
+      );
+      envelope.gain.setValueAtTime(0.0001, at);
+      envelope.gain.exponentialRampToValueAtTime(volume, at + 0.012);
+      envelope.gain.exponentialRampToValueAtTime(0.0001, at + duration);
+      oscillator.connect(envelope);
+      envelope.connect(master);
+      oscillator.start(at);
+      oscillator.stop(at + duration + 0.02);
+    } catch (error) {
+      // A failed voice must not interrupt the game.
+    }
+  }
+
+  function meow(at, frequency, duration, volume, bend) {
+    tone(at, frequency, duration, volume, bend, "triangle");
+    tone(at, frequency * 2.02, duration * 0.8, volume * 0.16, bend, "sine");
+  }
+
+  function koala(at, frequency, duration, volume) {
+    tone(at, frequency, duration, volume, 0.72, "sawtooth");
+    tone(
+      at + 0.035,
+      frequency * 1.48,
+      duration * 0.72,
+      volume * 0.3,
+      0.9,
+      "sine",
+    );
+  }
+
+  function mood() {
+    var total = pelletStarts.length;
+    var remaining = pellets ? pellets.size : total;
+    return soundtrackMood(
+      panicTicks > 0,
+      playerElement.classList.contains("frightened"),
+      total - remaining,
+      total,
+    );
+  }
+
+  function musicTick() {
+    musicTimer = 0;
+    if (
+      !unlocked ||
+      muted ||
+      page.hidden ||
+      !running ||
+      paused ||
+      !ensureContext()
+    )
+      return;
+    var currentMood = mood();
+    var chord = roots[Math.floor(musicStep / melody.length) % roots.length];
+    var note = melody[musicStep % melody.length];
+    var at = context.currentTime + 0.015;
+    if (note !== null) {
+      meow(
+        at,
+        220 * Math.pow(2, (chord + note) / 12) * currentMood.pitch,
+        (currentMood.stepMs / 1000) * 0.78,
+        0.028,
+        musicStep % 2 ? 0.86 : 1.12,
+      );
+    }
+    if (musicStep % 2 === 0) {
+      tone(
+        at,
+        82.41 * Math.pow(2, chord / 12),
+        (currentMood.stepMs / 1000) * 0.62,
+        0.024,
+        0.92,
+        "square",
+      );
+    }
+    if (musicStep % melody.length === melody.length - 1) {
+      koala(at, 68 + chord, 0.16, 0.018);
+    }
+    musicStep = (musicStep + 1) % (melody.length * roots.length);
+    musicTimer = setTimeout(musicTick, currentMood.stepMs);
+  }
+
+  function start() {
+    unlocked = true;
+    clearTimeout(finishTimer);
+    finishTimer = 0;
+    if (!running || paused || !ensureContext() || musicTimer) return;
+    musicTick();
+  }
+
+  function stopMusic() {
+    clearTimeout(musicTimer);
+    musicTimer = 0;
+  }
+
+  function pause() {
+    stopMusic();
+    if (context && context.state === "running") {
+      try {
+        var suspended = context.suspend();
+        if (suspended && suspended.catch) suspended.catch(function () {});
+      } catch (error) {
+        context = null;
+      }
+    }
+  }
+
+  function stop() {
+    unlocked = false;
+    clearTimeout(finishTimer);
+    finishTimer = 0;
+    pause();
+  }
+
+  function play(kind, variant) {
+    if (!unlocked || !ensureContext()) return;
+    var at = context.currentTime + 0.008;
+    var offset = ((variant || 0) % 4) * 32;
+    if (kind === "pellet") {
+      meow(at, 620 + offset, 0.075, 0.055, 1.18);
+    } else if (kind === "power") {
+      koala(at, 92, 0.28, 0.075);
+      meow(at + 0.04, 330, 0.3, 0.075, 1.72);
+      meow(at + 0.2, 494, 0.24, 0.06, 1.34);
+    } else if (kind === "capture") {
+      [392, 523, 659].forEach(function (frequency, index) {
+        meow(at + index * 0.075, frequency, 0.16, 0.065, 1.08);
+      });
+      koala(at + 0.18, 78, 0.2, 0.045);
+    } else if (kind === "hurt") {
+      meow(at, 440, 0.34, 0.085, 0.38);
+      koala(at + 0.05, 86, 0.4, 0.065);
+    } else if (kind === "win") {
+      [262, 330, 392, 523].forEach(function (frequency, index) {
+        meow(at + index * 0.11, frequency, 0.24, 0.075, 1.12);
+      });
+      koala(at + 0.36, 104, 0.32, 0.06);
+    }
+  }
+
+  function finish(kind) {
+    stopMusic();
+    play(kind);
+    unlocked = false;
+    finishTimer = setTimeout(pause, kind === "win" ? 900 : 600);
+  }
+
+  function toggle() {
+    if (!AudioContextClass) return;
+    muted = !muted;
+    try {
+      if (storage) storage.setItem("404-sound-muted", muted ? "1" : "0");
+    } catch (error) {
+      // A rejected preference write must not break play.
+    }
+    renderControl();
+    if (muted) pause();
+    else start();
+  }
+
+  renderControl();
+  if (!AudioContextClass && control) {
+    disable();
+  } else if (control) {
+    control.addEventListener("click", toggle);
+  }
+  page.addEventListener("visibilitychange", function () {
+    if (page.hidden) pause();
+    else if (unlocked && running && !paused) start();
+  });
+
+  return {
+    start: start,
+    pause: pause,
+    stop: stop,
+    play: play,
+    finish: finish,
+    toggle: toggle,
+  };
 }
 
 function seededRandom(seed, stream) {
@@ -1197,6 +1454,19 @@ var FRUIT_FLAME = {
   },
 };
 
+var soundStorage;
+try {
+  soundStorage = localStorage;
+} catch (error) {
+  soundStorage = null;
+}
+gameAudio = createGameAudio(
+  globalThis.AudioContext || globalThis.webkitAudioContext,
+  soundElement,
+  soundStorage,
+  document,
+);
+
 function fruitHue(range, random) {
   var min = range[0];
   var max = range[1];
@@ -1497,6 +1767,7 @@ function homeUrl() {
 
 function startShutdownSequence(url) {
   if (shuttingDown) return;
+  gameAudio.stop();
   running = false;
   paused = true;
   if (typeof stopGhosts === "function") stopGhosts();
@@ -1944,6 +2215,7 @@ function loseLife() {
   }, 500);
 
   if (lives === 0) {
+    gameAudio.finish("hurt");
     running = false;
     stopGhosts();
     board.classList.add("lost");
@@ -1958,6 +2230,7 @@ function loseLife() {
     return;
   }
 
+  gameAudio.play("hurt");
   statusElement.textContent =
     "kradkrnl: koala0 recovered from predator fault; " +
     lives +
@@ -1988,6 +2261,7 @@ function resolveCollision() {
       powerCombo += 1;
       devourPredator(index);
     });
+    gameAudio.play("capture");
     var restoredLife = addScore(capturePoints);
     updateScore();
     showDialogue(restoredLife ? "life" : "predator");
@@ -2263,6 +2537,7 @@ function fireGrayWarp() {
 
 function movePlayer(dx, dy) {
   if (!running) return;
+  gameAudio.start();
   var now = performance.now();
   if (now >= slowUntil && grayStacks) {
     grayStacks = 0;
@@ -2329,6 +2604,7 @@ function movePlayer(dx, dy) {
     } else if (bonus) {
       if (!surgeSaiyan()) setFruitAura(bonus);
     }
+    gameAudio.play(boost ? "power" : "pellet", turn);
     grid.children[player.y * columns + player.x].classList.add("eaten");
     updateScore();
   }
@@ -2345,6 +2621,7 @@ function movePlayer(dx, dy) {
     statusElement.textContent =
       "init: route recovery complete; preparing remount of /";
     showDialogue("win");
+    gameAudio.finish("win");
     startWinSequence();
   } else if (pellets.size === 0) {
     statusElement.textContent =
@@ -2460,7 +2737,10 @@ document.querySelectorAll("[data-move]").forEach(function (button) {
   });
 });
 
-document.getElementById("reset").addEventListener("click", resetGame);
+document.getElementById("reset").addEventListener("click", function () {
+  resetGame();
+  gameAudio.start();
+});
 bindShutdownButton();
 playerElement.addEventListener("click", function (event) {
   if (!playerElement.classList.contains("home")) {
@@ -2490,6 +2770,12 @@ addEventListener("keydown", function (event) {
   if (event.code === "KeyR") {
     event.preventDefault();
     resetGame();
+    gameAudio.start();
+    return;
+  }
+  if (event.code === "KeyM") {
+    event.preventDefault();
+    gameAudio.toggle();
     return;
   }
 
