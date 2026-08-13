@@ -499,6 +499,7 @@ function ddbCommand(source) {
       telemetry.tick = 0;
       telemetry.lines = [];
       resetGame();
+      gameAudio.start();
       return "Resetting system...";
     case "panic":
       telemetry.tick = 0;
@@ -509,6 +510,7 @@ function ddbCommand(source) {
         shell.mode = "sh";
         shell.prompt.textContent = "rad@recv #";
         resetGame();
+        gameAudio.start();
         return "syncing disks... done\nRebooting...";
       }
       return "ddb: call refused outside recovery-safe boot(0)";
@@ -1143,16 +1145,19 @@ function shellCommand(source) {
         if (!running) return "koalactl: maze0 is halted; nothing to pause";
         if (paused) return "koalactl: maze0 scheduler already paused";
         paused = true;
+        gameAudio.pause();
         return "koalactl: maze0 scheduler paused; predators frozen";
       }
       if (shell.DEBUG && (argument === "resume" || argument === "unpause")) {
         if (!paused) return "koalactl: maze0 scheduler is not paused";
         paused = false;
+        gameAudio.start();
         return "koalactl: maze0 scheduler resumed";
       }
       if (argument === "trace") return ntDump();
       if (argument === "reset" || argument === "restart") {
         resetGame();
+        gameAudio.start();
         return "koalactl: maze0 recovery task restarted";
       }
       if (argument === "move") {

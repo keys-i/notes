@@ -100,10 +100,19 @@ Dumping 404 out of 404 MB</pre>
         </p>
       </div>
 
-      <div class="score" aria-live="polite">
-        <span>Score <strong id="score">0000</strong></span>
-        <span>Moves <strong id="moves">000</strong></span>
-        <span>Lives <strong id="lives">♥♥♥</strong></span>
+      <div class="score">
+        <span aria-live="polite">Score <strong id="score">0000</strong></span>
+        <span aria-live="polite">Moves <strong id="moves">000</strong></span>
+        <span aria-live="polite">Lives <strong id="lives">♥♥♥</strong></span>
+        <button
+          class="score__sound"
+          id="sound"
+          type="button"
+          aria-label="Mute game sound"
+          aria-pressed="false"
+        >
+          ♫ ON
+        </button>
       </div>
       <p class="game__dialogue" id="dialogue" aria-hidden="true">
         koala0: maze0 mounted; snacks indexed; predators disagree.
@@ -247,8 +256,8 @@ Dumping 404 out of 404 MB</pre>
         kradkrnl: maze0 attached; koala0 pid=404; dingo0/eagle0 queued at the 0.
       </p>
       <p class="game__hint">
-        Arrow keys / WASD · R to reset — edge portals wrap when online; boosted
-        captures chain score and return predators to the 0.
+        Arrow keys / WASD · R to reset · M for sound — edge portals wrap when
+        online; boosted captures chain score and return predators to the 0.
       </p>
       <form
         class="recovery-shell"
