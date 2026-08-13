@@ -106,6 +106,7 @@ const createRuntime = function ({
   desktop = true,
   fetcher = null,
   footerTop = 700,
+  random = 0.25,
   storedPosition = null,
   viewportHeight = 800,
   viewportWidth = 1000,
@@ -353,7 +354,7 @@ const createRuntime = function ({
   let frameId = 0;
   const frames = new Map();
   const math = Object.create(Math);
-  math.random = () => 0.25;
+  math.random = () => random;
   class FakeImage {
     complete = false;
     currentSrc = "";
@@ -439,11 +440,8 @@ test("pet walks the footer and pauses for visibility and interaction", () => {
   const walk = runtime.animations[0];
   assert.equal(runtime.pet.dataset.state, "walking");
   assert.equal(runtime.pet.dataset.direction, "left");
-  assert.deepEqual(
-    Array.from(walk.keyframes, (frame) => frame.offset),
-    [0, 0.08, 0.92, 1],
-  );
-  assert.equal(walk.options.easing, "cubic-bezier(0.4, 0, 0.2, 1)");
+  assert.equal(walk.keyframes.length, 2);
+  assert.equal(walk.options.easing, "linear");
 
   runtime.setFooterTop(650);
   runtime.windowHandlers.scroll();
@@ -460,10 +458,19 @@ test("pet walks the footer and pauses for visibility and interaction", () => {
   assert.equal(walk.paused, false);
   assert.equal(runtime.pet.dataset.paused, undefined);
 
-  runtime.petHandlers.pointerenter();
-  assert.equal(walk.paused, true);
-  runtime.petHandlers.pointerleave();
+  runtime.windowHandlers.pointermove({ clientX: 80, clientY: 80 });
+  runtime.runAnimationFrames(100);
   assert.equal(walk.paused, false);
+  assert.equal(runtime.petHandlers.pointerenter, undefined);
+
+  runtime.petHandlers.pointerdown({ button: 0 });
+  assert.equal(walk.paused, true);
+  assert.equal(runtime.pet.dataset.behavior, "sit");
+  assert.equal(runtime.pet.dataset.state, "idle");
+  runtime.petHandlers.pointerup();
+  assert.equal(walk.paused, false);
+  assert.equal(runtime.pet.dataset.behavior, undefined);
+  assert.equal(runtime.pet.dataset.state, "walking");
 
   runtime.petHandlers.click();
   assert.equal(walk.paused, true);
@@ -491,20 +498,17 @@ test("pet climbs only the viewport edge and faces horizontal motion", () => {
   runtime.finishLatestAnimation();
   assert.equal(runtime.pet.dataset.state, "climbing");
   const ascent = runtime.animations.at(-1);
-  assert.equal(ascent.keyframes.length, 8);
-  assert.equal(ascent.options.easing, "cubic-bezier(0.45, 0.05, 0.25, 1)");
+  assert.equal(ascent.keyframes.length, 6);
+  assert.equal(ascent.options.easing, "cubic-bezier(0.35, 0.05, 0.25, 1)");
   const edgeX = Number.parseFloat(runtime.pet.style.left);
   assert.equal(edgeX + runtime.pet.offsetWidth * 0.87, 1000);
   ascent.keyframes.forEach((frame) => {
     assert.equal(frame.left, undefined);
     assert.match(frame.top, /px$/);
   });
-  assert.equal(ascent.keyframes[1].top, ascent.keyframes[2].top);
-  assert.equal(ascent.keyframes[3].top, ascent.keyframes[4].top);
-  assert.equal(ascent.keyframes[5].top, ascent.keyframes[6].top);
   assert.deepEqual(
     Array.from(ascent.keyframes, (frame) => frame.offset),
-    [0, 0.18, 0.29, 0.47, 0.58, 0.76, 0.87, 1],
+    [0, 0.16, 0.36, 0.58, 0.79, 1],
   );
   runtime.finishLatestAnimation();
   assert.equal(runtime.pet.dataset.state, "hanging");
@@ -527,7 +531,7 @@ test("pet climbs only the viewport edge and faces horizontal motion", () => {
   runtime.runAnimationFrames();
   assert.equal(runtime.pet.dataset.state, "climbing");
   const descent = runtime.animations.at(-1);
-  assert.equal(descent.keyframes.length, 8);
+  assert.equal(descent.keyframes.length, 6);
   descent.keyframes.forEach((frame) => {
     assert.equal(frame.left, undefined);
     assert.match(frame.top, /px$/);
@@ -582,6 +586,28 @@ test("cursor eyes overlap the artwork without repainting white sclera", () => {
   assert.ok(ellipses[0][3] > 7 && ellipses[0][4] > 11);
 });
 
+test("idle gestures and winks reuse the original upright art", () => {
+  [
+    { behavior: "yawn", random: 0.25, timestamp: 6300 },
+    { behavior: "rub", random: 0.75, timestamp: 9000 },
+  ].forEach(({ behavior, random, timestamp }) => {
+    const runtime = createRuntime({ random });
+    runtime.runAnimationFrames(timestamp);
+    const draw = runtime.canvasCalls
+      .filter((call) => call[0] === "drawImage")
+      .at(-1);
+    assert.ok(draw[3] >= 3200, behavior);
+    if (behavior === "yawn") {
+      assert.ok(
+        runtime.canvasCalls.some(
+          (call) => call[0] === "fill" && call[1] === "#5b1720",
+        ),
+      );
+    }
+    assert.ok(runtime.canvasCalls.some((call) => call[0] === "stroke"));
+  });
+});
+
 test("every animation frame renders with continuous omnidirectional gaze", () => {
   const runtime = createRuntime();
   const period = { climbing: 1450, walking: 1100 };
@@ -612,14 +638,19 @@ test("every animation frame renders with continuous omnidirectional gaze", () =>
       );
       const iris = ellipses.at(-3);
       const center = pure.dockPetEyes(state, frame).at(-1);
-      gazeVectors.push([iris[1] - center[0], iris[2] - center[1]]);
+      const scale = state === "climbing" ? 1.08 : 1;
+      const inset = (256 - 256 * scale) / 2;
+      gazeVectors.push([
+        iris[1] - (inset + center[0] * scale),
+        iris[2] - (inset + center[1] * scale),
+      ]);
     }
     assert.ok(sourceCells.size >= 320);
     [0, 50, 100, 150, 200, 250, 300, 350].forEach((frame) => {
       const expected = (Math.PI * 2 * frame) / 400;
       const actual = Math.atan2(
-        gazeVectors[frame][1] / 4,
-        gazeVectors[frame][0] / 3,
+        gazeVectors[frame][1] / 3.4,
+        gazeVectors[frame][0] / 2.6,
       );
       assert.ok(
         Math.abs(
@@ -643,6 +674,13 @@ test("original walk and climb frames animate while gaze keeps following", () => 
     runtime.canvasCalls.some(
       (call) => call[0] === "drawImage" && call[3] < 3200 && call[4] === 160,
     ),
+  );
+  assert.deepEqual(
+    runtime.canvasCalls
+      .filter((call) => call[0] === "drawImage")
+      .slice(-3)
+      .map((call) => call[4]),
+    [34, 40, 160],
   );
 
   runtime.finishLatestAnimation();

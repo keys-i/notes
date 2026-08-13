@@ -1,6 +1,7 @@
 """Tests for site asset integration."""
 
 import unittest
+import wave
 from hashlib import sha256
 from pathlib import Path
 
@@ -56,19 +57,44 @@ class SiteAssetTests(unittest.TestCase):
         template = (ROOT / "overrides/404.html").read_text(encoding="utf-8")
         script = (ROOT / "notes/assets/js/404/game.js").read_text(encoding="utf-8")
         shell = (ROOT / "notes/assets/js/404/shell.js").read_text(encoding="utf-8")
+        style = (ROOT / "notes/assets/styles/404/game.css").read_text(encoding="utf-8")
 
         for name, body, expected in (
             ("control", template, 'id="sound"'),
             ("label", template, 'aria-label="Mute game sound"'),
             ("pressed state", template, 'aria-pressed="false"'),
+            ("volume", template, 'id="volume"'),
             ("preference", script, 'storage.getItem("404-sound-muted")'),
             ("visibility", script, 'page.addEventListener("visibilitychange"'),
+            ("native audio", script, "globalThis.Audio"),
+            ("hover volume", style, ".score__audio:hover .score__volume"),
+            ("connected volume", style, "bottom: 100%"),
             ("shell pause", shell, "gameAudio.pause()"),
             ("shell start", shell, "gameAudio.start()"),
         ):
             with self.subTest(name=name):
                 self.assertIn(expected, body)
-        self.assertNotIn("new Audio(", script)
+        self.assertNotIn("AudioContext", script)
+
+    def test_meow_audio_assets_are_browser_ready(self):
+        for name in (
+            "beginning",
+            "chomp",
+            "danger",
+            "death",
+            "fruit",
+            "ghost",
+            "launch",
+            "life",
+        ):
+            with self.subTest(name=name):
+                path = ROOT / f"notes/assets/audios/meow_{name}.wav"
+                self.assertTrue(path.is_file())
+                with wave.open(str(path), "rb") as audio:
+                    self.assertEqual(audio.getnchannels(), 1)
+                    self.assertEqual(audio.getsampwidth(), 2)
+                    self.assertEqual(audio.getframerate(), 24_000)
+                    self.assertGreater(audio.getnframes(), 9_000)
 
     def test_dock_pet_integration(self):
         main = (ROOT / "overrides/main.html").read_text(encoding="utf-8")
