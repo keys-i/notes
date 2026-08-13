@@ -20,6 +20,10 @@ const source = fs.readFileSync(
   new URL("../notes/assets/js/404/game.js", import.meta.url),
   "utf8",
 );
+const shellSource = fs.readFileSync(
+  new URL("../notes/assets/js/404/shell.js", import.meta.url),
+  "utf8",
+);
 const elements = new Map();
 const element = function (id) {
   if (!elements.has(id)) elements.set(id, { dataset: {}, textContent: "" });
@@ -170,70 +174,110 @@ test("dialogue varies without perturbing the effects random stream", () => {
   assert.deepEqual(Array.from({ length: 8 }, actual), expectedValues);
 });
 
-test("soundtrack adapts without consuming a random stream", () => {
-  const calm = game.soundtrackMood(false, false, 0, 100);
-  const danger = game.soundtrackMood(false, true, 0, 100);
-  const powered = game.soundtrackMood(true, false, 0, 100);
-  const nearlyHome = game.soundtrackMood(false, false, 90, 100);
-
-  assert.ok(danger.stepMs < calm.stepMs);
-  assert.ok(powered.stepMs < calm.stepMs);
-  assert.ok(nearlyHome.stepMs < calm.stepMs);
-  assert.ok(danger.pitch > calm.pitch);
-  assert.ok(powered.pitch > danger.pitch);
-  assert.equal(game.soundtrackMood(false, false, -10, 100).stepMs, calm.stepMs);
-  assert.equal(
-    game.soundtrackMood(false, false, 200, 100).stepMs,
-    game.soundtrackMood(false, false, 100, 100).stepMs,
-  );
+test("soundtrack mood covers every modifier and progress boundary", () => {
+  [
+    ["calm", [false, false, 0, 100], [285, 1]],
+    ["progress", [false, false, 50, 100], [265, 1.04]],
+    ["danger", [false, true, 0, 100], [235, 1.08]],
+    ["powered", [true, false, 0, 100], [260, 1.12]],
+    ["combined", [true, true, 100, 100], [170, 1.28]],
+    ["negative progress", [false, false, -10, 100], [285, 1]],
+    ["excess progress", [false, false, 200, 100], [245, 1.08]],
+    ["zero total", [false, false, 10, 0], [285, 1]],
+    ["negative total", [false, false, 10, -1], [285, 1]],
+  ].forEach(function ([name, input, expected]) {
+    const actual = game.soundtrackMood(...input);
+    assert.equal(actual.stepMs, expected[0], name + " tempo");
+    assert.ok(Math.abs(actual.pitch - expected[1]) < 1e-12, name + " pitch");
+  });
 });
 
-test("sound preference persists and hidden pages suspend audio", () => {
-  game.running = true;
-  game.paused = false;
-  game.pelletStarts = [];
-  game.pellets = new Set();
-  game.panicTicks = 0;
-  game.playerElement.classList = {
-    contains() {
-      return false;
-    },
-  };
+const createAudioHarness = function (options = {}) {
+  const controlListeners = new Map();
+  const pageListeners = new Map();
   const attributes = new Map();
-  const listeners = new Map();
-  const values = new Map([["404-sound-muted", "1"]]);
-  const control = {
-    addEventListener(name, listener) {
-      listeners.set(name, listener);
+  const contexts = [];
+  const voices = [];
+  const scheduled = [];
+  const timers = new Map();
+  const writes = [];
+  let nextTimer = 1;
+  let stored = options.stored ?? null;
+  let gainCount = 0;
+
+  game.running = options.running ?? true;
+  game.paused = options.paused ?? false;
+  game.pelletStarts = Array(options.total ?? 0).fill(0);
+  game.pellets = new Set(
+    Array.from(
+      { length: options.remaining ?? options.total ?? 0 },
+      (_, i) => i,
+    ),
+  );
+  game.panicTicks = options.powered ? 1 : 0;
+  game.playerElement.classList = {
+    contains(name) {
+      return name === "frightened" && Boolean(options.danger);
     },
-    setAttribute(name, value) {
-      attributes.set(name, value);
-    },
-    textContent: "",
   };
-  const storage = {
-    getItem(name) {
-      return values.get(name);
-    },
-    setItem(name, value) {
-      values.set(name, value);
-    },
+  game.setTimeout = function (callback, delay) {
+    const id = nextTimer++;
+    const timer = { callback, delay };
+    scheduled.push(timer);
+    timers.set(id, timer);
+    return id;
   };
+  game.clearTimeout = function (id) {
+    timers.delete(id);
+  };
+
+  const control =
+    options.control === false
+      ? null
+      : {
+          addEventListener(name, listener) {
+            controlListeners.set(name, listener);
+          },
+          setAttribute(name, value) {
+            attributes.set(name, value);
+          },
+          textContent: "",
+        };
+  const storage =
+    options.storage === false
+      ? null
+      : {
+          getItem() {
+            if (options.readError) throw new Error("read blocked");
+            return stored;
+          },
+          setItem(name, value) {
+            if (options.writeError) throw new Error("write blocked");
+            stored = value;
+            writes.push([name, value]);
+          },
+        };
   const page = {
     addEventListener(name, listener) {
-      listeners.set(name, listener);
+      pageListeners.set(name, listener);
     },
-    hidden: false,
+    hidden: options.hidden ?? false,
   };
-  let context;
+
   class AudioContextStub {
     constructor() {
-      context = this;
+      if (options.constructorError) throw new Error("blocked");
       this.currentTime = 0;
       this.destination = {};
+      this.resumeCalls = 0;
       this.state = "suspended";
+      this.suspendCalls = 0;
+      contexts.push(this);
     }
     createGain() {
+      gainCount += 1;
+      if (options.voiceError === "gain" && gainCount > 1)
+        throw new Error("gain blocked");
       return {
         connect() {},
         gain: {
@@ -244,66 +288,352 @@ test("sound preference persists and hidden pages suspend audio", () => {
       };
     }
     createOscillator() {
-      return {
+      if (options.voiceError === "oscillator") throw new Error("voice blocked");
+      const voice = {
         connect() {},
         frequency: {
-          exponentialRampToValueAtTime() {},
-          setValueAtTime() {},
+          exponentialRampToValueAtTime(value) {
+            voice.endFrequency = value;
+          },
+          setValueAtTime(value) {
+            voice.frequencyValue = value;
+          },
         },
         start() {},
         stop() {},
+        type: "sine",
       };
+      voices.push(voice);
+      return voice;
     }
     resume() {
+      this.resumeCalls += 1;
+      if (options.resumeError === "throw") throw new Error("resume blocked");
+      if (options.resumeError === "reject")
+        return Promise.reject(new Error("resume blocked"));
       this.state = "running";
       return Promise.resolve();
     }
     suspend() {
+      this.suspendCalls += 1;
+      if (options.suspendError === "throw") throw new Error("suspend blocked");
+      if (options.suspendError === "reject")
+        return Promise.reject(new Error("suspend blocked"));
       this.state = "suspended";
       return Promise.resolve();
     }
   }
 
-  game.createGameAudio(AudioContextStub, control, storage, page);
-  assert.equal(control.textContent, "♫ OFF");
-  assert.equal(attributes.get("aria-pressed"), "true");
-  assert.equal(attributes.get("aria-label"), "Mute game sound");
-  listeners.get("click")();
-  assert.equal(values.get("404-sound-muted"), "0");
-  assert.equal(attributes.get("aria-label"), "Mute game sound");
-  assert.equal(context.state, "running");
-  page.hidden = true;
-  listeners.get("visibilitychange")();
-  assert.equal(context.state, "suspended");
-  page.hidden = false;
-  game.paused = true;
-  listeners.get("visibilitychange")();
-  assert.equal(context.state, "suspended");
-});
-
-test("blocked audio degrades without breaking play", () => {
-  game.running = true;
-  const control = {
-    addEventListener() {},
-    setAttribute(name, value) {
-      this[name] = value;
+  const audio = game.createGameAudio(
+    options.api === false ? null : AudioContextStub,
+    control,
+    storage,
+    page,
+  );
+  return {
+    attributes,
+    audio,
+    contexts,
+    control,
+    controlListeners,
+    page,
+    pageListeners,
+    runTimer() {
+      const entry = timers.entries().next().value;
+      if (!entry) return;
+      timers.delete(entry[0]);
+      entry[1].callback();
     },
+    scheduled,
+    timers,
+    voices,
+    writes,
   };
-  const page = { addEventListener() {}, hidden: false };
-  class BlockedAudioContext {
-    constructor() {
-      throw new Error("blocked");
+};
+
+test("audio state matrix covers guards, persistence, and failures", async () => {
+  [
+    ["stopped", { running: false }, () => (game.running = true)],
+    ["paused", { paused: true }, () => (game.paused = false)],
+    ["hidden", { hidden: true }, (harness) => (harness.page.hidden = false)],
+    ["muted", { stored: "1" }, (harness) => harness.audio.toggle()],
+  ].forEach(function ([name, options, release]) {
+    const harness = createAudioHarness(options);
+    harness.audio.start();
+    assert.equal(harness.contexts.length, 0, name + " guard");
+    release(harness);
+    if (name !== "muted") harness.pageListeners.get("visibilitychange")();
+    assert.equal(harness.contexts.length, 1, name + " release");
+    assert.equal(harness.timers.size, 1, name + " timer");
+  });
+
+  const muted = createAudioHarness({ stored: "1" });
+  assert.equal(muted.control.textContent, "♫ OFF");
+  assert.equal(muted.attributes.get("aria-pressed"), "true");
+  muted.controlListeners.get("click")();
+  assert.deepEqual(muted.writes, [["404-sound-muted", "0"]]);
+  assert.equal(muted.control.textContent, "♫ ON");
+  muted.controlListeners.get("click")();
+  assert.equal(muted.contexts[0].state, "suspended");
+  assert.equal(muted.attributes.get("aria-label"), "Mute game sound");
+
+  [
+    ["storage absent", { storage: false }],
+    ["storage read blocked", { readError: true }],
+    ["storage write blocked", { writeError: true }],
+    ["control absent", { control: false }],
+  ].forEach(function ([name, options]) {
+    const harness = createAudioHarness(options);
+    assert.doesNotThrow(harness.audio.start, name + " start");
+    assert.doesNotThrow(harness.audio.toggle, name + " toggle");
+  });
+
+  [
+    ["API missing", { api: false }],
+    ["constructor blocked", { constructorError: true }],
+  ].forEach(function ([name, options]) {
+    const harness = createAudioHarness(options);
+    assert.doesNotThrow(harness.audio.start, name + " start");
+    assert.doesNotThrow(() => harness.audio.play("pellet"), name + " play");
+    assert.equal(harness.control.disabled, true, name + " disabled");
+    assert.equal(harness.control.textContent, "♫ N/A", name + " text");
+    assert.equal(
+      harness.attributes.get("aria-label"),
+      "Game sound unavailable",
+      name + " label",
+    );
+  });
+
+  for (const mode of ["throw", "reject"]) {
+    const harness = createAudioHarness({ resumeError: mode });
+    harness.audio.start();
+    await Promise.resolve();
+    assert.equal(harness.control.disabled, true, mode + " resume");
+    assert.equal(harness.timers.size, 0, mode + " resume timer");
+  }
+
+  for (const mode of ["throw", "reject"]) {
+    const harness = createAudioHarness({ suspendError: mode });
+    harness.audio.start();
+    assert.doesNotThrow(harness.audio.pause, mode + " suspend");
+    await Promise.resolve();
+    assert.equal(harness.control.disabled, undefined, mode + " suspend");
+    if (mode === "throw") {
+      harness.audio.start();
+      assert.equal(
+        harness.contexts.length,
+        2,
+        "throw recovers with new context",
+      );
     }
   }
 
-  const audio = game.createGameAudio(BlockedAudioContext, control, null, page);
-  assert.equal(control["aria-pressed"], "false");
-  assert.doesNotThrow(audio.start);
-  assert.doesNotThrow(() => audio.play("pellet"));
-  assert.equal(control.disabled, true);
-  assert.equal(control.textContent, "♫ N/A");
-  assert.equal(control["aria-label"], "Game sound unavailable");
-  audio.toggle();
-  assert.equal(control.textContent, "♫ N/A");
-  assert.equal(control["aria-label"], "Game sound unavailable");
+  for (const voiceError of ["oscillator", "gain"]) {
+    const harness = createAudioHarness({ voiceError });
+    assert.doesNotThrow(harness.audio.start, voiceError + " music voice");
+    assert.doesNotThrow(
+      () => harness.audio.play("pellet"),
+      voiceError + " cue voice",
+    );
+    assert.equal(
+      harness.control.disabled,
+      undefined,
+      voiceError + " remains usable",
+    );
+  }
+});
+
+test("audio lifecycle keeps one timer and respects page state", () => {
+  const harness = createAudioHarness({
+    danger: true,
+    powered: true,
+    remaining: 50,
+    total: 100,
+  });
+  harness.audio.start();
+  harness.audio.start();
+  assert.equal(harness.contexts.length, 1);
+  assert.equal(harness.timers.size, 1);
+  assert.equal(harness.scheduled[0].delay, 190);
+
+  harness.page.hidden = true;
+  harness.pageListeners.get("visibilitychange")();
+  assert.equal(harness.contexts[0].state, "suspended");
+  assert.equal(harness.timers.size, 0);
+  harness.page.hidden = false;
+  game.paused = true;
+  harness.pageListeners.get("visibilitychange")();
+  assert.equal(harness.contexts[0].state, "suspended");
+  assert.equal(harness.timers.size, 0);
+  game.paused = false;
+  harness.pageListeners.get("visibilitychange")();
+  assert.equal(harness.contexts[0].state, "running");
+  assert.equal(harness.timers.size, 1);
+  harness.audio.stop();
+  harness.pageListeners.get("visibilitychange")();
+  assert.equal(harness.timers.size, 0);
+  assert.equal(harness.contexts[0].state, "suspended");
+});
+
+test("every cue has its intended meow and koala voice mix", () => {
+  const waveCounts = function (voices) {
+    return [
+      ...voices.reduce(function (counts, voice) {
+        counts.set(voice.type, (counts.get(voice.type) || 0) + 1);
+        return counts;
+      }, new Map()),
+    ].sort();
+  };
+  [
+    [
+      "pellet",
+      [
+        ["sine", 1],
+        ["triangle", 1],
+      ],
+    ],
+    [
+      "power",
+      [
+        ["sawtooth", 1],
+        ["sine", 3],
+        ["triangle", 2],
+      ],
+    ],
+    [
+      "capture",
+      [
+        ["sawtooth", 1],
+        ["sine", 4],
+        ["triangle", 3],
+      ],
+    ],
+    [
+      "hurt",
+      [
+        ["sawtooth", 1],
+        ["sine", 2],
+        ["triangle", 1],
+      ],
+    ],
+    [
+      "win",
+      [
+        ["sawtooth", 1],
+        ["sine", 5],
+        ["triangle", 4],
+      ],
+    ],
+    ["unknown", []],
+  ].forEach(function ([kind, expected]) {
+    const harness = createAudioHarness();
+    harness.audio.start();
+    harness.audio.pause();
+    harness.voices.length = 0;
+    harness.audio.play(kind);
+    assert.deepEqual(waveCounts(harness.voices), expected, kind);
+  });
+
+  [
+    [0, 620],
+    [1, 652],
+    [3, 716],
+    [5, 652],
+  ].forEach(function ([variant, expected]) {
+    const harness = createAudioHarness();
+    harness.audio.start();
+    harness.audio.pause();
+    harness.voices.length = 0;
+    harness.audio.play("pellet", variant);
+    assert.equal(
+      harness.voices[0].frequencyValue,
+      expected,
+      "variant " + variant,
+    );
+  });
+});
+
+test("finish cues use bounded tails and lock later voices", () => {
+  [
+    ["hurt", 600],
+    ["win", 900],
+  ].forEach(function ([kind, delay]) {
+    const harness = createAudioHarness();
+    harness.audio.start();
+    harness.voices.length = 0;
+    harness.audio.finish(kind);
+    assert.equal(harness.timers.size, 1, kind + " tail timer");
+    assert.equal(harness.scheduled.at(-1).delay, delay, kind + " tail delay");
+    const voiceCount = harness.voices.length;
+    harness.audio.play("pellet");
+    assert.equal(harness.voices.length, voiceCount, kind + " locks cues");
+    harness.runTimer();
+    assert.equal(harness.contexts[0].state, "suspended", kind + " suspends");
+  });
+});
+
+test("audio is wired to every gameplay and shell transition", () => {
+  [
+    [
+      "native context",
+      source,
+      /globalThis\.AudioContext \|\| globalThis\.webkitAudioContext/,
+    ],
+    [
+      "shutdown",
+      functionSource("startShutdownSequence"),
+      /gameAudio\.stop\(\)/,
+    ],
+    [
+      "terminal hurt",
+      functionSource("loseLife"),
+      /gameAudio\.finish\("hurt"\)/,
+    ],
+    [
+      "recoverable hurt",
+      functionSource("loseLife"),
+      /gameAudio\.play\("hurt"\)/,
+    ],
+    [
+      "capture",
+      functionSource("resolveCollision"),
+      /gameAudio\.play\("capture"\)/,
+    ],
+    ["move unlock", functionSource("movePlayer"), /gameAudio\.start\(\)/],
+    [
+      "pickup",
+      functionSource("movePlayer"),
+      /gameAudio\.play\(boost \? "power" : "pellet", turn\)/,
+    ],
+    ["win", functionSource("movePlayer"), /gameAudio\.finish\("win"\)/],
+    [
+      "reset button",
+      source,
+      /getElementById\("reset"\)[\s\S]*?gameAudio\.start\(\)/,
+    ],
+    ["reset key", source, /event\.code === "KeyR"[\s\S]*?gameAudio\.start\(\)/],
+    ["mute key", source, /event\.code === "KeyM"[\s\S]*?gameAudio\.toggle\(\)/],
+    [
+      "debugger reset",
+      shellSource,
+      /case "reset":[\s\S]*?gameAudio\.start\(\)/,
+    ],
+    [
+      "shell pause",
+      shellSource,
+      /argument === "pause"[\s\S]*?gameAudio\.pause\(\)/,
+    ],
+    [
+      "shell resume",
+      shellSource,
+      /argument === "resume"[\s\S]*?gameAudio\.start\(\)/,
+    ],
+    [
+      "shell restart",
+      shellSource,
+      /argument === "reset"[\s\S]*?gameAudio\.start\(\)/,
+    ],
+  ].forEach(function ([name, body, pattern]) {
+    assert.match(body, pattern, name);
+  });
 });
