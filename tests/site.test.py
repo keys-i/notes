@@ -41,6 +41,17 @@ class SiteAssetTests(unittest.TestCase):
         )
         self.assertIn("fetch(shell.manualUrl)", script)
 
+    def test_404_shell_uses_vendored_runtime(self):
+        template = (ROOT / "overrides/404.html").read_text(encoding="utf-8")
+        script = (ROOT / "notes/assets/js/404/shell.js").read_text(encoding="utf-8")
+        runtime = "assets/vendor/shell.js/shell.min.js"
+
+        self.assertLess(
+            template.index(runtime), template.index("assets/js/404/shell.min.js")
+        )
+        self.assertIn("ShellJS.createShell", script)
+        self.assertIn("shell.engine.exec(source)", script)
+
     def test_404_sound_control_is_accessible(self):
         template = (ROOT / "overrides/404.html").read_text(encoding="utf-8")
         script = (ROOT / "notes/assets/js/404/game.js").read_text(encoding="utf-8")
