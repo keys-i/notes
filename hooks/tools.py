@@ -41,7 +41,13 @@ lint = lambda: (
 
 def test():
     for path in sorted(Path("tests").glob("*.test.py")):
-        if result := call([executable, str(path)]):
+        if result := call(
+            [
+                executable,
+                "-c",
+                f"from runpy import run_path; run_path({str(path)!r}, run_name='__main__')",
+            ]
+        ):
             return result
     return call(
         [

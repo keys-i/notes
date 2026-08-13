@@ -75,8 +75,8 @@ vm.runInContext(
   game,
 );
 
-const seeds = Array.from({ length: 16 }, (_, seed) => seed).concat([
-  22, 30, 404,
+const seeds = Array.from({ length: 24 }, (_, seed) => seed).concat([
+  30, 39, 55, 404,
 ]);
 const samples = new Map();
 const sample = function (seed) {
@@ -108,6 +108,7 @@ test("generated mazes are deterministic and satisfy strict constraints", () => {
     assert.ok(metrics.deadEnds <= strict.maximum_dead_ends);
     assert.ok(metrics.fourWays <= strict.maximum_four_ways);
     assert.ok(metrics.chambers <= strict.maximum_chambers);
+    assert.equal(metrics.openRings, 0, "seed " + seed + " has an oversized O");
   });
 });
 
@@ -375,6 +376,9 @@ const createAudioHarness = function (options = {}) {
       const entry = timers.entries().next().value;
       if (!entry) return;
       timers.delete(entry[0]);
+      contexts.forEach((context) => {
+        context.currentTime += entry[1].delay / 1000;
+      });
       entry[1].callback();
     },
     scheduled,
@@ -487,7 +491,7 @@ test("audio lifecycle keeps one timer and respects page state", () => {
   harness.audio.start();
   assert.equal(harness.contexts.length, 1);
   assert.equal(harness.timers.size, 1);
-  assert.equal(harness.scheduled[0].delay, 190);
+  assert.equal(harness.scheduled[0].delay, 91);
 
   harness.page.hidden = true;
   harness.pageListeners.get("visibilitychange")();
@@ -506,6 +510,37 @@ test("audio lifecycle keeps one timer and respects page state", () => {
   harness.pageListeners.get("visibilitychange")();
   assert.equal(harness.timers.size, 0);
   assert.equal(harness.contexts[0].state, "suspended");
+});
+
+test("soundtrack follows the supplied intro timing and uses only meow voices", () => {
+  const harness = createAudioHarness();
+  harness.audio.start();
+  for (let step = 1; step < 31; step += 1) harness.runTimer();
+  const expectedMidi = [
+    71, 83, 78, 75, 83, 78, 75, 72, 84, 79, 76, 84, 79, 76, 71, 83, 78, 75, 83,
+    78, 75, 75, 76, 77, 77, 78, 79, 79, 80, 81, 83,
+  ];
+  const expectedTiming = [136, 136, 136, 136, 68, 204, 272];
+  assert.deepEqual(
+    harness.voices
+      .filter((voice) => voice.type === "triangle")
+      .map((voice) =>
+        Math.round(69 + 12 * Math.log2(voice.frequencyValue / 440)),
+      ),
+    expectedMidi,
+  );
+  assert.deepEqual(
+    harness.scheduled.slice(0, 7).map((timer) => timer.delay),
+    expectedTiming,
+  );
+  assert.equal(
+    harness.scheduled.slice(0, 31).reduce((sum, timer) => sum + timer.delay, 0),
+    4216,
+  );
+  assert.deepEqual(
+    new Set(harness.voices.map((voice) => voice.type)),
+    new Set(["sine", "triangle"]),
+  );
 });
 
 test("every cue has its intended meow and koala voice mix", () => {
@@ -557,14 +592,45 @@ test("every cue has its intended meow and koala voice mix", () => {
         ["triangle", 4],
       ],
     ],
+    [
+      "countdown",
+      [
+        ["sawtooth", 1],
+        ["sine", 1],
+      ],
+    ],
+    [
+      "launch",
+      [
+        ["sawtooth", 1],
+        ["sine", 1],
+        ["square", 1],
+        ["triangle", 1],
+      ],
+    ],
+    [
+      "shutdown",
+      [
+        ["sawtooth", 1],
+        ["sine", 1],
+      ],
+    ],
+    [
+      "boot",
+      [
+        ["sawtooth", 1],
+        ["sine", 1],
+      ],
+    ],
     ["unknown", []],
   ].forEach(function ([kind, expected]) {
     const harness = createAudioHarness();
     harness.audio.start();
-    harness.audio.pause();
     harness.voices.length = 0;
-    harness.audio.play(kind);
+    harness.audio.sequence(kind, kind === "countdown" ? 5 : undefined);
     assert.deepEqual(waveCounts(harness.voices), expected, kind);
+    assert.equal(harness.timers.size, 0, kind + " stops music");
+    assert.equal(harness.contexts[0].suspendCalls, 0, kind + " stays audible");
   });
 
   [
@@ -606,6 +672,11 @@ test("finish cues use bounded tails and lock later voices", () => {
 });
 
 test("audio is wired to every gameplay and shell transition", () => {
+  assert.doesNotMatch(
+    functionSource("startShutdownSequence"),
+    /gameAudio\.pause\(\)/,
+    "shutdown cue must not race a pending context suspension",
+  );
   [
     [
       "native context",
@@ -615,7 +686,17 @@ test("audio is wired to every gameplay and shell transition", () => {
     [
       "shutdown",
       functionSource("startShutdownSequence"),
-      /gameAudio\.stop\(\)/,
+      /gameAudio\.sequence\("shutdown"\)/,
+    ],
+    [
+      "boot",
+      functionSource("startShutdownSequence"),
+      /gameAudio\.sequence\("boot"\)/,
+    ],
+    [
+      "countdown launch",
+      functionSource("startWinSequence"),
+      /gameAudio\.sequence\("countdown", n\)[\s\S]*?gameAudio\.sequence\("launch"\)/,
     ],
     [
       "terminal hurt",
