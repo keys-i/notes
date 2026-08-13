@@ -107,7 +107,9 @@ def validate_heuristic(heuristic, board):
         and type(braid.get("extra_min")) is int
         and braid["extra_min"] >= 0
         and type(braid.get("extra_span")) is int
-        and braid["extra_span"] > 0,
+        and braid["extra_span"] > 0
+        and type(braid.get("minimum_cycle_length")) is int
+        and braid["minimum_cycle_length"] >= 8,
         "heuristic.braid is invalid",
     )
 
