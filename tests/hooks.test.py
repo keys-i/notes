@@ -53,6 +53,7 @@ class HookTests(unittest.TestCase):
                 "maximum_chambers": 18,
             },
         )
+        self.assertEqual(settings["heuristic"]["braid"]["minimum_cycle_length"], 8)
         self.assertEqual(len(settings["pickups"]["items"]), 5)
         self.assertEqual(
             sum(item["power_ticks"] > 0 for item in settings["pickups"]["items"]),
@@ -72,6 +73,17 @@ class HookTests(unittest.TestCase):
                 encoding="utf-8",
             )
             with self.assertRaisesRegex(ValueError, "attempt range is invalid"):
+                game.load_map(candidate, ROOT / "notes")
+
+    def test_game_rejects_short_braid_cycles(self):
+        source = (ROOT / "notes/assets/game.map.toml").read_text(encoding="utf-8")
+        with TemporaryDirectory() as directory:
+            candidate = Path(directory, "game.map.toml")
+            candidate.write_text(
+                source.replace("minimum_cycle_length = 8", "minimum_cycle_length = 7"),
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(ValueError, "heuristic.braid is invalid"):
                 game.load_map(candidate, ROOT / "notes")
 
     def test_graph_links(self):
