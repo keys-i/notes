@@ -51,7 +51,14 @@ class SiteAssetTests(unittest.TestCase):
             template.index(runtime), template.index("assets/js/404/shell.min.js")
         )
         self.assertIn("ShellJS.createShell", script)
+        self.assertIn('"krad-add": ShellJS.createKradAdd', script)
         self.assertIn("shell.engine.exec(source)", script)
+        provenance = (ROOT / "notes/assets/vendor/shell.js/SOURCE").read_text(
+            encoding="utf-8"
+        )
+        for name in ("shell.min.js", "shell.wasm", "krad-add.wasm"):
+            path = ROOT / "notes/assets/vendor/shell.js" / name
+            self.assertIn(sha256(path.read_bytes()).hexdigest(), provenance)
 
     def test_404_sound_control_is_accessible(self):
         template = (ROOT / "overrides/404.html").read_text(encoding="utf-8")
