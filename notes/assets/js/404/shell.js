@@ -32,6 +32,7 @@ var shell = {
     "kldstat",
     "kldunload",
     "koalactl",
+    "krad-add",
     "ls",
     "man",
     "mount",
@@ -100,6 +101,14 @@ var shell = {
 };
 
 shell.engine = ShellJS.createShell({
+  commands: {
+    "krad-add": ShellJS.createKradAdd({
+      url: new URL(
+        "../../vendor/shell.js/krad-add.wasm",
+        document.currentScript.src,
+      ),
+    }),
+  },
   profile: "freebsd",
   wasm: {
     url: new URL(
@@ -629,6 +638,7 @@ function shellCommand(source) {
         "Game: koalactl status|move <nsew|5n|2e3s...>|" +
           (shell.DEBUG ? "pause|resume|" : "") +
           "trace|reset",
+        "Runtime: krad-add INTEGER INTEGER",
         "Manual: man [section] page | man -k keyword | apropos keyword",
         "Enter ddb, then type help at the db> prompt for kernel commands.",
       ].join("\n");
@@ -1123,6 +1133,7 @@ function shellCommand(source) {
         })
         .join("\n");
     case "echo":
+    case "krad-add":
       return shell.engine.exec(source).then(function (result) {
         return (result.stdout || result.stderr).replace(/\n$/, "");
       });
