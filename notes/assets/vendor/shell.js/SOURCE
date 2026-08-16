@@ -1,3 +1,11 @@
-Vendored from https://github.com/keys-i/shell.js at commit
-bed318997a16ae1fc4cad415e926023ef7a6f9cc. The JavaScript and WebAssembly
-artifacts are MIT-licensed; see LICENSE.
+Vendored from https://github.com/keys-i/shell.js at merge commit
+ea38346b9182c0810f3cbacca8c9c835d197800e.
+
+shell.min.js  SHA-256  6ca258b54bc187e93b30d9ef6f9920e38245d96bc12bfd4d4d6a7be0b8662d68
+shell.wasm    SHA-256  21f042d93653cda8d5b0e80813b2bd76b02c0ab0902e70636d08ebb49ffa6d5f
+krad-add.wasm SHA-256  d6f47a8df8691ada08f49fac71b77f3b8dbb061c92041acf00988d34e25d8bcf
+
+krad-add.wasm originated at https://github.com/keys-i/krad commit
+55367f8ad006e18ac6c4c8c760641569975b1bba, merged as
+145b9affc6ae259e258237b3e2b20acca910c870. The artifacts are MIT-licensed;
+see LICENSE.
