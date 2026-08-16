@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
+import { webcrypto } from "node:crypto";
 import fs from "node:fs";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
@@ -30,6 +31,9 @@ const shellBundle = fs.readFileSync(
 );
 const shellWasm = fs.readFileSync(
   new URL("../notes/assets/vendor/shell.js/shell.wasm", import.meta.url),
+);
+const kradWasm = fs.readFileSync(
+  new URL("../notes/assets/vendor/shell.js/krad-add.wasm", import.meta.url),
 );
 const elements = new Map();
 const element = function (id) {
@@ -62,7 +66,7 @@ const game = vm.createContext({
 });
 vm.runInContext(source.slice(0, source.indexOf("var FRUIT_FLAME")), game);
 
-test("vendored shell runtime executes without Wasm imports", async () => {
+test("vendored Shell and Krad runtimes execute without Wasm imports", async () => {
   const runtime = vm.createContext({
     AbortController,
     AbortSignal,
@@ -73,6 +77,7 @@ test("vendored shell runtime executes without Wasm imports", async () => {
     URL,
     WebAssembly,
     clearTimeout,
+    crypto: webcrypto,
     fetch,
     performance,
     setTimeout,
@@ -83,12 +88,22 @@ test("vendored shell runtime executes without Wasm imports", async () => {
   );
   const module = new WebAssembly.Module(shellWasm);
   const instance = await WebAssembly.instantiate(module, {});
+  const krad = runtime.ShellJS.createKradAdd({
+    fetch: async () => new Response(kradWasm),
+    url: "memory:krad-add.wasm",
+  });
+  const sum = await runtime.ShellJS.createShell({
+    commands: { "krad-add": krad },
+  }).exec("krad-add 20 22");
+  const kradModule = new WebAssembly.Module(kradWasm);
 
   assert.equal(result.code, 0);
   assert.equal(result.stdout, "notes\n");
   assert.equal(result.stderr, "");
   assert.deepEqual(WebAssembly.Module.imports(module), []);
   assert.equal(instance.exports.abi(), 1);
+  assert.equal(sum.stdout, "42\n");
+  assert.deepEqual(WebAssembly.Module.imports(kradModule), []);
 });
 
 const functionSource = function (name) {
