@@ -2,10 +2,6 @@
   --dock-pet-cloud-fill: #343940;
   --dock-pet-cloud-stroke: #1f2328;
   --dock-pet-cloud-text: #fff;
-  --dock-pet-fur: #7d8792;
-  --dock-pet-fur-dark: #343a42;
-  --dock-pet-fur-light: #b9c0c7;
-  --dock-pet-shirt: #0854d9;
 
   appearance: none;
   position: fixed;
@@ -21,6 +17,7 @@
   border: 0;
   cursor: pointer;
   user-select: none;
+  will-change: transform;
 }
 
 [data-md-color-scheme="slate"] .dock-pet {
@@ -47,6 +44,10 @@
 }
 
 .dock-pet__art {
+  --dock-pet-fur: #94a5ae;
+  --dock-pet-fur-dark: #30434c;
+  --dock-pet-fur-light: #dce0d9;
+
   --dock-pet-facing: 1;
 
   display: block;
@@ -58,6 +59,10 @@
 }
 
 .dock-pet[data-direction="right"] .dock-pet__art {
+  --dock-pet-fur: #94a5ae;
+  --dock-pet-fur-dark: #30434c;
+  --dock-pet-fur-light: #dce0d9;
+
   --dock-pet-facing: -1;
 }
 
@@ -188,7 +193,7 @@
 .dock-pet__character,
 .dock-pet__head,
 .dock-pet__rump,
-.dock-pet__shirt,
+.dock-pet__belly,
 .dock-pet__limb {
   transform-box: view-box;
 }
@@ -205,25 +210,25 @@
 }
 
 .dock-pet__ear {
-  fill: #69737f;
+  fill: #82969f;
   stroke: var(--dock-pet-fur-dark);
   stroke-width: 3;
 }
 
 .dock-pet__ear-inner {
-  fill: var(--dock-pet-fur-light);
+  fill: #e9aaa8;
 }
 
 .dock-pet__rump {
-  fill: #6d7782;
+  fill: var(--dock-pet-fur);
   stroke: var(--dock-pet-fur-dark);
   stroke-width: 3;
   transform-origin: 59px 83px;
 }
 
-.dock-pet__shirt {
-  fill: var(--dock-pet-shirt);
-  stroke: #063ba0;
+.dock-pet__belly {
+  fill: var(--dock-pet-fur-light);
+  stroke: none;
   stroke-linejoin: round;
   stroke-width: 2.5;
   transform-origin: 59px 78px;
@@ -231,6 +236,7 @@
 
 .dock-pet__limb {
   transform-origin: 50% 50%;
+  transition: transform 180ms ease-out;
 }
 
 .dock-pet__limb-grip {
@@ -272,12 +278,12 @@
 
 .dock-pet__limb-edge {
   stroke: var(--dock-pet-fur-dark);
-  stroke-width: 8;
+  stroke-width: 13;
 }
 
 .dock-pet__limb-fur {
   stroke: var(--dock-pet-fur);
-  stroke-width: 5;
+  stroke-width: 9;
 }
 
 .dock-pet__paw {
@@ -288,8 +294,6 @@
 
 .dock-pet__joint {
   fill: var(--dock-pet-fur);
-  stroke: var(--dock-pet-fur-dark);
-  stroke-width: 2;
 }
 
 .dock-pet__socket {
@@ -299,12 +303,18 @@
   transition: fill 80ms linear;
 }
 
-.dock-pet__iris {
-  transition: transform 45ms linear;
+.dock-pet__face {
+  transform-box: view-box;
+  transform-origin: 59px 62px;
+  transform: translate(
+      calc(var(--dock-pet-look-x, 0) * 0.7px),
+      calc(var(--dock-pet-look-y, 0) * 0.35px)
+    )
+    rotate(calc(var(--dock-pet-look-x, 0) * 1deg));
 }
 
 .dock-pet__iris-color {
-  fill: #2365d8;
+  fill: #80523a;
 }
 
 .dock-pet__pupil {
@@ -343,17 +353,14 @@
   opacity: 0;
 }
 
-.dock-pet[data-wink] .dock-pet__eye--right .dock-pet__socket,
 .dock-pet[data-behavior="yawn"] .dock-pet__socket {
   fill: var(--dock-pet-fur);
 }
 
-.dock-pet[data-wink] .dock-pet__eye--right .dock-pet__iris,
 .dock-pet[data-behavior="yawn"] .dock-pet__iris {
   opacity: 0;
 }
 
-.dock-pet[data-wink] .dock-pet__eye--right .dock-pet__lid,
 .dock-pet[data-behavior="yawn"] .dock-pet__lid {
   opacity: 1;
 }
@@ -368,6 +375,10 @@
 
 .dock-pet[data-state="climbing"] .dock-pet__art,
 .dock-pet[data-state="hanging"] .dock-pet__art {
+  --dock-pet-fur: #94a5ae;
+  --dock-pet-fur-dark: #30434c;
+  --dock-pet-fur-light: #dce0d9;
+
   --dock-pet-facing: 1;
 
   transform-origin: 87% 22%;
@@ -387,7 +398,7 @@
   transform: translateY(6px) scale(1.08, 0.92);
 }
 
-.dock-pet[data-state="sitting"] .dock-pet__shirt {
+.dock-pet[data-state="sitting"] .dock-pet__belly {
   transform: translateY(3px);
 }
 
@@ -476,17 +487,17 @@ html.freebsd-shutting-down .dock-pet__scratch {
   }
 
   .dock-pet[data-state="walking"] .dock-pet__character {
-    animation: dock-pet-walk-body 0.72s ease-in-out infinite;
+    animation: dock-pet-walk-body 0.9s ease-in-out infinite;
   }
 
   .dock-pet[data-state="walking"] .dock-pet__limb--fore-far,
   .dock-pet[data-state="walking"] .dock-pet__limb--hind-near {
-    animation: dock-pet-step-a 0.72s ease-in-out infinite;
+    animation: dock-pet-step-a 0.9s ease-in-out infinite;
   }
 
   .dock-pet[data-state="walking"] .dock-pet__limb--fore-near,
   .dock-pet[data-state="walking"] .dock-pet__limb--hind-far {
-    animation: dock-pet-step-b 0.72s ease-in-out infinite;
+    animation: dock-pet-step-b 0.9s ease-in-out infinite;
   }
 
   .dock-pet[data-state="climbing"] .dock-pet__character {
@@ -525,6 +536,16 @@ html.freebsd-shutting-down .dock-pet__scratch {
     animation-delay: -2.2s;
   }
 
+  .dock-pet[data-wink] .dock-pet__eye {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: dock-pet-blink 130ms ease-in-out;
+  }
+
+  .dock-pet[data-behavior="stretch"] .dock-pet__character {
+    animation: dock-pet-stretch 1.5s ease-in-out both;
+  }
+
   .dock-pet[data-behavior="rub"] .dock-pet__limb--fore-near {
     animation: dock-pet-rub 0.72s ease-in-out infinite;
   }
@@ -532,6 +553,28 @@ html.freebsd-shutting-down .dock-pet__scratch {
   .dock-pet[data-paused] .dock-pet__character,
   .dock-pet[data-paused] .dock-pet__limb {
     animation-play-state: paused !important;
+  }
+}
+
+@keyframes dock-pet-blink {
+  0%,
+  100% {
+    transform: scaleY(1);
+  }
+  45%,
+  60% {
+    transform: scaleY(0.08);
+  }
+}
+
+@keyframes dock-pet-stretch {
+  0%,
+  100% {
+    transform: none;
+  }
+  40%,
+  65% {
+    transform: translateY(-3px) scale(0.97, 1.04);
   }
 }
 
@@ -669,10 +712,35 @@ html.freebsd-shutting-down .dock-pet__scratch {
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .dock-pet__limb {
+    transition: none;
+  }
+}
+
 @media print {
   .dock-pet,
   .dock-pet__status,
   .dock-pet__scratch {
     display: none;
   }
+}
+
+.dock-pet__claws,
+.dock-pet__brow {
+  fill: none;
+  stroke: var(--dock-pet-fur-dark);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+
+.dock-pet__muzzle {
+  fill: #e1ded3;
+}
+
+.dock-pet__nose-shine {
+  fill: none;
+  stroke: #81949b;
+  stroke-width: 2;
+  stroke-linecap: round;
 }
