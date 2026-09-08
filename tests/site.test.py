@@ -1,14 +1,29 @@
 """Tests for site asset integration."""
 
+import tomllib
 import unittest
 import wave
-from hashlib import sha256
+from array import array
 from pathlib import Path
 
 ROOT = Path(__file__).parents[1]
 
 
 class SiteAssetTests(unittest.TestCase):
+    def test_recovery_music_is_a_non_clipping_loop(self):
+        settings = tomllib.loads((ROOT / "notes/assets/game.map.toml").read_text())
+        with wave.open(
+            str(ROOT / "notes" / settings["assets"]["music"]), "rb"
+        ) as audio:
+            self.assertEqual(audio.getnchannels(), 1)
+            self.assertEqual(audio.getsampwidth(), 2)
+            self.assertEqual(audio.getframerate(), 24_000)
+            self.assertGreater(audio.getnframes() / audio.getframerate(), 30)
+            samples = array("h", audio.readframes(audio.getnframes()))
+        self.assertLess(max(abs(value) for value in samples), 32_767)
+        self.assertGreater(max(samples), 10_000)
+        self.assertLess(abs(samples[0] - samples[-1]), 100)
+
     def test_404_assets_are_grouped(self):
         config = (ROOT / "mkdocs.yml").read_text(encoding="utf-8")
         template = (ROOT / "overrides/404.html").read_text(encoding="utf-8")
@@ -83,66 +98,98 @@ class SiteAssetTests(unittest.TestCase):
                 self.assertIn(expected, body)
         self.assertNotIn("AudioContext", script)
 
-    def test_meow_audio_assets_are_browser_ready(self):
+    def test_active_effects_use_classic_arcade_samples(self):
+        settings = tomllib.loads((ROOT / "notes/assets/game.map.toml").read_text())
         for name in (
             "beginning",
             "chomp",
-            "danger",
             "death",
             "fruit",
             "ghost",
-            "launch",
             "life",
+            "intermission",
         ):
             with self.subTest(name=name):
-                path = ROOT / f"notes/assets/audios/meow_{name}.wav"
-                self.assertTrue(path.is_file())
-                with wave.open(str(path), "rb") as audio:
+                asset = settings["assets"][name]
+                self.assertIn("pacman_", asset)
+                self.assertNotIn("meow", asset)
+                with wave.open(str(ROOT / "notes" / asset), "rb") as audio:
+                    self.assertEqual(audio.getnchannels(), 1)
+                    self.assertIn(audio.getsampwidth(), (1, 2))
+                    self.assertGreater(audio.getframerate(), 8_000)
+                    self.assertGreater(audio.getnframes(), 1_000)
+        self.assertNotIn("danger", settings["assets"])
+
+    def test_countdown_and_boom_have_distinct_short_effects(self):
+        settings = tomllib.loads((ROOT / "notes/assets/game.map.toml").read_text())
+        for name, minimum, maximum in (("countdown", 0.65, 0.8), ("launch", 1.3, 1.4)):
+            with self.subTest(name=name):
+                asset = settings["assets"][name]
+                self.assertNotIn("pacman_", asset)
+                self.assertNotIn("meow", asset)
+                with wave.open(str(ROOT / "notes" / asset), "rb") as audio:
                     self.assertEqual(audio.getnchannels(), 1)
                     self.assertEqual(audio.getsampwidth(), 2)
-                    self.assertEqual(audio.getframerate(), 24_000)
-                    self.assertGreater(audio.getnframes(), 9_000)
+                    self.assertGreater(audio.getnframes(), 1_000)
+                    self.assertGreater(
+                        audio.getnframes() / audio.getframerate(), minimum
+                    )
+                    self.assertLess(audio.getnframes() / audio.getframerate(), maximum)
+                    samples = array("h", audio.readframes(audio.getnframes()))
+                self.assertGreater(max(abs(value) for value in samples), 10_000)
+                self.assertLess(max(abs(value) for value in samples), 32_767)
+                self.assertLess(abs(samples[0] - samples[-1]), 100)
 
     def test_dock_pet_integration(self):
         main = (ROOT / "overrides/main.html").read_text(encoding="utf-8")
+        artwork = (ROOT / "overrides/partials/koala.html").read_text(encoding="utf-8")
+        self.assertIn('{% include "partials/koala.html" %}', main)
+        main = main.replace('{% include "partials/koala.html" %}', artwork)
         not_found = (ROOT / "overrides/404.html").read_text(encoding="utf-8")
         style = (ROOT / "notes/assets/styles/pet.css").read_text(encoding="utf-8")
         script = (ROOT / "notes/assets/js/pet.js").read_text(encoding="utf-8")
-        image = ROOT / "notes/assets/images/game/koala/pet.webp"
 
-        self.assertIn("assets/styles/pet.min.css", main)
-        self.assertIn("assets/js/pet.min.js", main)
-        self.assertIn('aria-label="Greet the KoalaBSD dock pet"', main)
-        self.assertIn('class="dock-pet__status"', main)
-        self.assertIn('class="dock-pet__body" aria-hidden="true"', main)
-        self.assertIn('class="dock-pet__look"', main)
-        self.assertIn('class="dock-pet__cloud"', main)
-        self.assertIn("assets/images/game/koala/pet.webp", main)
-        self.assertNotIn("dock-pet__motion", main)
-        self.assertNotIn('class="dock-pet__eyes"', main)
-        self.assertIn('id="dock-pet"', main)
-        self.assertIn("hidden", main)
+        for expected in (
+            "assets/styles/pet.min.css",
+            "assets/js/pet.min.js",
+            'aria-label="Greet the KoalaBSD dock pet"',
+            'class="dock-pet__status"',
+            'class="dock-pet__body" aria-hidden="true"',
+            'class="dock-pet__art"',
+            'class="dock-pet__cloud"',
+            'id="dock-pet"',
+            "hidden",
+        ):
+            with self.subTest(expected=expected):
+                self.assertIn(expected, main)
+        self.assertEqual(main.count('class="dock-pet__limb '), 4)
+        self.assertEqual(main.count('class="dock-pet__iris"'), 2)
+        self.assertEqual(main.count('clip-path="url(#dock-pet-eye-'), 2)
+        self.assertNotIn("<canvas", main)
+        self.assertNotIn("pet.webp", main)
         self.assertNotIn("dock-pet", not_found)
         self.assertIn(".dock-pet:focus-visible", style)
-        self.assertIn('.dock-pet[data-direction="right"] .dock-pet__body', style)
-        self.assertNotIn('.dock-pet[data-direction="left"] .dock-pet__body', style)
-        self.assertIn("../images/game/koala/pet.webp", style)
+        self.assertIn('.dock-pet[data-direction="right"] .dock-pet__art', style)
+        self.assertNotIn("url(", style)
         self.assertNotIn("pet-poses.webp", style)
+        self.assertFalse((ROOT / "notes/assets/images/game/koala/pet.webp").exists())
         self.assertFalse(
             (ROOT / "notes/assets/images/game/koala/pet-poses.webp").exists()
         )
         self.assertLess(
-            style.index('.dock-pet[data-state="hanging"] .dock-pet__body'),
+            style.index('.dock-pet[data-state="hanging"] .dock-pet__art'),
             style.index("@media (min-width: 60em)"),
         )
         self.assertIn("--dock-pet-cloud-fill: #343940", style)
         self.assertIn("--dock-pet-cloud-fill: #fff", style)
         self.assertIn("--dock-pet-cloud-text: #202124", style)
         self.assertIn("text-wrap: pretty", style)
-        self.assertIn("@keyframes dock-pet-walk", style)
-        self.assertIn("@keyframes dock-pet-climb", style)
+        self.assertIn("@keyframes dock-pet-step-a", style)
+        self.assertIn("@keyframes dock-pet-climb-fore-a", style)
         self.assertIn("@keyframes dock-pet-breathe", style)
         self.assertIn("@keyframes dock-pet-hang-sway", style)
+        self.assertIn('[data-state="sitting"] .dock-pet__rump', style)
+        self.assertIn('[data-state="sitting"] .dock-pet__limb--fore-near', style)
         self.assertIn(".dock-pet__thought-tail::before", style)
         self.assertIn("prefers-reduced-motion: no-preference", style)
         self.assertIn("html.freebsd-booting .dock-pet", style)
@@ -153,30 +200,14 @@ class SiteAssetTests(unittest.TestCase):
         self.assertIn("https://dummyjson.com/quotes/random", script)
         self.assertIn('"dock-pet-position-v1"', script)
         self.assertIn('window.addEventListener("pointermove"', script)
-        self.assertIn("dockPetFrame", script)
-        self.assertIn("DOCK_PET_FRAME_COUNT =", script)
-        self.assertIn("DOCK_PET_TRANSITION_FRAMES = 100", script)
+        self.assertIn("dockPetGaze", script)
         self.assertIn("dockPetCloudPath", script)
-        self.assertIn("lookContext.drawImage", script)
-        self.assertIn("lookContext.ellipse", script)
+        self.assertIn('iris.setAttribute(\n          "transform"', script)
+        self.assertNotIn("new Image", script)
+        self.assertNotIn("drawImage", script)
         self.assertIn('document.addEventListener("visibilitychange"', script)
         self.assertIn("dockPetDialogue", script)
         self.assertNotIn("jump", script.lower())
-        self.assertEqual(image.read_bytes()[:4], b"RIFF")
-        self.assertEqual(image.read_bytes()[8:12], b"WEBP")
-        header = image.read_bytes()[:30]
-        self.assertEqual(
-            (
-                1 + int.from_bytes(header[24:27], "little"),
-                1 + int.from_bytes(header[27:30], "little"),
-            ),
-            (3200, 6400),
-        )
-        self.assertLess(len(image.read_bytes()), 5_000_000)
-        self.assertEqual(
-            sha256(image.read_bytes()).hexdigest(),
-            "b4c4a25e00b5f34513e0f5829c5c71a12c5016b6ae843faeb0131efbf9ef2acb",
-        )
 
 
 if __name__ == "__main__":

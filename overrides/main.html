@@ -185,12 +185,7 @@ page.meta.comments == false %}
     <span class="dock-pet__thought-tail" aria-hidden="true"></span>
   </span>
   <span class="dock-pet__body" aria-hidden="true">
-    <canvas
-      class="dock-pet__look"
-      width="256"
-      height="256"
-      data-src="{{ 'assets/images/game/koala/pet.webp' | url }}"
-    ></canvas>
+    {% include "partials/koala.html" %}
   </span>
 </button>
 <span
