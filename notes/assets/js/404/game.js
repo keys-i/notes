@@ -119,8 +119,16 @@ var ghostsStarted;
 var graceTicks;
 var lastDirection;
 var gameAudio;
+var gameStarted = false;
+var gameScene = "";
+var gameSceneTimer;
+var sceneElement = document.getElementById("game-scene");
 var ntPanel = document.querySelector(".trace--nt");
 var ghostPen;
+var movementKeys = new Map();
+var playerFrame = 0;
+var inputDirection = null;
+var nextInputAt = 0;
 
 function point(coordinates) {
   return { x: coordinates[0], y: coordinates[1] };
@@ -166,7 +174,7 @@ var GAME_DIALOGUE = {
   ],
   predator: [
     "Got one! The others are already pretending not to worry.",
-    "Another hunter sent home with a tiny meow.",
+    "Another hunter sent packing. Keep going!",
   ],
   life: [
     "One more chance joined the adventure.",
@@ -204,24 +212,28 @@ function createGameAudio(
   storage,
   page,
   assets,
+  musicControl,
 ) {
   var muted = false;
   var volume = 0.8;
   var unlocked = false;
-  var danger = false;
   var voices = new Set();
   var music;
-  var dangerMusic;
+  var musicEnabled = false;
+  var sequenceActive = false;
+  var pelletVoice;
+  var pelletTimer;
+  var foregroundVoice;
   var root = control ? control.dataset.audioRoot : "";
   var cues = {
     pellet: "chomp",
-    power: "fruit",
+    power: "intermission",
     bonus: "fruit",
     capture: "ghost",
     hurt: "death",
     life: "life",
     win: "life",
-    countdown: "chomp",
+    countdown: "countdown",
     launch: "launch",
     shutdown: "death",
     boot: "beginning",
@@ -244,6 +256,7 @@ function createGameAudio(
     control.disabled = true;
     control.setAttribute("aria-label", "Game sound unavailable");
     if (volumeControl) volumeControl.disabled = true;
+    if (musicControl) musicControl.disabled = true;
   }
 
   function renderControl() {
@@ -254,6 +267,10 @@ function createGameAudio(
       muted ? "Unmute game sound" : "Mute game sound",
     );
     if (volumeControl) volumeControl.value = volume;
+    if (musicControl) {
+      musicControl.textContent = musicEnabled ? "Music on" : "Music off";
+      musicControl.setAttribute("aria-pressed", String(musicEnabled));
+    }
   }
 
   function make(name, loop) {
@@ -273,38 +290,51 @@ function createGameAudio(
     if (!audio) return;
     try {
       var started = audio.play();
-      if (started && started.catch) started.catch(function () {});
+      if (started && started.catch)
+        started.catch(function () {
+          if (audio.paused && audio.onended) audio.onended();
+        });
     } catch (error) {
-      // Playback rejection must not interrupt the game loop.
+      // Release a blocked cue so it cannot silence later music
+      if (audio.onended) audio.onended();
     }
   }
 
   function syncMusic() {
-    if (!unlocked || muted || page.hidden || !running || paused) {
-      [music, dangerMusic].forEach(function (track) {
-        if (track) track.pause();
-      });
+    if (
+      !musicEnabled ||
+      sequenceActive ||
+      gameScene ||
+      !gameStarted ||
+      foregroundVoice ||
+      !unlocked ||
+      muted ||
+      page.hidden ||
+      !running ||
+      paused
+    ) {
+      if (music) music.pause();
       return;
     }
-    if (!music) music = make("beginning", true);
-    if (!dangerMusic) dangerMusic = make("danger", true);
-    if (!music || !dangerMusic) return;
-    music.volume = danger ? 0 : volume * 0.62;
-    dangerMusic.volume = danger ? volume * 0.72 : 0;
+    if (!music) music = make("music", true);
+    if (!music) return;
+    music.volume = volume * 0.22;
     if (music.paused) begin(music);
-    if (dangerMusic.paused) begin(dangerMusic);
   }
 
   function start() {
     unlocked = true;
+    if (!gameScene) sequenceActive = false;
     syncMusic();
   }
 
   function pause() {
-    [music, dangerMusic].forEach(function (track) {
-      if (track) track.pause();
-    });
+    clearTimeout(pelletTimer);
+    foregroundVoice = null;
+    if (music) music.pause();
     voices.forEach(function (voice) {
+      voice.onended = null;
+      voice.onerror = null;
       voice.pause();
     });
     voices.clear();
@@ -318,41 +348,55 @@ function createGameAudio(
   function play(kind, variant) {
     var name = cues[kind];
     if (!name || !unlocked || muted || page.hidden) return;
-    var voice = make(name, false);
+    var voice;
+    if (kind === "pellet") {
+      if (foregroundVoice) return;
+      if (!pelletVoice) pelletVoice = make(name, true);
+      voice = pelletVoice;
+      if (!voice) return;
+      clearTimeout(pelletTimer);
+      pelletTimer = setTimeout(function () {
+        voice.pause();
+        voice.currentTime = 0;
+        voices.delete(voice);
+      }, 180);
+      if (!voice.paused) return;
+    } else {
+      pause();
+      voice = make(name, false);
+      foregroundVoice = voice;
+    }
     if (!voice) return;
-    voice._gain = kind === "pellet" ? 0.48 : 1;
-    voice.volume = volume * voice._gain;
-    if (kind === "pellet")
-      voice.playbackRate = 0.94 + ((variant || 0) % 4) * 0.04;
+    voice._gain = kind === "pellet" ? 0.14 : kind === "launch" ? 0.95 : 0.55;
     if (kind === "countdown") {
       var count = Math.max(1, Math.min(5, Number(variant) || 1));
+      voice._gain = 0.45 + (5 - count) * 0.08;
+      voice.preservesPitch = false;
       voice.playbackRate = 0.84 + (5 - count) * 0.08;
     }
-    voice.addEventListener("ended", function () {
+    voice.volume = volume * voice._gain;
+    voice.onended = function () {
       voices.delete(voice);
-    });
+      if (foregroundVoice === voice) foregroundVoice = null;
+      syncMusic();
+    };
+    voice.onerror = voice.onended;
     voices.add(voice);
     begin(voice);
   }
 
   function finish(kind) {
+    sequenceActive = true;
     pause();
     play(kind);
     unlocked = false;
   }
 
   function sequence(kind, variant) {
+    sequenceActive = true;
     pause();
     unlocked = true;
     play(kind, variant);
-  }
-
-  function mood(afraid, powered, collected, total) {
-    danger = Boolean(afraid && !powered);
-    var progress = total > 0 ? Math.max(0, Math.min(1, collected / total)) : 0;
-    if (music) music.playbackRate = 1 + progress * 0.08 + (powered ? 0.08 : 0);
-    if (dangerMusic) dangerMusic.playbackRate = 1 + progress * 0.05;
-    syncMusic();
   }
 
   function toggle() {
@@ -366,7 +410,19 @@ function createGameAudio(
     renderControl();
     if (muted) {
       pause();
-    } else start();
+    } else {
+      unlocked = true;
+      syncMusic();
+    }
+  }
+
+  function toggleMusic() {
+    if (!AudioClass) return;
+    musicEnabled = !musicEnabled;
+    unlocked = true;
+    renderControl();
+    if (musicEnabled && muted) toggle();
+    else syncMusic();
   }
 
   function setVolume(event) {
@@ -389,9 +445,10 @@ function createGameAudio(
     control.addEventListener("click", toggle);
   }
   if (volumeControl) volumeControl.addEventListener("input", setVolume);
+  if (musicControl) musicControl.addEventListener("click", toggleMusic);
   page.addEventListener("visibilitychange", function () {
     if (page.hidden) pause();
-    else if (unlocked && running && !paused) start();
+    else syncMusic();
   });
 
   return {
@@ -401,9 +458,81 @@ function createGameAudio(
     play: play,
     sequence: sequence,
     finish: finish,
-    mood: mood,
     toggle: toggle,
+    toggleMusic: toggleMusic,
   };
+}
+
+function clearGameScene() {
+  clearTimeout(gameSceneTimer);
+  gameSceneTimer = 0;
+  gameScene = "";
+  sceneElement.hidden = true;
+  delete board.dataset.scene;
+  osElement.classList.remove("power-cutscene");
+  gameAudio.stop();
+}
+
+function finishGameScene() {
+  var kind = gameScene;
+  if (!kind) return;
+  var restoreFocus = sceneElement.contains(document.activeElement);
+  clearGameScene();
+  if (restoreFocus && !document.hidden && !shuttingDown)
+    board.focus({ preventScroll: true });
+  if (!running || shuttingDown) return;
+  if (kind === "hurt") {
+    clearPredatorEffects();
+    resetPositions();
+  }
+  if (kind === "vegemite" || kind === "dragon") {
+    flashRandomWalls();
+    triggerPowerBurst();
+  }
+  gameAudio.start();
+  if (kind === "vegemite" || kind === "dragon") resolveCollision();
+}
+
+function startGameScene(kind) {
+  clearGameScene();
+  stopPlayerInput();
+  gameScene = kind;
+  gameStarted = true;
+  var power = kind === "vegemite" || kind === "dragon";
+  var duration = power ? 5204 : kind === "ready" ? 4217 : 1534;
+  var title =
+    kind === "vegemite"
+      ? "VEGEMITE OVERCLOCK!"
+      : kind === "dragon"
+        ? "DRAGON BALL X!"
+        : kind === "ready"
+          ? "READY!"
+          : kind === "dropped"
+            ? "THE DROP BEAR HAS DROPPED."
+            : "ONE MORE GO.";
+  sceneElement.dataset.kind = kind;
+  sceneElement.style.setProperty("--scene-duration", duration + "ms");
+  sceneElement.querySelector(".game-scene__title").textContent = title;
+  sceneElement.querySelector(".game-scene__caption").textContent = power
+    ? "The hunters should run."
+    : kind === "ready"
+      ? "Grab the snacks. Dodge the hunters."
+      : kind === "dropped"
+        ? "Press R for another snack run."
+        : "Shake it off, little mate.";
+  var hunters = sceneElement.querySelector(".game-scene__hunters");
+  hunters.replaceChildren();
+  if (power)
+    ghostElements.forEach(function (ghost) {
+      hunters.appendChild(ghost.querySelector("svg").cloneNode(true));
+    });
+  // Restart the cutscene even when a reset selects the same power again
+  void sceneElement.offsetWidth;
+  sceneElement.hidden = false;
+  board.dataset.scene = kind;
+  osElement.classList.toggle("power-cutscene", power);
+  gameAudio.sequence(power ? "power" : kind === "ready" ? "boot" : "hurt");
+  gameSceneTimer = setTimeout(finishGameScene, duration);
 }
 
 function seededRandom(seed, stream) {
@@ -1520,6 +1649,7 @@ gameAudio = createGameAudio(
   soundStorage,
   document,
   settings.assets,
+  document.getElementById("music"),
 );
 
 function fruitHue(range, random) {
@@ -1693,18 +1823,21 @@ try {
 
 function place(element, position) {
   var previousX = Number(element.dataset.cellX);
-  if (previousX === position.x && Number(element.dataset.cellY) === position.y)
-    return;
+  var previousY = Number(element.dataset.cellY);
+  if (previousX === position.x && previousY === position.y) return;
   var warping =
-    Number.isFinite(previousX) && Math.abs(previousX - position.x) > 1;
+    !Number.isFinite(previousX) ||
+    Math.abs(previousX - position.x) > 1 ||
+    Math.abs(previousY - position.y) > 1;
   if (warping) element.classList.add("warping");
-  element.style.left = (position.x * 100) / columns + "%";
-  element.style.top = (position.y * 100) / maze.length + "%";
+  element.style.translate = position.x * 100 + "% " + position.y * 100 + "%";
   element.dataset.cellX = position.x;
   element.dataset.cellY = position.y;
   if (warping) {
     requestAnimationFrame(function () {
-      element.classList.remove("warping");
+      requestAnimationFrame(function () {
+        element.classList.remove("warping");
+      });
     });
   }
 }
@@ -1718,7 +1851,6 @@ function updateFear(fearMap) {
   ) {
     playerElement.classList.remove("frightened");
     osElement.classList.remove("frightened");
-    gameAudio.mood(false, panicTicks > 0, 0, pelletStarts.length);
     return;
   }
   var distances = fearMap || distancesFor(maze, player);
@@ -1727,12 +1859,6 @@ function updateFear(fearMap) {
   });
   playerElement.classList.toggle("frightened", afraid);
   osElement.classList.toggle("frightened", afraid);
-  gameAudio.mood(
-    afraid,
-    panicTicks > 0,
-    pelletStarts.length - (pellets ? pellets.size : pelletStarts.length),
-    pelletStarts.length,
-  );
 }
 
 function drawActors() {
@@ -1829,6 +1955,8 @@ function homeUrl() {
 
 function startShutdownSequence(url) {
   if (shuttingDown) return;
+  clearGameScene();
+  setPlayerAura("");
   gameAudio.sequence("shutdown");
   running = false;
   paused = true;
@@ -1991,7 +2119,7 @@ function startWinSequence() {
     '<div class="win-confetti" aria-hidden="true"></div>' +
     '<div class="win-snap" aria-hidden="true"></div>' +
     '<p class="win-route__count" aria-live="assertive"></p>' +
-    '<p class="win-route__hint">returning to route /</p>';
+    '<p class="win-route__hint">Maze cleared. Next stop: home.</p>';
   document.body.appendChild(winLayer);
   var countEl = winLayer.querySelector(".win-route__count");
   var hintEl = winLayer.querySelector(".win-route__hint");
@@ -2021,7 +2149,7 @@ function startWinSequence() {
   }
 
   function goHome() {
-    hintEl.textContent = "mounting / ...";
+    hintEl.textContent = "Back to notes…";
     winLayer.classList.add("is-snapping");
     document.body.classList.add("routing-snap");
     document.documentElement.classList.add("routing-home");
@@ -2052,44 +2180,44 @@ function startWinSequence() {
     statusElement.textContent = "init: route restored; remounting /";
     burstConfetti(28, 0.7);
     gameAudio.sequence("launch");
-    scheduleWin(goHome, 700);
+    scheduleWin(goHome, 1400);
     return;
   }
-
-  burstConfetti(110, 1.15);
-  scheduleWin(function () {
-    burstConfetti(70, 1.35);
-  }, 280);
 
   var n = 5;
   function tick() {
     countEl.classList.remove("is-boom", "is-tick");
     if (n > 0) {
+      winLayer.classList.add("is-counting");
       gameAudio.sequence("countdown", n);
       setRouteCount(n);
+      countEl.style.setProperty(
+        "--count-impact",
+        String(1.65 + (5 - n) * 0.16),
+      );
       countEl.textContent = String(n);
       void countEl.offsetWidth;
       countEl.classList.add("is-tick");
-      hintEl.textContent = "remounting / in " + n;
+      hintEl.textContent = "HOME IN " + n;
       statusElement.textContent =
         "init: route recovery complete; remounting / in " + n + "...";
-      burstConfetti(42 + (5 - n) * 14, 1 + (5 - n) * 0.18);
       n -= 1;
       scheduleWin(tick, 1000);
       return;
     }
     setRouteCount(1);
+    winLayer.classList.remove("is-counting");
     countEl.textContent = "BOOM!";
     countEl.classList.add("is-boom");
     osElement.classList.add("routing-boom");
-    hintEl.textContent = "route vnode remounted";
+    hintEl.textContent = "Next stop: notes.";
     statusElement.textContent = "init: BOOM — jumping back to /";
     gameAudio.sequence("launch");
     burstConfetti(160, 1.8);
-    scheduleWin(goHome, 750);
+    scheduleWin(goHome, 1400);
   }
 
-  scheduleWin(tick, 1500);
+  scheduleWin(tick, 1900);
 }
 
 function updateScore() {
@@ -2265,6 +2393,7 @@ function resetPositions() {
 }
 
 function loseLife() {
+  stopPlayerInput();
   lives -= 1;
   panicTicks = 0;
   powerCombo = 0;
@@ -2281,14 +2410,14 @@ function loseLife() {
   }, 500);
 
   if (lives === 0) {
-    gameAudio.finish("hurt");
+    startGameScene("dropped");
     running = false;
     stopGhosts();
     board.classList.add("lost");
     lockHome();
     playerElement.setAttribute(
       "aria-label",
-      "The koala is defeated and extremely sad. Press R or reset to try again.",
+      "The drop bear has dropped. Press R or reset to try again.",
     );
     dumpElement.textContent = "FAILED";
     statusElement.textContent =
@@ -2296,13 +2425,12 @@ function loseLife() {
     return;
   }
 
-  gameAudio.play("hurt");
+  startGameScene("hurt");
   statusElement.textContent =
     "kradkrnl: koala0 recovered from predator fault; " +
     lives +
     " restart slots remain.";
   graceTicks = settings.play.grace_ticks;
-  resetPositions();
 }
 
 function resolveCollision() {
@@ -2441,7 +2569,7 @@ function moveGhost(ghost, index, playerDistances, reserved) {
 }
 
 function moveGhosts() {
-  if (!running || paused || document.hidden) return;
+  if (!running || paused || gameScene || document.hidden) return;
   if (graceTicks > 0) {
     graceTicks -= 1;
     return;
@@ -2494,6 +2622,60 @@ function startGhosts() {
 function stopGhosts() {
   clearInterval(ghostTimer);
   ghostsStarted = false;
+  stopPlayerInput();
+}
+
+function stopPlayerInput() {
+  cancelAnimationFrame(playerFrame);
+  playerFrame = 0;
+  movementKeys.clear();
+  inputDirection = null;
+  nextInputAt = 0;
+}
+
+function stepPlayerInput(now) {
+  playerFrame = 0;
+  if (
+    !running ||
+    paused ||
+    gameScene ||
+    document.hidden ||
+    !movementKeys.size
+  ) {
+    stopPlayerInput();
+    return;
+  }
+  if (now >= nextInputAt) {
+    var requested = Array.from(movementKeys.values()).pop();
+    var next = stepIn(maze, player, requested);
+    if (playerMayEnter(maze, next.x, next.y)) inputDirection = requested;
+    var movement = inputDirection || requested;
+    movePlayer(movement[0], movement[1]);
+    nextInputAt = now + 160;
+  }
+  if (movementKeys.size) playerFrame = requestAnimationFrame(stepPlayerInput);
+}
+
+function holdPlayerInput(code, movement) {
+  if (
+    !running ||
+    paused ||
+    gameScene ||
+    document.hidden ||
+    movementKeys.has(code)
+  )
+    return;
+  movementKeys.set(code, movement);
+  if (!playerFrame) stepPlayerInput(performance.now());
+}
+
+function releasePlayerInput(code) {
+  movementKeys.delete(code);
+  if (!movementKeys.size) {
+    cancelAnimationFrame(playerFrame);
+    playerFrame = 0;
+    inputDirection = null;
+  }
 }
 
 function randomiserDestination() {
@@ -2532,6 +2714,7 @@ function setPlayerAura(kind) {
   delete playerElement.dataset.auraSurge;
   if (!kind) {
     powerAuraKind = "";
+    delete osElement.dataset.power;
     clearFruitAuraVars();
     delete playerElement.dataset.aura;
     return;
@@ -2539,6 +2722,7 @@ function setPlayerAura(kind) {
   playerElement.dataset.aura = kind;
   if (kind === "vegemite" || kind === "dragon") {
     powerAuraKind = kind;
+    osElement.dataset.power = kind;
     clearFruitAuraVars();
     return;
   }
@@ -2602,7 +2786,11 @@ function fireGrayWarp() {
 }
 
 function movePlayer(dx, dy) {
-  if (!running) return;
+  if (!running || paused || gameScene || document.hidden) return;
+  if (!gameStarted) {
+    startGameScene("ready");
+    return;
+  }
   gameAudio.start();
   var now = performance.now();
   if (now >= slowUntil && grayStacks) {
@@ -2665,20 +2853,17 @@ function movePlayer(dx, dy) {
       board.classList.add("powered");
       board.classList.remove("power-warning");
       setPlayerAura(boost.id === "vegemite" ? "vegemite" : "dragon");
-      flashRandomWalls();
-      triggerPowerBurst();
+      startGameScene(boost.id === "vegemite" ? "vegemite" : "dragon");
     } else if (bonus) {
       if (!surgeSaiyan()) setFruitAura(bonus);
     }
-    gameAudio.play(
-      restoredLife ? "life" : boost ? "power" : bonus ? "bonus" : "pellet",
-      turn,
-    );
+    if (!boost)
+      gameAudio.play(restoredLife ? "life" : bonus ? "bonus" : "pellet");
     grid.children[player.y * columns + player.x].classList.add("eaten");
     updateScore();
   }
 
-  if (resolveCollision()) return;
+  if (!gameScene && resolveCollision()) return;
 
   if (player.x === homeOrigin.x && player.y === homeOrigin.y) {
     running = false;
@@ -2696,7 +2881,7 @@ function movePlayer(dx, dy) {
     statusElement.textContent =
       "fsck_krad: route bitmap clean; proceed to eucalyptus mountpoint.";
     showDialogue("clear");
-  } else if (boost) {
+  } else if (collected && boost) {
     statusElement.textContent =
       "devd: " +
       boost.id +
@@ -2754,6 +2939,8 @@ function movePlayer(dx, dy) {
 
 function resetGame(regenerate) {
   if (shuttingDown) return;
+  clearGameScene();
+  gameStarted = false;
   stopGhosts();
   clearWallFlashes();
   clearPredatorEffects();
@@ -2800,9 +2987,22 @@ function resetGame(regenerate) {
     (tunnelRow < 0 ? "offline." : "row" + tunnelRow + ".");
   showDialogue("ready");
 }
+sceneElement.querySelector("button").addEventListener("click", finishGameScene);
+
 document.querySelectorAll("[data-move]").forEach(function (button) {
-  button.addEventListener("click", function () {
-    movePlayer(...button.dataset.move.split(",").map(Number));
+  var code = button.dataset.move;
+  button.addEventListener("pointerdown", function (event) {
+    if (event.button !== 0) return;
+    button.setPointerCapture(event.pointerId);
+    holdPlayerInput(code, code.split(",").map(Number));
+  });
+  ["pointerup", "pointercancel", "lostpointercapture"].forEach(function (name) {
+    button.addEventListener(name, function () {
+      releasePlayerInput(code);
+    });
+  });
+  button.addEventListener("click", function (event) {
+    if (event.detail === 0) movePlayer(...code.split(",").map(Number));
   });
 });
 
@@ -2838,12 +3038,14 @@ addEventListener("keydown", function (event) {
   }
   if (event.code === "KeyR") {
     event.preventDefault();
+    if (event.repeat) return;
     resetGame();
     gameAudio.start();
     return;
   }
   if (event.code === "KeyM") {
     event.preventDefault();
+    if (event.repeat) return;
     gameAudio.toggle();
     return;
   }
@@ -2851,5 +3053,20 @@ addEventListener("keydown", function (event) {
   var movement = directions[moveIndexes[event.code]];
   if (!movement) return;
   event.preventDefault();
-  movePlayer(movement[0], movement[1]);
+  holdPlayerInput(event.code, movement);
+});
+
+addEventListener("keyup", function (event) {
+  releasePlayerInput(event.code);
+});
+addEventListener("blur", stopPlayerInput);
+document.addEventListener("visibilitychange", function () {
+  if (document.hidden) {
+    stopPlayerInput();
+    finishGameScene();
+  }
+});
+document.addEventListener("focusin", function (event) {
+  if (event.target.closest("input, textarea, [contenteditable]"))
+    stopPlayerInput();
 });

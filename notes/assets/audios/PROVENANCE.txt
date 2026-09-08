@@ -1,10 +1,17 @@
-The meow_*.wav files are locally rendered cartoon meow performances derived
-from the supplied arcade references. The two looping music tracks keep the
-recognisable retro cue in front and add a low-passed meow vocal layer; the
-short gameplay cues remain meow-led.
+The active gameplay effects use the supplied pacman_*.wav arcade samples.
+No meow or ambient danger track is loaded by the site. The beginning and
+intermission samples play once during the ready and power-up scenes. The
+chomp sample runs only while collecting pellets; foreground cues interrupt
+the optional music and finish before it resumes.
 
-meow_launch.wav adds a low-frequency rocket transient to the extra-life meow
-for the final countdown hit.
+recovery-groove.wav is an original, locally synthesized 112 BPM instrumental
+arcade loop: soft plucked lead, sine bass, kick, snare, and light hi-hats.
+It contains no sampled recordings or vocals. Background music is off by
+default and is available only through the separate Music control.
 
-The supplied pacman_*.wav reference files are development inputs and are not
-loaded by the site.
+recovery-tick.wav and recovery-boom.wav are original, locally synthesized
+one-shot effects for the 5–1 countdown and BOOM respectively. The countdown
+combines a bass strike, metallic echoes, and a rising electronic swell; each
+successive hit increases in pitch and gain. The 1.35-second impact combines a falling
+bass tone, low harmonics, a noise crack, and short reflections. Neither contains sampled recordings, vocals,
+or a music loop.

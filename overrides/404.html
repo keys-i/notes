@@ -9,6 +9,7 @@
   href="{{ site_root }}assets/styles/freebsd.boot.min.css"
 />
 <link rel="stylesheet" href="{{ site_root }}assets/styles/404/panic.min.css" />
+<link rel="stylesheet" href="{{ site_root }}assets/styles/pet.min.css" />
 <link rel="stylesheet" href="{{ site_root }}assets/styles/404/game.min.css" />
 <link rel="stylesheet" href="{{ site_root }}assets/styles/404/shell.min.css" />
 <link
@@ -91,7 +92,9 @@ Dumping 404 out of 404 MB</pre>
       <div class="game__heading">
         <div>
           <span class="game__eyebrow">ttyv0 · single-user · /rescue/sh</span>
-          <h1 id="404-title" data-text="404">404</h1>
+          <h1 id="404-title" data-text="404" aria-label="404 — Page not found">
+            404
+          </h1>
         </div>
         <p class="game__recovery" aria-label="Live recovery activity">
           <span id="recovery-text" aria-hidden="true"
@@ -100,11 +103,25 @@ Dumping 404 out of 404 MB</pre>
         </p>
       </div>
 
+      <nav class="game__links" aria-label="Page recovery">
+        <span>Page not found.</span>
+        <a href="{{ site_root }}">Return to notes</a>
+        <a href="#board">Play recovery</a>
+      </nav>
+
       <div class="score">
         <span aria-live="polite">Score <strong id="score">0000</strong></span>
         <span aria-live="polite">Moves <strong id="moves">000</strong></span>
         <span aria-live="polite">Lives <strong id="lives">♥♥♥</strong></span>
         <span class="score__audio">
+          <button
+            id="music"
+            class="score__music"
+            type="button"
+            aria-pressed="false"
+          >
+            Music off
+          </button>
           <button
             class="score__sound"
             id="sound"
@@ -113,7 +130,7 @@ Dumping 404 out of 404 MB</pre>
             aria-pressed="false"
             data-audio-root="{{ site_root }}"
           >
-            <span aria-hidden="true">♫</span>
+            <span aria-hidden="true">♪</span>
           </button>
           <input
             class="score__volume"
@@ -133,7 +150,7 @@ Dumping 404 out of 404 MB</pre>
         class="board"
         id="board"
         tabindex="0"
-        aria-label="Koala arcade maze with branching rounded neon walls and a compact 404 collision landmark. The zero is the predator regeneration pen. Some maps open a wraparound tunnel at the left and right edges. Collect the evenly spread Vegemite, meat pie, and fruit, then reach the eucalyptus escape using arrow keys, W A S D, or the mobile controls."
+        aria-label="Koala arcade maze with branching rounded neon walls and a compact 404 collision landmark. The zero is the predator regeneration pen. Some maps open a wraparound tunnel at the left and right edges. Collect the evenly spread Vegemite, Dragon Ball, and fruit, then reach the eucalyptus escape using arrow keys, W A S D, or the mobile controls."
       >
         <div
           class="maze"
@@ -218,6 +235,21 @@ Dumping 404 out of 404 MB</pre>
           </svg>
           <span>EAGLE.SYS</span>
         </span>
+        <div class="game-scene" id="game-scene" hidden>
+          <div class="game-scene__streak" aria-hidden="true"></div>
+          <div class="game-scene__portrait" aria-hidden="true">
+            {% include "partials/koala.html" %}
+            <span class="game-scene__snack"></span>
+            <div class="game-scene__beam" aria-hidden="true"></div>
+          </div>
+          <div class="game-scene__hunters" aria-hidden="true"></div>
+          <div class="game-scene__dust" aria-hidden="true"></div>
+          <div class="game-scene__copy" role="status" aria-live="polite">
+            <strong class="game-scene__title"></strong>
+            <span class="game-scene__caption"></span>
+          </div>
+          <button class="game-scene__skip" type="button">Skip intro</button>
+        </div>
       </div>
 
       <div class="controls" role="group" aria-label="Maze controls">
@@ -263,48 +295,53 @@ Dumping 404 out of 404 MB</pre>
         </button>
       </div>
 
-      <p class="game__status" id="status" aria-live="polite">
-        kradkrnl: maze0 attached; koala0 pid=404; dingo0/eagle0 queued at the 0.
-      </p>
       <p class="game__hint">
-        Arrow keys / WASD · R to reset · M for sound — edge portals wrap when
-        online; boosted captures chain score and return predators to the 0.
+        Hold arrow keys or WASD to move. R restarts. M mutes.<br />
+        Collect every pellet, then reach the eucalyptus tree.
       </p>
-      <form
-        class="recovery-shell"
-        id="shell"
-        autocomplete="off"
-        aria-label="BSD recovery shell"
-      >
-        <div
-          class="recovery-shell__log"
-          role="log"
-          aria-live="polite"
-          aria-relevant="additions text"
+      <details class="game__terminal" open>
+        <summary>/rescue/sh · recovery terminal</summary>
+        <p class="game__status" id="status" aria-live="polite">
+          kradkrnl: maze0 attached; koala0 pid=404; dingo0/eagle0 queued at the
+          0.
+        </p>
+
+        <form
+          class="recovery-shell"
+          id="shell"
+          autocomplete="off"
+          aria-label="BSD recovery shell"
         >
-          <pre id="shell-output">
+          <div
+            class="recovery-shell__log"
+            role="log"
+            aria-live="polite"
+            aria-relevant="additions text"
+          >
+            <pre id="shell-output">
 FreeBSD/amd64 14.2-RECOVERY; ttyv0; single-user mode
 Enter full pathname of shell or RETURN for /bin/sh: /rescue/sh
 /dev/ada0p2: FILE SYSTEM CLEAN; SKIPPING CHECKS
 kradkrnl.ko: maze0 attached; pid 404; type help or ddb</pre>
-        </div>
-        <label class="recovery-shell__line">
-          <span id="shell-prompt" aria-hidden="true">rad@recv #</span>
-          <input
-            id="shell-input"
-            type="text"
-            maxlength="160"
-            autocapitalize="none"
-            autocorrect="off"
-            autocomplete="off"
-            enterkeyhint="send"
-            spellcheck="false"
-            aria-label="BSD recovery command"
-          />
-        </label>
-      </form>
+          </div>
+          <label class="recovery-shell__line">
+            <span id="shell-prompt" aria-hidden="true">rad@recv #</span>
+            <input
+              id="shell-input"
+              type="text"
+              maxlength="160"
+              autocapitalize="none"
+              autocorrect="off"
+              autocomplete="off"
+              enterkeyhint="send"
+              spellcheck="false"
+              aria-label="BSD recovery command"
+            />
+          </label>
+        </form>
+      </details>
       <noscript>
-        JavaScript is offline — use the return-home link below.
+        The game needs JavaScript. Use Return to notes to leave this page.
       </noscript>
     </div>
 

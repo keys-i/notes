@@ -8,7 +8,7 @@ const source = fs.readFileSync(
   "utf8",
 );
 const template = fs.readFileSync(
-  new URL("../overrides/main.html", import.meta.url),
+  new URL("../overrides/partials/koala.html", import.meta.url),
   "utf8",
 );
 const style = fs.readFileSync(
@@ -205,7 +205,13 @@ function createRuntime({
   const pet = {
     dataset: {},
     hidden: true,
-    style: { left: "", top: "" },
+    style: {
+      left: "",
+      top: "",
+      setProperty(name, value) {
+        this[name] = value;
+      },
+    },
     addEventListener(name, handler) {
       petHandlers[name] = handler;
     },
@@ -461,8 +467,10 @@ test("climbing uses one continuous edge route while gaze keeps following", () =>
 
 test("idle behavior and wink timers change only integrated vector features", () => {
   [
-    [0.25, 8750, "yawn"],
-    [0.75, 13250, "rub"],
+    [0.25, 4250, "look"],
+    [0.55, 5750, "rub"],
+    [0.75, 6750, "stretch"],
+    [0.95, 7750, "yawn"],
   ].forEach(function ([random, delay, behavior]) {
     const runtime = createRuntime({ random });
     runtime.runTimer(delay);
@@ -478,8 +486,8 @@ test("idle behavior and wink timers change only integrated vector features", () 
   assert.equal(wink.pet.dataset.wink, undefined);
 
   const liveChange = createRuntime();
-  liveChange.runTimer(8750);
-  assert.equal(liveChange.pet.dataset.behavior, "yawn");
+  liveChange.runTimer(4250);
+  assert.equal(liveChange.pet.dataset.behavior, "look");
   liveChange.runTimer(5125);
   assert.equal(liveChange.pet.dataset.wink, "true");
   liveChange.setReduced(true);
@@ -562,4 +570,35 @@ test("pet stays absent until the footer enters the viewport", () => {
   assert.equal(runtime.pet.hidden, true);
   assert.equal(runtime.animations.length, 0);
   assert.equal(runtime.timers.size, 2);
+});
+
+test("walking animates a transform instead of relaying out the page", () => {
+  const runtime = createRuntime();
+  runtime.runTimer(800);
+  const walk = runtime.animations.at(-1);
+  assert.ok(
+    walk.keyframes.every((frame) => typeof frame.transform === "string"),
+  );
+  assert.ok(
+    walk.keyframes.every(
+      (frame) => frame.left === undefined && frame.top === undefined,
+    ),
+  );
+});
+
+test("reduced motion immediately returns the koala's gaze to neutral", () => {
+  const runtime = createRuntime();
+  runtime.windowHandlers.pointermove({ clientX: 20, clientY: 100 });
+  for (let frame = 0; frame < 12; frame += 1)
+    runtime.runAnimationFrames(frame * 16);
+  assert.notEqual(
+    runtime.irises[0].attributes.transform,
+    "translate(0.000 0.000)",
+  );
+  runtime.setReduced(true);
+  runtime.runAnimationFrames(208);
+  assert.equal(
+    runtime.irises[0].attributes.transform,
+    "translate(0.000 0.000)",
+  );
 });
