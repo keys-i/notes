@@ -1,13 +1,29 @@
 """Tests for site asset integration."""
 
+import tomllib
 import unittest
 import wave
+from array import array
 from pathlib import Path
 
 ROOT = Path(__file__).parents[1]
 
 
 class SiteAssetTests(unittest.TestCase):
+    def test_recovery_music_is_a_non_clipping_loop(self):
+        settings = tomllib.loads((ROOT / "notes/assets/game.map.toml").read_text())
+        with wave.open(
+            str(ROOT / "notes" / settings["assets"]["music"]), "rb"
+        ) as audio:
+            self.assertEqual(audio.getnchannels(), 1)
+            self.assertEqual(audio.getsampwidth(), 2)
+            self.assertEqual(audio.getframerate(), 24_000)
+            self.assertGreater(audio.getnframes() / audio.getframerate(), 30)
+            samples = array("h", audio.readframes(audio.getnframes()))
+        self.assertLess(max(abs(value) for value in samples), 32_767)
+        self.assertGreater(max(samples), 10_000)
+        self.assertLess(abs(samples[0] - samples[-1]), 100)
+
     def test_404_assets_are_grouped(self):
         config = (ROOT / "mkdocs.yml").read_text(encoding="utf-8")
         template = (ROOT / "overrides/404.html").read_text(encoding="utf-8")
@@ -75,28 +91,53 @@ class SiteAssetTests(unittest.TestCase):
                 self.assertIn(expected, body)
         self.assertNotIn("AudioContext", script)
 
-    def test_meow_audio_assets_are_browser_ready(self):
+    def test_active_effects_use_classic_arcade_samples(self):
+        settings = tomllib.loads((ROOT / "notes/assets/game.map.toml").read_text())
         for name in (
             "beginning",
             "chomp",
-            "danger",
             "death",
             "fruit",
             "ghost",
-            "launch",
             "life",
+            "intermission",
         ):
             with self.subTest(name=name):
-                path = ROOT / f"notes/assets/audios/meow_{name}.wav"
-                self.assertTrue(path.is_file())
-                with wave.open(str(path), "rb") as audio:
+                asset = settings["assets"][name]
+                self.assertIn("pacman_", asset)
+                self.assertNotIn("meow", asset)
+                with wave.open(str(ROOT / "notes" / asset), "rb") as audio:
+                    self.assertEqual(audio.getnchannels(), 1)
+                    self.assertIn(audio.getsampwidth(), (1, 2))
+                    self.assertGreater(audio.getframerate(), 8_000)
+                    self.assertGreater(audio.getnframes(), 1_000)
+        self.assertNotIn("danger", settings["assets"])
+
+    def test_countdown_and_boom_have_distinct_short_effects(self):
+        settings = tomllib.loads((ROOT / "notes/assets/game.map.toml").read_text())
+        for name, minimum, maximum in (("countdown", 0.65, 0.8), ("launch", 1.3, 1.4)):
+            with self.subTest(name=name):
+                asset = settings["assets"][name]
+                self.assertNotIn("pacman_", asset)
+                self.assertNotIn("meow", asset)
+                with wave.open(str(ROOT / "notes" / asset), "rb") as audio:
                     self.assertEqual(audio.getnchannels(), 1)
                     self.assertEqual(audio.getsampwidth(), 2)
-                    self.assertEqual(audio.getframerate(), 24_000)
-                    self.assertGreater(audio.getnframes(), 9_000)
+                    self.assertGreater(audio.getnframes(), 1_000)
+                    self.assertGreater(
+                        audio.getnframes() / audio.getframerate(), minimum
+                    )
+                    self.assertLess(audio.getnframes() / audio.getframerate(), maximum)
+                    samples = array("h", audio.readframes(audio.getnframes()))
+                self.assertGreater(max(abs(value) for value in samples), 10_000)
+                self.assertLess(max(abs(value) for value in samples), 32_767)
+                self.assertLess(abs(samples[0] - samples[-1]), 100)
 
     def test_dock_pet_integration(self):
         main = (ROOT / "overrides/main.html").read_text(encoding="utf-8")
+        artwork = (ROOT / "overrides/partials/koala.html").read_text(encoding="utf-8")
+        self.assertIn('{% include "partials/koala.html" %}', main)
+        main = main.replace('{% include "partials/koala.html" %}', artwork)
         not_found = (ROOT / "overrides/404.html").read_text(encoding="utf-8")
         style = (ROOT / "notes/assets/styles/pet.css").read_text(encoding="utf-8")
         script = (ROOT / "notes/assets/js/pet.js").read_text(encoding="utf-8")
