@@ -9,16 +9,16 @@ readme = "README.md"
 requires-python = ">=3.13,<4"
 dependencies = [
     "mkdocs (>=1.1.2)",
-    "mkdocs-material (>=9.7.7)",
+    "mkdocs-material>=9.8.0",
     "markdown-exec[ansi] (>=1.12.3,<2.0.0)",
     "mkdocs-mermaid2-plugin (>=1.2.3,<2.0.0)",
     "mkdocs-minify-plugin (>=0.8.0,<0.9.0)",
     "pymdown-extensions (>=11.0.1)",
     "mkdocs-obsidian-interactive-graph-plugin (>=0.3.2,<0.4.0)",
-    "mkdocs-callouts (>=1.16.1,<2.0.0)",
+    "mkdocs-callouts>=1.17.1,<2.0.0",
     "mkdocs-git-authors-plugin (>=0.10.0,<0.11.0)",
     "mkdocs-obsidian-support-plugin (>=1.4.1,<2.0.0)",
-    "mkdocs-print-site-plugin (>=2.8,<3.0)"
+    "mkdocs-print-site-plugin>=2.9,<3.0"
 ]
 
 [project.scripts]
@@ -29,7 +29,7 @@ serve = "hooks.tools:serve"
 test = "hooks.tools:test"
 
 [dependency-groups]
-dev = ["ruff==0.16.4"]
+dev = ["ruff==0.17.3"]
 
 [tool.uv.build-backend]
 module-name = "hooks"
