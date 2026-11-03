@@ -114,6 +114,15 @@ function dockPetCloudPath(width, height) {
   return path + " Z";
 }
 
+function dockPetThemeRadius(point, width, height) {
+  return Math.ceil(
+    Math.hypot(
+      Math.max(point.x, width - point.x),
+      Math.max(point.y, height - point.y),
+    ),
+  );
+}
+
 (function () {
   var pet = document.getElementById("dock-pet") as HTMLElement;
   var footer = document.querySelector<HTMLElement>(".md-footer");
@@ -147,11 +156,15 @@ function dockPetCloudPath(width, height) {
   var eyeFrame = 0;
   var cloudFrame = 0;
   var progressFrame = 0;
+  var dragFrame = 0;
   var pointer = null;
   var pointerUpdatedAt = 0;
   var eyeTime = 0;
   var lookVector = { x: 0, y: 0 };
   var position = { x: 0, y: 0 };
+  var manualPosition = null;
+  var drag = null;
+  var suppressClick = false;
   var savedSpot = loadSpot();
   var resumeAvailable = Boolean(
     savedSpot && Math.abs(readScroll() - savedSpot.y) > 80,
@@ -166,6 +179,12 @@ function dockPetCloudPath(width, height) {
   var themeTimer = 0;
   var themeView;
   var themeOrigin = { x: window.innerWidth - 32, y: 32 };
+  var themeOriginCaptured = false;
+
+  pet.setAttribute(
+    "aria-keyshortcuts",
+    "ArrowUp ArrowDown ArrowLeft ArrowRight Escape",
+  );
 
   footer.classList.add("has-reveal");
   if (window.IntersectionObserver) {
@@ -181,18 +200,14 @@ function dockPetCloudPath(width, height) {
 
   if (palette) {
     palette.addEventListener("pointerdown", function (event) {
-      var target = event.target as HTMLElement;
-      var button = target?.closest?.("label") as HTMLElement;
-      if (!button) return;
-      var rect = button.getBoundingClientRect();
-      themeOrigin = {
-        x: rect.left + rect.width / 2,
-        y: rect.top + rect.height / 2,
-      };
+      themeOriginCaptured = captureThemeOrigin(event);
     });
     palette.addEventListener(
       "change",
-      function () {
+      function (event) {
+        if (!themeOriginCaptured) captureThemeOrigin(event);
+        themeOriginCaptured = false;
+        clearThemeEffect();
         if (reducedMotion.matches) return;
         document.documentElement.style.setProperty(
           "--theme-x",
@@ -202,8 +217,15 @@ function dockPetCloudPath(width, height) {
           "--theme-y",
           themeOrigin.y + "px",
         );
+        document.documentElement.style.setProperty(
+          "--theme-radius",
+          dockPetThemeRadius(
+            themeOrigin,
+            window.innerWidth,
+            window.innerHeight,
+          ) + "px",
+        );
         if ((document as any).startViewTransition) {
-          themeView?.skipTransition?.();
           document.documentElement.classList.add("theme-wave");
           var transition = (document as any).startViewTransition(
             function () {},
@@ -216,17 +238,42 @@ function dockPetCloudPath(width, height) {
           });
           return;
         }
-        document.body.classList.remove("theme-ripple");
+        document.body.classList.remove("theme-fade");
         void document.body.offsetWidth;
-        document.body.classList.add("theme-ripple");
-        clearTimeout(themeTimer);
+        document.body.classList.add("theme-fade");
         themeTimer = setTimeout(function () {
           themeTimer = 0;
-          document.body.classList.remove("theme-ripple");
-        }, 1120);
+          document.body.classList.remove("theme-fade");
+        }, 220);
       },
       true,
     );
+  }
+
+  function captureThemeOrigin(event) {
+    var target = event && (event.target as HTMLElement);
+    var control = target?.closest?.("label, button") as HTMLElement;
+    var source = control || target || palette;
+    if (!source || typeof source.getBoundingClientRect !== "function") {
+      return false;
+    }
+    var rect = source.getBoundingClientRect();
+    themeOrigin = {
+      x: rect.left + rect.width / 2,
+      y: rect.top + rect.height / 2,
+    };
+    return true;
+  }
+
+  function clearThemeEffect() {
+    clearTimeout(themeTimer);
+    themeTimer = 0;
+    document.body.classList.remove("theme-fade");
+    document.documentElement.classList.remove("theme-wave");
+    if (!themeView) return;
+    var current = themeView;
+    themeView = null;
+    current.skipTransition?.();
   }
 
   function pixels(value) {
@@ -235,6 +282,21 @@ function dockPetCloudPath(width, height) {
 
   function clamp(value, minimum, maximum) {
     return Math.max(minimum, Math.min(maximum, value));
+  }
+
+  function clampPosition(point) {
+    return {
+      x: clamp(
+        point.x,
+        8,
+        Math.max(8, document.documentElement.clientWidth - pet.offsetWidth - 8),
+      ),
+      y: clamp(
+        point.y,
+        8,
+        Math.max(8, window.innerHeight - pet.offsetHeight - 8),
+      ),
+    };
   }
 
   function readScroll() {
@@ -286,12 +348,13 @@ function dockPetCloudPath(width, height) {
   }
 
   function setPosition(point) {
-    position = point;
+    position = { x: point.x, y: point.y };
     pet.style.left = pixels(point.x);
     pet.style.top = pixels(point.y);
     pet.dataset.bubbleSide =
       point.x < document.documentElement.clientWidth / 2 ? "right" : "left";
     scheduleLook();
+    if (!bubble.hidden) scheduleCloud();
   }
 
   function setAction(action, label?) {
@@ -377,8 +440,17 @@ function dockPetCloudPath(width, height) {
   }
 
   function configure(settling?) {
+    if (drag?.active) return;
     var wasHidden = pet.hidden;
     pet.hidden = false;
+    if (manualPosition) {
+      manualPosition = clampPosition(manualPosition);
+      pet.dataset.dock = "manual";
+      pet.dataset.state = "perched";
+      setPosition(manualPosition);
+      flushMilestone();
+      return;
+    }
     var ground = footerGeometry();
     if (ground.visible) {
       pet.dataset.dock = "footer";
@@ -452,6 +524,104 @@ function dockPetCloudPath(width, height) {
     showBubble(saved, 5200);
     announce(saved);
     react("scratch", 1100);
+  }
+
+  function scheduleDrag() {
+    if (dragFrame) return;
+    dragFrame = requestAnimationFrame(function () {
+      dragFrame = 0;
+      if (!drag || !drag.active) return;
+      var x = drag.target.x - drag.origin.x;
+      var y = drag.target.y - drag.origin.y;
+      pet.style.transform =
+        "translate3d(" + pixels(x) + ", " + pixels(y) + ", 0)";
+    });
+  }
+
+  function beginDrag(event) {
+    if (event.button !== undefined && event.button !== 0) return;
+    suppressClick = false;
+    drag = {
+      active: false,
+      origin: { x: position.x, y: position.y },
+      pointerId: event.pointerId,
+      start: { x: event.clientX, y: event.clientY },
+      target: { x: position.x, y: position.y },
+    };
+    pet.setPointerCapture?.(event.pointerId);
+  }
+
+  function moveDrag(event) {
+    if (!drag || event.pointerId !== drag.pointerId) return;
+    var dx = event.clientX - drag.start.x;
+    var dy = event.clientY - drag.start.y;
+    if (!drag.active && Math.hypot(dx, dy) < 6) return;
+    if (!drag.active) {
+      drag.active = true;
+      pet.dataset.dragging = "true";
+      bubble.hidden = true;
+    }
+    drag.target = clampPosition({
+      x: drag.origin.x + dx,
+      y: drag.origin.y + dy,
+    });
+    event.preventDefault?.();
+    scheduleDrag();
+  }
+
+  function dropFeedback() {
+    clearTimeout(settleTimer);
+    pet.dataset.dropping = "true";
+    settleTimer = setTimeout(function () {
+      settleTimer = 0;
+      delete pet.dataset.dropping;
+    }, 180);
+  }
+
+  function endDrag(event, cancelled) {
+    if (!drag || event.pointerId !== drag.pointerId) return;
+    var moved = drag.active;
+    pet.releasePointerCapture?.(drag.pointerId);
+    delete pet.dataset.dragging;
+    pet.style.transform = "";
+    if (moved && !cancelled) {
+      manualPosition = clampPosition(drag.target);
+      pet.hidden = false;
+      pet.dataset.dock = "manual";
+      pet.dataset.state = "perched";
+      setPosition(manualPosition);
+      suppressClick = true;
+      dropFeedback();
+    }
+    drag = null;
+  }
+
+  function moveWithKeyboard(event) {
+    if (event.key === "Escape" && manualPosition) {
+      manualPosition = null;
+      delete pet.dataset.dock;
+      event.preventDefault();
+      configure();
+      return;
+    }
+    var directions = {
+      ArrowDown: [0, 1],
+      ArrowLeft: [-1, 0],
+      ArrowRight: [1, 0],
+      ArrowUp: [0, -1],
+    };
+    var direction = directions[event.key];
+    if (!direction) return;
+    var distance = event.shiftKey ? 24 : 8;
+    manualPosition = clampPosition({
+      x: position.x + direction[0] * distance,
+      y: position.y + direction[1] * distance,
+    });
+    pet.hidden = false;
+    pet.dataset.dock = "manual";
+    pet.dataset.state = "perched";
+    setPosition(manualPosition);
+    event.preventDefault();
   }
 
   function scheduleCloud() {
@@ -585,6 +755,7 @@ function dockPetCloudPath(width, height) {
       scrollFrame = 0;
       scheduleLook();
       if (!bubble.hidden) scheduleCloud();
+      if (drag?.active) return;
       if (!pet.hidden && pet.dataset.dock === "footer") {
         var ground = footerGeometry();
         if (!ground.visible) pet.hidden = true;
@@ -593,7 +764,26 @@ function dockPetCloudPath(width, height) {
     });
   }
 
-  pet.addEventListener("click", handleAction);
+  pet.addEventListener("click", function (event) {
+    if (suppressClick) {
+      suppressClick = false;
+      event?.preventDefault?.();
+      return;
+    }
+    handleAction();
+  });
+  pet.addEventListener("pointerdown", beginDrag);
+  pet.addEventListener("pointermove", moveDrag);
+  pet.addEventListener("pointerup", function (event) {
+    endDrag(event, false);
+  });
+  pet.addEventListener("pointercancel", function (event) {
+    endDrag(event, true);
+  });
+  pet.addEventListener("lostpointercapture", function (event) {
+    endDrag(event, true);
+  });
+  pet.addEventListener("keydown", moveWithKeyboard);
   window.addEventListener("resize", scheduleConfigure);
   window.addEventListener("pointermove", scheduleLook, { passive: true });
   window.addEventListener("blur", function () {
@@ -602,6 +792,7 @@ function dockPetCloudPath(width, height) {
   });
   window.addEventListener("scroll", scheduleScroll, { passive: true });
   reducedMotion.addEventListener("change", function () {
+    clearThemeEffect();
     clearTimeout(behaviorTimer);
     delete pet.dataset.behavior;
     delete pet.dataset.wink;

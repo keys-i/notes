@@ -64,27 +64,6 @@
   transform: translateX(-0.12em);
 }
 
-.game__heading p {
-  max-width: 15rem;
-  min-height: 2.6em;
-  margin: 0;
-  font-size: clamp(0.62rem, 1vw, 0.78rem);
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  line-height: 1.3;
-  text-align: right;
-  text-transform: uppercase;
-}
-
-.game__recovery {
-  overflow-wrap: anywhere;
-}
-
-.game__cursor {
-  margin-left: 0.25em;
-  color: #f2ff3d;
-}
-
 .game__eyebrow {
   display: block;
   margin-bottom: 0.4rem;
@@ -123,8 +102,7 @@
   gap: 0.3rem;
 }
 
-.score__sound,
-.score__music {
+.score__sound {
   position: relative;
   min-width: 2rem;
   min-height: 2.2rem;
@@ -168,9 +146,7 @@
 }
 
 .score__sound:hover,
-.score__sound:focus-visible,
-.score__music:hover,
-.score__music:focus-visible {
+.score__sound:focus-visible {
   background: #0719aa;
   outline: 0.18rem solid #f2ff3d;
   outline-offset: 0.08rem;
@@ -180,54 +156,31 @@
   color: #aeb8ca;
 }
 
-.score__sound:disabled,
-.score__music:disabled {
+.score__sound:disabled {
   cursor: not-allowed;
   opacity: 0.65;
 }
 
-.game__dialogue {
-  height: 1.4em;
-  margin: 0.28rem 0;
-  overflow: hidden;
-  color: #63f5ff;
-  font-size: clamp(0.58rem, 1.1vw, 0.7rem);
-  font-weight: 800;
-  line-height: 1.4;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.score__music[aria-pressed="true"] {
-  color: #00065b;
-  background: #f2ff3d;
-}
-
-.game__links {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.35rem 1rem;
-  margin: 0.8rem 0;
-  font-size: 0.65rem;
-  line-height: 1.6;
-}
-
-.game__links a {
-  color: #f2ff3d;
-  text-underline-offset: 0.2em;
-}
-
 .game__terminal {
-  margin-top: 0.65rem;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0.65rem auto 0;
   font-size: 0.62rem;
 }
 
 .game__terminal summary {
   width: fit-content;
-  min-height: 2.2rem;
-  padding-block: 0.5rem;
+  min-height: 2rem;
+  padding: 0.4rem 0.65rem;
+  border: 1px solid rgb(107 220 255 / 0.55);
+  color: #d9fff0;
+  background: #00020c;
   cursor: pointer;
+  font-weight: 900;
+}
+
+.game__terminal[open] {
+  width: min(100%, 34rem);
 }
 
 .game__terminal summary:focus-visible {
@@ -238,11 +191,6 @@
 @media (max-width: 600px) {
   .game__heading {
     align-items: center;
-  }
-  .game__heading p {
-    max-width: 10rem;
-    font-size: 0.55rem;
-    letter-spacing: 0;
   }
   .game__eyebrow {
     max-width: 10rem;
@@ -669,6 +617,18 @@
     animation: tunnel-sign 420ms ease-out both;
   }
 
+  .board[data-reaction^="power-"]::before {
+    animation: board-callout 420ms ease-out both;
+  }
+
+  .board[data-reaction="hurt"] .player {
+    animation: board-hurt 420ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  .board[data-reaction="dropped"] .player {
+    animation: board-dropped 420ms ease-in both;
+  }
+
   @keyframes tunnel-pop {
     0% {
       opacity: 0.2;
@@ -693,6 +653,49 @@
     }
     55% {
       transform: translateX(9%) rotate(4deg);
+    }
+  }
+
+  @keyframes board-callout {
+    0% {
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(0.72);
+    }
+    30%,
+    76% {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+    100% {
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(1.08);
+    }
+  }
+
+  @keyframes board-hurt {
+    0% {
+      transform: none;
+    }
+    38% {
+      transform: rotate(18deg) scale(1.25, 0.7);
+    }
+    72% {
+      transform: rotate(-6deg) scale(0.9, 1.08);
+    }
+    100% {
+      transform: none;
+    }
+  }
+
+  @keyframes board-dropped {
+    0% {
+      opacity: 1;
+      transform: translateY(-65%) rotate(12deg);
+    }
+    72%,
+    100% {
+      opacity: 1;
+      transform: translateY(18%) rotate(90deg) scale(1.3, 0.42);
     }
   }
 
@@ -972,11 +975,6 @@
   box-shadow: inset 0 0 1.4rem rgb(90 0 0 / 0.35);
 }
 
-.os.frightened .game__status,
-.os.frightened .game__hint {
-  color: #ffb4b4;
-}
-
 .board.lost .player__dead {
   opacity: 1;
   filter: grayscale(0.82) contrast(1.2);
@@ -1028,6 +1026,29 @@
   color: #fff0a0;
   content: "MEAT PIE\A SPLAT!";
   opacity: 1;
+}
+
+.board[data-reaction^="power-"]::before {
+  content: attr(data-callout);
+  opacity: 1;
+}
+
+.board[data-reaction="power-vegemite"]::before {
+  border-color: #f2ff3d;
+  color: #000319;
+  background: #ffe96c;
+}
+
+.board[data-reaction="power-dragon"]::before {
+  border-color: #69e8ff;
+  color: #d7ffff;
+  background: #061348;
+}
+
+.board[data-reaction="power-combined"]::before {
+  border-color: #fff3a0;
+  color: #fff3a0;
+  background: #07165a;
 }
 
 .ghost {
@@ -1737,27 +1758,17 @@ body.routing-snap {
   grid-area: 3 / 2;
 }
 
-.game__status,
-.game__hint {
-  margin: 0.7rem 0 0;
-  font-size: 0.68rem;
-  letter-spacing: 0.06em;
-  line-height: 1.45;
-  text-align: center;
-  text-transform: none;
-}
-
+.game__objective,
 .game__status {
-  width: fit-content;
-  max-width: 100%;
-  min-height: 1.45em;
-  color: #fff;
-  margin-inline: auto;
-  padding: 0.12rem 0.35rem;
-  border: 1px solid #f2ff3d;
-  background: #061273;
-  font-weight: 900;
-  text-transform: none;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 @media (max-width: 1024px) {
@@ -2699,9 +2710,13 @@ body.routing-snap {
   align-content: stretch;
   justify-items: stretch;
   color: #fff;
-  background: #02030a;
+  background: rgb(2 3 10 / 0.22);
   box-shadow: none;
   animation: none;
+}
+
+.game-scene[hidden] {
+  display: none;
 }
 
 .game-scene::before,
@@ -2715,18 +2730,23 @@ body.routing-snap {
 }
 
 .scene-stage {
+  --scene-bg: rgb(5 7 25 / 0.92);
+
   position: absolute;
   inset: 0;
   display: none;
   overflow: hidden;
+  background:
+    linear-gradient(rgb(105 232 255 / 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(105 232 255 / 0.1) 1px, transparent 1px),
+    var(--scene-bg);
+  background-size: 2.4rem 2.4rem;
 }
 
 .game-scene[data-kind="ready"] .scene-stage--ready,
 .game-scene[data-kind="vegemite"] .scene-stage--vegemite,
 .game-scene[data-kind="dragon"] .scene-stage--dragon,
-.game-scene[data-kind="combined"] .scene-stage--combined,
-.game-scene[data-kind="hurt"] .scene-stage--hurt,
-.game-scene[data-kind="dropped"] .scene-stage--dropped {
+.game-scene[data-kind="combined"] .scene-stage--combined {
   display: block;
 }
 
@@ -2749,27 +2769,24 @@ body.routing-snap {
   animation: none;
 }
 
-.game-scene__caption {
-  position: absolute;
-  z-index: 8;
-  right: 3.5rem;
-  bottom: 0.55rem;
-  left: 0.65rem;
-  min-height: 1.2rem;
-  margin: 0;
-  color: rgb(255 255 255 / 0.8);
-  font:
-    650 clamp(0.42rem, 1.7cqw, 0.64rem) / 1.35 ui-monospace,
-    monospace;
-  text-align: left;
-}
-
 .game-scene__skip {
+  position: absolute;
+  right: 0.45rem;
+  bottom: 0.45rem;
   z-index: 9;
-  min-height: 1.8rem;
-  border-color: rgb(255 255 255 / 0.65);
-  background: #02030a;
-  font-size: 0.52rem;
+  display: inline-grid;
+  min-width: 4.5rem;
+  min-height: 2.25rem;
+  padding: 0.3rem 0.65rem;
+  color: #fff;
+  font-size: 0.6rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: rgb(2 3 10 / 0.94);
+  border: 1px solid rgb(255 255 255 / 0.78);
+  box-shadow: 0.14rem 0.14rem 0 #000;
 }
 
 .win-route__count::after {
@@ -2817,82 +2834,173 @@ body.routing-snap {
   --ghost-colour: #eee486;
 }
 
-/* -- Broken route rescue -- */
+/* -- The suspiciously short way home -- */
 .scene-stage--ready {
-  background:
-    linear-gradient(#131839 1px, transparent 1px),
-    linear-gradient(90deg, #131839 1px, transparent 1px), #050719;
-  background-size: 9% 18%;
+  --scene-bg: rgb(5 7 25 / 0.92);
 }
 
-.scene-ready__route {
+.scene-ready__tunnel {
   position: absolute;
-  inset: 8% 5% 15%;
-  width: 90%;
-  height: 75%;
-  fill: #f2ff3d;
-  stroke: #f2ff3d;
-  stroke-width: 1.2;
+  z-index: 2;
+  top: 25%;
+  right: 8%;
+  width: 19%;
+  height: 53%;
+  border: 0.2rem solid #69e8ff;
+  border-bottom: 0;
+  border-radius: 50% 50% 0 0;
+  background: #000;
+  box-shadow:
+    inset 0 0 1.2rem #0719aa,
+    0 0 0.85rem rgb(105 232 255 / 0.55);
 }
 
-.scene-ready__route path {
-  fill: none;
-  stroke-dasharray: 140;
-  stroke-dashoffset: 140;
-}
-
-.scene-ready__error {
+.scene-ready__sign {
   position: absolute;
-  z-index: 3;
-  top: 15%;
-  left: 7%;
-  padding: 0.25rem 0.4rem;
-  border: 1px solid #ff6f61;
-  color: #ff9a8f;
-  background: #180606;
+  top: -1.35rem;
+  left: 50%;
+  display: grid;
+  padding: 0.22rem 0.35rem;
+  border: 0.1rem solid #000319;
+  color: #000319;
+  background: #f2ff3d;
+  box-shadow: 0 0.18rem #69e8ff;
   font:
-    800 clamp(0.45rem, 1.8cqw, 0.7rem) / 1 ui-monospace,
+    950 clamp(0.42rem, 1.9cqw, 0.72rem) / 1 ui-monospace,
     monospace;
-  transform: rotate(-3deg);
+  transform: translateX(-50%) rotate(1deg);
+  transform-origin: 16% 50%;
+  white-space: nowrap;
 }
 
-.scene-ready__zero {
-  position: absolute;
-  top: 28%;
-  left: 45%;
-  color: #0719aa;
-  font:
-    950 clamp(4rem, 24cqw, 9rem) / 0.8 ui-monospace,
-    monospace;
-  -webkit-text-stroke: 0.08rem #6bdcff;
+.scene-ready__sign > span {
+  grid-area: 1 / 1;
 }
 
-.scene-ready__hunters {
-  top: 40%;
-  left: 47%;
-  width: 13%;
-}
-
-.scene-ready__home {
-  position: absolute;
-  top: 12%;
-  right: 4%;
-  width: 20%;
-  height: auto;
-  filter: drop-shadow(0 0 0.65rem #f2ff3d);
+.scene-ready__sign-back {
   opacity: 0;
 }
 
+.scene-ready__snacks {
+  position: absolute;
+  z-index: 5;
+  top: 43%;
+  left: 18%;
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.scene-ready__bag {
+  position: absolute;
+  z-index: -1;
+  top: -30%;
+  left: -16%;
+  width: 120%;
+  height: 165%;
+  border: 0.1rem solid #6b451f;
+  background: #c78f4c;
+  clip-path: polygon(8% 12%, 50% 0, 92% 12%, 84% 100%, 16% 100%);
+  transform: rotate(-5deg);
+}
+
+.scene-ready__snack {
+  display: grid;
+  width: clamp(0.55rem, 3cqw, 1.15rem);
+  aspect-ratio: 1;
+  place-items: center;
+  border: 0.09rem solid #fff;
+  border-radius: 50%;
+  color: #000319;
+  background: #f2ff3d;
+  font:
+    950 clamp(0.3rem, 1.25cqw, 0.52rem) / 1 ui-monospace,
+    monospace;
+}
+
+.scene-ready__snack--jar {
+  border-radius: 18%;
+  background: #ffe96c;
+}
+
+.scene-ready__snack--ball {
+  color: #a30e14;
+  background: #ff7a28;
+}
+
+.scene-ready__snack--fruit {
+  color: #fff;
+  background: #d53a4f;
+}
+
+.scene-ready__hunters {
+  top: 36%;
+  right: 3%;
+  width: 23%;
+  opacity: 0;
+}
+
+.scene-ready__pellets,
+.scene-ready__moves,
+.scene-ready__line,
+.scene-ready__home {
+  position: absolute;
+  z-index: 6;
+  opacity: 0;
+}
+
+.scene-ready__pellets {
+  top: 18%;
+  left: 8%;
+  color: #fff3a0;
+  font:
+    950 clamp(0.65rem, 3.3cqw, 1.25rem) / 1 ui-monospace,
+    monospace;
+  letter-spacing: 0.22em;
+}
+
+.scene-ready__moves {
+  right: 7%;
+  bottom: 11%;
+  display: grid;
+  grid-template-columns: repeat(2, max-content);
+  gap: 0.15rem 0.65rem;
+  color: #69e8ff;
+  font:
+    950 clamp(0.48rem, 2.2cqw, 0.85rem) / 1 ui-monospace,
+    monospace;
+  text-align: center;
+}
+
+.scene-ready__home {
+  top: 8%;
+  right: 5%;
+  width: 17%;
+  height: auto;
+  filter: drop-shadow(0 0 0.65rem #f2ff3d);
+}
+
+.scene-ready__line {
+  bottom: 8%;
+  left: 6%;
+  margin: 0;
+  color: #fff;
+  font:
+    900 clamp(0.48rem, 2.3cqw, 0.88rem) / 1 ui-monospace,
+    monospace;
+}
+
 .game-scene[data-kind="ready"] .game-scene__koala {
-  top: 55%;
-  left: 3%;
-  width: 18%;
+  top: 38%;
+  left: 7%;
+  width: 20%;
 }
 
 /* -- Vegemite platformer and pie volley -- */
 .scene-stage--vegemite {
-  background: #07165a;
-  box-shadow: inset 0 -3.2rem #233000;
+  --scene-bg: rgb(7 22 90 / 0.9);
+
+  box-shadow: inset 0 -0.2rem #f2ff3d;
 }
 
 .scene-vegemite__platform {
@@ -2973,9 +3081,40 @@ body.routing-snap {
   z-index: 7;
   right: 3%;
   bottom: 20%;
-  color: #fff3a0;
-  font: 950 clamp(0.9rem, 5cqw, 2.2rem) / 1 monospace;
+  width: 16%;
+  aspect-ratio: 1.2;
+  background: #d59651;
+  clip-path: polygon(
+    50% 0,
+    61% 31%,
+    88% 14%,
+    74% 43%,
+    100% 56%,
+    69% 62%,
+    82% 94%,
+    55% 72%,
+    36% 100%,
+    35% 69%,
+    2% 78%,
+    27% 54%,
+    0 35%,
+    34% 37%
+  );
   transform: rotate(-8deg) scale(0);
+}
+
+.scene-vegemite__slang {
+  position: absolute;
+  z-index: 7;
+  top: 10%;
+  left: 50%;
+  color: #fff3a0;
+  font:
+    italic 950 clamp(0.72rem, 4cqw, 1.55rem) / 1 ui-monospace,
+    monospace;
+  text-shadow: 0.06em 0.06em #0719aa;
+  transform: translateX(-50%);
+  opacity: 0;
 }
 
 .game-scene[data-kind="vegemite"] .game-scene__koala {
@@ -2986,8 +3125,10 @@ body.routing-snap {
 
 .game-scene__hardhat,
 .game-scene__vest {
+  position: absolute;
   z-index: 5;
   display: none;
+  pointer-events: none;
 }
 
 .game-scene[data-kind="vegemite"] :is(.game-scene__hardhat, .game-scene__vest),
@@ -2995,9 +3136,53 @@ body.routing-snap {
   display: block;
 }
 
+.game-scene__hardhat {
+  top: 10%;
+  left: 29%;
+  width: 43%;
+  height: 17%;
+  border: 0.08rem solid #523a00;
+  border-radius: 55% 55% 16% 16%;
+  background: #f2ff3d;
+  box-shadow: inset 0 -0.18rem #c0ca14;
+  transform: rotate(-4deg);
+}
+
+.game-scene__hardhat::after {
+  position: absolute;
+  right: -9%;
+  bottom: -19%;
+  left: -9%;
+  height: 24%;
+  border: 0.08rem solid #523a00;
+  background: #f2ff3d;
+  content: "";
+}
+
+.game-scene__vest {
+  top: 59%;
+  left: 27%;
+  width: 47%;
+  height: 34%;
+  border: 0.08rem solid #673300;
+  background:
+    linear-gradient(90deg, transparent 45%, #27374b 46% 54%, transparent 55%),
+    linear-gradient(#ff8b24 0 40%, #fff3a0 41% 54%, #ff8b24 55%);
+  clip-path: polygon(
+    14% 0,
+    39% 10%,
+    50% 30%,
+    61% 10%,
+    86% 0,
+    100% 100%,
+    0 100%
+  );
+  opacity: 0.94;
+}
+
 /* -- Earnest single-ball sputter -- */
 .scene-stage--dragon {
-  background: #080b26;
+  --scene-bg: rgb(8 11 38 / 0.9);
 }
 
 .scene-dragon__orb,
@@ -3058,7 +3243,7 @@ body.routing-snap {
 
 /* -- Combined charge and full beam -- */
 .scene-stage--combined {
-  background: #061348;
+  --scene-bg: rgb(6 19 72 / 0.9);
 }
 
 .scene-combined__pie {
@@ -3113,87 +3298,67 @@ body.routing-snap {
   width: 18%;
 }
 
-.scene-combined__aftermath {
-  position: absolute;
-  z-index: 7;
-  right: 3%;
-  bottom: 22%;
-  color: #fff3a0;
-  font: 900 clamp(0.5rem, 2.6cqw, 1rem) / 1 monospace;
-  opacity: 0;
-}
-
 .game-scene[data-kind="combined"] .game-scene__koala {
   top: 34%;
   left: 12%;
   width: 25%;
 }
 
-/* -- Failure beats -- */
-.scene-stage--hurt,
-.scene-stage--dropped {
-  background: #170807;
-}
-
-.scene-hurt__impact,
-.scene-dropped__warning {
-  position: absolute;
-  top: 18%;
-  left: 50%;
-  color: #ffc0ad;
-  font: 950 clamp(0.8rem, 5cqw, 2rem) / 1 monospace;
-  transform: translateX(-50%);
-}
-
-.scene-dropped__crater {
-  position: absolute;
-  right: 25%;
-  bottom: 20%;
-  width: 42%;
-  height: 12%;
-  border: 0.18rem solid #ff6f61;
-  border-radius: 50%;
-  transform: scale(0);
-}
-
-.game-scene:is([data-kind="hurt"], [data-kind="dropped"]) .game-scene__koala {
-  top: 34%;
-  left: 39%;
-  width: 24%;
-  transform: rotate(90deg);
-}
-
-.game-scene:is([data-kind="hurt"], [data-kind="dropped"]) .dock-pet__iris {
-  opacity: 0;
-}
-
-.game-scene:is([data-kind="hurt"], [data-kind="dropped"]) .dock-pet__lid {
-  opacity: 1;
-}
-
 @media (prefers-reduced-motion: no-preference) {
-  .game-scene__caption {
-    animation: scene-caption var(--scene-duration) ease-out both;
+  .game-scene[data-kind="ready"] .scene-ready__tunnel {
+    animation: scene-ready-tunnel var(--scene-duration) ease-in-out both;
   }
 
-  .game-scene[data-kind="ready"] .scene-ready__route path {
-    animation: scene-ready-route var(--scene-duration) ease-out both;
+  .game-scene[data-kind="ready"] .scene-ready__sign {
+    animation: scene-ready-sign var(--scene-duration) ease-in-out both;
   }
 
-  .game-scene[data-kind="ready"] .scene-ready__error {
-    animation: scene-ready-error var(--scene-duration) steps(2, jump-none) both;
+  .game-scene[data-kind="ready"] .scene-ready__sign-front {
+    animation: scene-ready-sign-front var(--scene-duration) steps(1, jump-none)
+      both;
+  }
+
+  .game-scene[data-kind="ready"] .scene-ready__sign-back {
+    animation: scene-ready-sign-back var(--scene-duration) steps(1, jump-none)
+      both;
+  }
+
+  .game-scene[data-kind="ready"] .scene-ready__snacks {
+    animation: scene-ready-snacks var(--scene-duration) ease-in-out both;
+  }
+
+  .game-scene[data-kind="ready"] .scene-ready__bag {
+    animation: scene-ready-bag var(--scene-duration) ease-out both;
+  }
+
+  .game-scene[data-kind="ready"] .scene-ready__snack--jar {
+    animation: scene-ready-stolen-a var(--scene-duration) ease-in both;
+  }
+
+  .game-scene[data-kind="ready"] .scene-ready__snack--ball {
+    animation: scene-ready-stolen-b var(--scene-duration) ease-in both;
+  }
+
+  .game-scene[data-kind="ready"] .scene-ready__snack--fruit {
+    animation: scene-ready-scatter var(--scene-duration) ease-out both;
   }
 
   .game-scene[data-kind="ready"] .scene-ready__hunters {
-    animation: scene-ready-peek var(--scene-duration) ease-in-out both;
+    animation: scene-ready-hunters var(--scene-duration) ease-in-out both;
   }
 
-  .game-scene[data-kind="ready"] .scene-ready__home {
-    animation: scene-ready-home var(--scene-duration) ease-out both;
+  .game-scene[data-kind="ready"]
+    :is(
+      .scene-ready__pellets,
+      .scene-ready__moves,
+      .scene-ready__home,
+      .scene-ready__line
+    ) {
+    animation: scene-ready-board var(--scene-duration) ease-out both;
   }
 
   .game-scene[data-kind="ready"] .game-scene__koala {
-    animation: scene-ready-rescue var(--scene-duration) ease-in-out both;
+    animation: scene-ready-koala var(--scene-duration) ease-in-out both;
   }
 
   .game-scene[data-kind="vegemite"] .scene-vegemite__jar {
@@ -3229,6 +3394,10 @@ body.routing-snap {
 
   .game-scene[data-kind="vegemite"] .scene-vegemite__splat {
     animation: scene-vegemite-splat var(--scene-duration) ease-out both;
+  }
+
+  .game-scene[data-kind="vegemite"] .scene-vegemite__slang {
+    animation: scene-vegemite-slang var(--scene-duration) ease-out both;
   }
 
   .game-scene[data-kind="dragon"] .game-scene__koala {
@@ -3280,103 +3449,190 @@ body.routing-snap {
     animation: scene-combined-hunters var(--scene-duration) ease-in both;
   }
 
-  .game-scene[data-kind="combined"] .scene-combined__aftermath {
-    animation: scene-combined-aftermath var(--scene-duration) ease-out both;
-  }
-
-  .game-scene:is([data-kind="hurt"], [data-kind="dropped"]) .game-scene__koala {
-    animation: scene-failure-drop var(--scene-duration) ease-in both;
-  }
-
-  .game-scene[data-kind="dropped"] .scene-dropped__crater {
-    animation: scene-dropped-crater var(--scene-duration) ease-out both;
-  }
-
-  @keyframes scene-caption {
+  @keyframes scene-ready-tunnel {
     0%,
-    68% {
-      opacity: 0;
-    }
-    78%,
-    94% {
-      opacity: 1;
-    }
-    100% {
-      opacity: 0;
-    }
-  }
-
-  @keyframes scene-ready-route {
-    0%,
-    12% {
-      stroke-dashoffset: 140;
-    }
-    42%,
-    100% {
-      stroke-dashoffset: 0;
-    }
-  }
-
-  @keyframes scene-ready-error {
-    0%,
-    10% {
-      opacity: 0;
-      transform: rotate(-3deg) scale(1.4);
-    }
-    18%,
-    54% {
-      opacity: 1;
-      transform: rotate(-3deg) scale(1);
-    }
-    64%,
-    100% {
-      opacity: 0;
-      transform: rotate(-3deg) scale(0.85);
-    }
-  }
-
-  @keyframes scene-ready-peek {
-    0%,
-    30% {
-      opacity: 0;
-      transform: translateY(40%);
-    }
-    42%,
-    72% {
+    66% {
       opacity: 1;
       transform: none;
     }
-    86%,
+
     100% {
       opacity: 0;
-      transform: translateY(25%);
+      transform: scale(0.82);
     }
   }
 
-  @keyframes scene-ready-home {
+  @keyframes scene-ready-sign {
     0%,
-    58% {
-      opacity: 0;
-      transform: scale(0.6);
+    48% {
+      transform: translateX(-50%) rotate(1deg);
     }
-    72%,
+
+    57% {
+      transform: translateX(-50%) rotate(-13deg) scale(1.06);
+    }
+
+    66%,
+    100% {
+      transform: translateX(-50%) rotate(4deg);
+    }
+  }
+
+  @keyframes scene-ready-sign-front {
+    0%,
+    57% {
+      opacity: 1;
+    }
+
+    58%,
+    100% {
+      opacity: 0;
+    }
+  }
+
+  @keyframes scene-ready-sign-back {
+    0%,
+    57% {
+      opacity: 0;
+    }
+
+    58%,
     100% {
       opacity: 1;
-      transform: scale(1);
     }
   }
 
-  @keyframes scene-ready-rescue {
+  @keyframes scene-ready-snacks {
     0%,
-    22% {
+    7% {
+      transform: translate(0, 0);
+    }
+
+    27%,
+    100% {
+      transform: translate(310%, 8%);
+    }
+  }
+
+  @keyframes scene-ready-bag {
+    0%,
+    28% {
+      opacity: 1;
+      transform: rotate(-5deg) scale(1);
+    }
+
+    38%,
+    100% {
+      opacity: 0;
+      transform: rotate(14deg) scale(1.25, 0.55);
+    }
+  }
+
+  @keyframes scene-ready-stolen-a {
+    0%,
+    35% {
+      opacity: 1;
+      transform: none;
+    }
+
+    54%,
+    100% {
+      opacity: 0;
+      transform: translate(390%, -95%) rotate(180deg) scale(0.45);
+    }
+  }
+
+  @keyframes scene-ready-stolen-b {
+    0%,
+    38% {
+      opacity: 1;
+      transform: none;
+    }
+
+    57%,
+    100% {
+      opacity: 0;
+      transform: translate(310%, 125%) rotate(-180deg) scale(0.45);
+    }
+  }
+
+  @keyframes scene-ready-scatter {
+    0%,
+    31% {
+      opacity: 1;
+      transform: none;
+    }
+
+    48%,
+    100% {
+      opacity: 0;
+      transform: translate(-230%, 240%) rotate(240deg);
+    }
+  }
+
+  @keyframes scene-ready-hunters {
+    0%,
+    30% {
+      opacity: 0;
+      transform: translateX(45%) scale(0.72);
+    }
+
+    39%,
+    58% {
+      opacity: 1;
+      transform: translateX(-18%) scale(1);
+    }
+
+    69%,
+    100% {
+      opacity: 0;
+      transform: translateX(42%) rotate(6deg) scale(0.8);
+    }
+  }
+
+  @keyframes scene-ready-board {
+    0%,
+    69% {
+      opacity: 0;
+      transform: translateY(12%) scale(0.92);
+    }
+
+    82%,
+    100% {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @keyframes scene-ready-koala {
+    0%,
+    6% {
       transform: translate(0, 0) scale(0.8);
     }
-    52% {
-      transform: translate(170%, -115%) scale(0.9);
+
+    24% {
+      transform: translate(285%, 2%) scale(0.88);
     }
-    78%,
+
+    31% {
+      transform: translate(315%, 15%) rotate(5deg) scale(1.45, 0.28);
+    }
+
+    40% {
+      transform: translate(165%, 30%) rotate(-12deg) scale(1.5, 0.24);
+    }
+
+    54% {
+      transform: translate(150%, 16%) rotate(-5deg) scale(0.82, 1.24);
+    }
+
+    64% {
+      transform: translate(215%, -18%) rotate(-7deg) scale(0.82);
+    }
+
+    76%,
     100% {
-      transform: translate(365%, -205%) scale(0.72);
+      transform: translate(35%, 42%) scale(0.72);
     }
   }
 
@@ -3466,6 +3722,23 @@ body.routing-snap {
     100% {
       opacity: 1;
       transform: rotate(-8deg) scale(1);
+    }
+  }
+
+  @keyframes scene-vegemite-slang {
+    0%,
+    58% {
+      opacity: 0;
+      transform: translateX(-50%) scale(0.72);
+    }
+    70%,
+    92% {
+      opacity: 1;
+      transform: translateX(-50%) scale(1);
+    }
+    100% {
+      opacity: 0;
+      transform: translateX(-50%) scale(1.08);
     }
   }
 
@@ -3682,72 +3955,36 @@ body.routing-snap {
       transform: translateX(240%) rotate(45deg);
     }
   }
-
-  @keyframes scene-combined-aftermath {
-    0%,
-    78% {
-      opacity: 0;
-      transform: scale(0.6);
-    }
-    86%,
-    100% {
-      opacity: 1;
-      transform: scale(1);
-    }
-  }
-
-  @keyframes scene-failure-drop {
-    0% {
-      opacity: 0;
-      transform: translateY(-180%) rotate(25deg);
-    }
-    58% {
-      opacity: 1;
-      transform: translateY(12%) rotate(90deg) scale(1.08, 0.72);
-    }
-    78%,
-    100% {
-      opacity: 1;
-      transform: translateY(0) rotate(90deg) scale(0.9);
-    }
-  }
-
-  @keyframes scene-dropped-crater {
-    0%,
-    52% {
-      opacity: 0;
-      transform: scale(0);
-    }
-    68% {
-      opacity: 1;
-      transform: scale(1);
-    }
-    100% {
-      opacity: 0.5;
-      transform: scale(1.4);
-    }
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .game-scene__koala,
-  .scene-stage *,
-  .game-scene__caption {
+  .scene-stage * {
     animation: none;
   }
 
   .scene-ready__home,
+  .scene-ready__pellets,
+  .scene-ready__moves,
+  .scene-ready__line,
   .scene-vegemite__pie,
+  .scene-vegemite__slang,
   .scene-combined__pie,
   .scene-combined__charge,
   .scene-combined__chant,
-  .scene-combined__aftermath,
   .scene-dragon__puff {
     opacity: 1;
   }
 
-  .scene-ready__route path {
-    stroke-dashoffset: 0;
+  .scene-ready__tunnel,
+  .scene-ready__snacks,
+  .scene-ready__hunters,
+  .scene-ready__sign-front {
+    opacity: 0;
+  }
+
+  .scene-ready__sign-back {
+    opacity: 1;
   }
 
   .scene-dragon__beam,
@@ -3756,8 +3993,7 @@ body.routing-snap {
     transform: scaleX(1);
   }
 
-  .scene-vegemite__splat,
-  .scene-dropped__crater {
+  .scene-vegemite__splat {
     opacity: 1;
     transform: none;
   }
@@ -3766,10 +4002,5 @@ body.routing-snap {
 @media (max-width: 600px) {
   .game-scene__koala {
     width: 21%;
-  }
-
-  .game-scene__caption {
-    right: 3.2rem;
-    bottom: 0.35rem;
   }
 }
