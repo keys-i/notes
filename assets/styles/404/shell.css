@@ -1,11 +1,9 @@
 .recovery-shell {
-  margin-top: 0.55rem;
-  border: 1px solid #6bdcff;
-  background: #000319;
-  box-shadow:
-    inset 0 0 0.8rem rgb(23 67 245 / 0.28),
-    0 0 0.35rem rgb(107 220 255 / 0.18);
-  color: #d9fff0;
+  margin-top: 0.3rem;
+  border: 1px solid #263750;
+  background: #00020a;
+  box-shadow: 0 0.35rem 1rem rgb(0 0 0 / 0.32);
+  color: #b9cbd4;
   font:
     700 0.62rem/1.35 ui-monospace,
     SFMono-Regular,
@@ -14,12 +12,12 @@
 }
 
 .recovery-shell:focus-within {
-  border-color: #f2ff3d;
-  box-shadow: 0 0 0 1px #f2ff3d;
+  border-color: #69e8ff;
+  box-shadow: 0 0 0 1px #69e8ff;
 }
 
 .recovery-shell[data-reaction] {
-  border-color: #f2ff3d;
+  border-color: #3a5b7d;
 }
 
 .recovery-shell[data-reaction="terminalError"] {
@@ -27,19 +25,19 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .recovery-shell[data-reaction="terminalMove"] {
+  .game:has(.recovery-shell[data-reaction="terminalMove"]) .board .player {
     animation: terminal-hop 560ms cubic-bezier(0.2, 0.8, 0.2, 1);
   }
 
-  .recovery-shell[data-reaction="terminalDebug"] {
+  .game:has(.recovery-shell[data-reaction="terminalDebug"]) .board {
     animation: terminal-scan 560ms steps(2, end);
   }
 
-  .recovery-shell[data-reaction="terminalReset"] {
+  .game:has(.recovery-shell[data-reaction="terminalReset"]) .board {
     animation: terminal-reboot 560ms ease-out;
   }
 
-  .recovery-shell[data-reaction="terminalError"] {
+  .game:has(.recovery-shell[data-reaction="terminalError"]) .board .player {
     animation: terminal-denied 320ms ease-out;
   }
 
@@ -89,7 +87,7 @@
 }
 
 .recovery-shell__log {
-  height: 8.1em;
+  height: 5.4em;
   overflow: auto;
   padding: 0.38rem 0.5rem;
 }

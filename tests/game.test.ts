@@ -52,12 +52,18 @@ const node = function (): any {
       toggle() {},
     },
     addEventListener() {},
+    append(...children) {
+      this.children.push(...children);
+    },
     appendChild(child) {
       this.children.push(child);
     },
     click() {},
     cloneNode() {
       return node();
+    },
+    contains() {
+      return false;
     },
     closest() {
       return null;
@@ -69,6 +75,7 @@ const node = function (): any {
     querySelectorAll() {
       return [];
     },
+    removeAttribute() {},
     replaceChildren(...children) {
       this.children = children;
     },
@@ -80,7 +87,10 @@ const element = function (id) {
   if (!elements.has(id)) elements.set(id, node());
   return elements.get(id);
 };
+const ghostNodes = [node(), node()];
 const document = {
+  body: node(),
+  documentElement: node(),
   hidden: false,
   addEventListener() {},
   createDocumentFragment: node,
@@ -93,8 +103,8 @@ const document = {
   querySelector() {
     return null;
   },
-  querySelectorAll() {
-    return [];
+  querySelectorAll(selector) {
+    return selector === ".ghost" ? ghostNodes : [];
   },
 };
 const game: any = vm.createContext({
@@ -399,46 +409,41 @@ test("gameplay budgets keep generation, movement, and scenes brisk", () => {
   assert.ok(settings.play.player_interval_ms <= 84);
   assert.ok(settings.play.ghost_interval_ms <= 280);
   assert.deepEqual(JSON.parse(JSON.stringify(game.SCENE_DURATIONS)), {
-    ready: 1600,
-    vegemite: 2400,
-    dragon: 1800,
-    combined: 2800,
-    hurt: 1000,
-    dropped: 1000,
+    ready: 3200,
+    vegemite: 1350,
+    dragon: 1150,
+    combined: 1850,
   });
-  const css = fs.readFileSync(
-    new URL("../assets/styles/404/game.css", import.meta.url),
-    "utf8",
-  );
-  assert.match(css, /translate 0\.08s linear/);
+});
+
+test("reset shows the briefing before the first movement", () => {
+  game.sceneTakes.set("vegemite", 2);
+  game.resetGame(false);
+  assert.equal(game.gameScene, "ready");
+  assert.equal(game.gameStarted, true);
+  assert.equal(game.sceneTakes.has("vegemite"), false);
+  assert.equal(game.sceneTakes.get("ready"), 1);
+  game.finishGameScene();
+  assert.equal(game.gameScene, "");
+  assert.equal(game.gameStarted, true);
 });
 
 test("seeded scene bags do not repeat at refill boundaries", () => {
-  const values = ["Fair dinkum", "No worries, mate", "She’ll be right"];
+  const values = ["Too easy", "Beauty", "No worries"];
   const draw = () =>
     Array.from({ length: 8 }, () => game.takeFromBag("slang", values));
   game.sceneBags = new Map();
-  game.dialogueRandom = game.seededRandom(
-    404,
-    settings.random.streams.dialogue,
-  );
+  game.effectsRandom = game.seededRandom(404, settings.random.streams.effects);
   const first = draw();
   first
     .slice(1)
     .forEach((value, index) => assert.notEqual(value, first[index]));
   game.sceneBags = new Map();
-  game.dialogueRandom = game.seededRandom(
-    404,
-    settings.random.streams.dialogue,
-  );
+  game.effectsRandom = game.seededRandom(404, settings.random.streams.effects);
   assert.deepEqual(draw(), first);
 });
 
 test("double power and Vegemite captures have explicit payoffs", () => {
-  const css = fs.readFileSync(
-    new URL("../assets/styles/404/game.css", import.meta.url),
-    "utf8",
-  );
   const template = fs.readFileSync(
     new URL("../site/theme/404.html", import.meta.url),
     "utf8",
@@ -454,57 +459,36 @@ test("double power and Vegemite captures have explicit payoffs", () => {
     source,
     /devourPredator\(index, captureReaction\(powerAuraKind\)\)/,
   );
-  assert.match(template, /KAME · HAME · HAAAAA!/);
-  assert.match(template, /game-scene__hardhat/);
-  assert.match(template, /game-scene__vest/);
-  assert.match(css, /data-reaction="pie-splat"/);
-  assert.match(css, /scene-dragon-sputter/);
+  assert.match(template, />KAME · HAME · HAAAAA!</);
+  assert.match(template, />pfft</);
+  assert.deepEqual(Array.from(game.AUSSIE_SLANG), [
+    "Too easy",
+    "Beauty",
+    "No worries",
+  ]);
 });
 
-test("core scenes use distinct stage props and choreography", () => {
-  const css = fs.readFileSync(
-    new URL("../assets/styles/404/game.css", import.meta.url),
-    "utf8",
-  );
+test("404 chrome keeps the game primary and the terminal optional", () => {
   const template = fs.readFileSync(
     new URL("../site/theme/404.html", import.meta.url),
     "utf8",
   );
-  const scenes = {
-    ready: ["scene-ready__route", "scene-ready__zero", "scene-ready__home"],
-    vegemite: [
-      "scene-vegemite__platform",
-      "scene-vegemite__jar",
-      "scene-vegemite__pie",
-      "scene-vegemite__splat",
-    ],
-    dragon: ["scene-dragon__orb", "scene-dragon__beam", "scene-dragon__puff"],
-    combined: [
-      "scene-combined__pie",
-      "scene-combined__charge",
-      "scene-combined__beam",
-      "scene-combined__aftermath",
-    ],
-  };
-  Object.entries(scenes).forEach(([kind, props]) => {
-    assert.match(template, new RegExp(`scene-stage--${kind}`));
-    assert.match(css, new RegExp(`data-kind="${kind}"`));
-    props.forEach((prop) => assert.match(template, new RegExp(prop)));
-  });
-  [
-    "scene-ready-rescue",
-    "scene-vegemite-jump",
-    "scene-vegemite-pie",
-    "scene-dragon-sputter",
-    "scene-dragon-unimpressed",
-    "scene-combined-orbit-a",
-    "scene-combined-charge",
-    "scene-combined-beam",
-    "scene-combined-aftermath",
-  ].forEach((name) => assert.match(css, new RegExp(`@keyframes ${name}`)));
-  assert.doesNotMatch(template, /game-scene__(?:cue|title|copy|portrait)/);
-  assert.doesNotMatch(css, /game-scene__koala \.dock-pet__limb,/);
-  assert.match(css, /game-scene__koala \.dock-pet__paw,/);
+  const styles = fs.readFileSync(
+    new URL("../assets/styles/404/game.css", import.meta.url),
+    "utf8",
+  );
+  assert.match(template, /<details class="game__terminal">/);
+  assert.match(template, /<summary>&gt;_ Terminal<\/summary>/);
+  assert.match(template, /KoalaBSD rescue shell ready · type help/);
+  assert.match(template, /aria-describedby="game-objective status"/);
+  assert.match(template, />Play now<\/button>/);
+  assert.match(template, /Right\. Long way home\./);
+  assert.match(styles, /\.game-scene\[hidden\]\s*{\s*display:\s*none;/);
+  assert.doesNotMatch(template, /id="music"|Music off|game__dialogue/);
+  assert.doesNotMatch(
+    template,
+    /Page not found\.<\/span>|Return to notes|Play recovery/,
+  );
 });
 
 test("tunnel gags are seeded, bounded, and never enter scene state", () => {
@@ -571,37 +555,12 @@ test("powered capture scoring escalates and awards one extra life", () => {
   assert.equal(game.lives, settings.play.lives + 1);
 });
 
-test("dialogue varies without perturbing the effects random stream", () => {
-  Object.values(game.GAME_DIALOGUE).forEach(function (lines: string[]) {
-    assert.ok(lines.length >= 2);
-    assert.equal(new Set(lines).size, lines.length);
-  });
-
-  game.dialogueRandom = () => 0;
-  game.showDialogue("ready");
-  const first = game.dialogueElement.textContent;
-  game.showDialogue("ready");
-  assert.notEqual(game.dialogueElement.textContent, first);
-
-  const expected = game.seededRandom(404, settings.random.streams.effects);
-  const actual = game.seededRandom(404, settings.random.streams.effects);
-  game.dialogueRandom = game.seededRandom(
-    404,
-    settings.random.streams.dialogue,
-  );
-  const expectedValues = Array.from({ length: 8 }, expected);
-  for (let index = 0; index < 8; index += 1) game.showDialogue("ready");
-  assert.deepEqual(Array.from({ length: 8 }, actual), expectedValues);
-});
-
 const createAudioHarness = function (options: any = {}) {
   const attributes = new Map();
   const audios = [];
   const controlListeners = new Map();
   const pageListeners = new Map();
   const volumeListeners = new Map();
-  const musicListeners = new Map();
-  const musicAttributes = new Map();
   const writes = [];
   const stored = new Map([
     ["404-sound-muted", options.stored ?? null],
@@ -666,15 +625,6 @@ const createAudioHarness = function (options: any = {}) {
     disabled: false,
     value: "0.8",
   };
-  const musicControl = {
-    addEventListener(name, listener) {
-      musicListeners.set(name, listener);
-    },
-    setAttribute(name, value) {
-      musicAttributes.set(name, value);
-    },
-    textContent: "",
-  };
   const storage =
     options.storage === false
       ? null
@@ -702,7 +652,6 @@ const createAudioHarness = function (options: any = {}) {
     storage,
     page,
     settings.assets,
-    musicControl,
   );
 
   return {
@@ -716,9 +665,6 @@ const createAudioHarness = function (options: any = {}) {
     volumeControl,
     volumeListeners,
     writes,
-    musicControl,
-    musicListeners,
-    musicAttributes,
   };
 };
 
@@ -750,15 +696,13 @@ test("sampled audio state matrix covers guards and recovery", async () => {
     ],
     [
       "muted",
-      {},
+      { stored: "1" },
       (harness) => {
         harness.controlListeners.get("click")();
       },
     ],
   ].forEach(function ([name, options, release]: any[]) {
     const harness = createAudioHarness(options);
-    harness.audio.toggleMusic();
-    if (name === "muted") harness.audio.toggle();
     harness.audio.start();
     assert.ok(
       harness.audios.every((track) => track.paused),
@@ -787,9 +731,13 @@ test("sampled audio state matrix covers guards and recovery", async () => {
     ["play rejects", { playError: "reject" }],
   ].forEach(function ([name, options]: any[]) {
     const harness = createAudioHarness(options);
-    assert.doesNotThrow(harness.audio.toggleMusic, name);
     assert.doesNotThrow(harness.audio.toggle, name + " toggle");
   });
+  const blockedVolume = createAudioHarness({ writeError: true });
+  assert.doesNotThrow(() =>
+    blockedVolume.volumeListeners.get("input")({ target: { value: "0.5" } }),
+  );
+  assert.equal(blockedVolume.volumeControl.value, 0.8);
   await Promise.resolve();
 
   [
@@ -797,7 +745,8 @@ test("sampled audio state matrix covers guards and recovery", async () => {
     ["constructor blocked", { constructorError: true }],
   ].forEach(function ([name, options]: any[]) {
     const harness = createAudioHarness(options);
-    assert.doesNotThrow(harness.audio.toggleMusic, name);
+    harness.audio.start();
+    assert.doesNotThrow(harness.audio.toggle, name);
     assert.equal(harness.control.disabled, true, name + " control");
     assert.equal(harness.volumeControl.disabled, true, name + " volume");
     assert.equal(
@@ -823,7 +772,7 @@ test("sampled cues preserve semantic roles without oscillator fallbacks", () => 
     ["boot", "beginning"],
   ].forEach(function ([kind, asset, variant, rate = 1]) {
     const harness = createAudioHarness();
-    harness.audio.toggleMusic();
+    harness.audio.start();
     harness.audio.sequence(kind, variant);
     const voice = harness.audios.at(-1);
     assert.equal(
@@ -853,7 +802,7 @@ test("sampled cues preserve semantic roles without oscillator fallbacks", () => 
   });
 
   const unknown = createAudioHarness();
-  unknown.audio.toggleMusic();
+  unknown.audio.start();
   unknown.audio.sequence("unknown");
   assert.equal(unknown.audios.length, 1);
 
@@ -869,12 +818,6 @@ test("sampled cues preserve semantic roles without oscillator fallbacks", () => 
 test("arcade music keeps a steady tempo, persists volume, and pauses cleanly", () => {
   const harness = createAudioHarness({ volume: "0.4" });
   harness.audio.start();
-  assert.equal(harness.audios.length, 0, "background music is off by default");
-  assert.equal(harness.musicControl.textContent, "Music off");
-  harness.musicListeners.get("click")();
-  assert.equal(harness.musicControl.textContent, "Music on");
-  assert.equal(harness.musicAttributes.get("aria-pressed"), "true");
-  harness.audio.start();
   assert.equal(harness.audios.length, 1);
   const [calm] = harness.audios;
   assert.equal(calm.src, "/docs/" + settings.assets.music);
@@ -887,11 +830,13 @@ test("arcade music keeps a steady tempo, persists volume, and pauses cleanly", (
   harness.volumeListeners.get("input")({ target: harness.volumeControl });
   assert.deepEqual(harness.writes, [["404-sound-volume", "0.65"]]);
   assert.equal(calm.volume, 0.65 * 0.22);
-  harness.audio.toggleMusic();
-  assert.ok(calm.paused, "music can be disabled while effects remain enabled");
+  harness.audio.toggle();
+  assert.ok(calm.paused, "the sound control mutes music");
+  harness.audio.play("pellet");
+  assert.equal(harness.audios.length, 1, "muting also blocks effects");
+  harness.audio.toggle();
   harness.audio.play("pellet");
   assert.equal(harness.audios.at(-1).paused, false);
-  harness.audio.toggleMusic();
   assert.equal(
     harness.audios.filter((track) => track.src.endsWith(settings.assets.music))
       .length,
@@ -911,7 +856,7 @@ test("arcade music keeps a steady tempo, persists volume, and pauses cleanly", (
 
 test("countdown and BOOM keep music stopped until gameplay resumes", () => {
   const harness = createAudioHarness();
-  harness.audio.toggleMusic();
+  harness.audio.start();
   const music = harness.audios[0];
   harness.audio.finish("win");
   let previousGain = 0;
@@ -938,8 +883,6 @@ test("countdown and BOOM keep music stopped until gameplay resumes", () => {
     harness.pageListeners.get("visibilitychange")();
     harness.audio.toggle();
     harness.audio.toggle();
-    harness.audio.toggleMusic();
-    harness.audio.toggleMusic();
     assert.ok(
       music.paused,
       "controls and visibility cannot resume sequence music",
@@ -977,14 +920,14 @@ test("audio is wired to every gameplay and shell transition", () => {
       /gameAudio\.sequence\("countdown", n\)[\s\S]*?gameAudio\.sequence\("launch"\)/,
     ],
     [
-      "terminal hurt",
+      "defeat reaction",
       functionSource("loseLife"),
-      /startGameScene\("dropped"\)/,
+      /flashGameReaction\("dropped"\)/,
     ],
     [
       "recoverable hurt",
       functionSource("loseLife"),
-      /startGameScene\("hurt"\)/,
+      /gameAudio\.play\("hurt"\)[\s\S]*?flashGameReaction\("hurt"\)[\s\S]*?resetPositions\(\)/,
     ],
     [
       "capture",
@@ -1137,12 +1080,11 @@ test("repeated pellet cues reuse a bounded pool of audio elements", () => {
 
 test("Pac-Man foreground cues finish before music resumes and scenes lock it out", async () => {
   const waiting = createAudioHarness({ started: false });
-  waiting.audio.toggleMusic();
   waiting.audio.start();
   assert.equal(waiting.audios.length, 0, "no music on the idle 404 page");
 
   const h = createAudioHarness();
-  h.audio.toggleMusic();
+  h.audio.start();
   const music = h.audios[0];
   h.audio.play("bonus");
   const fruit = h.audios.at(-1);
@@ -1154,15 +1096,13 @@ test("Pac-Man foreground cues finish before music resumes and scenes lock it out
   h.audios.at(-1).onended();
   assert.equal(music.paused, false, "music resumes after the cue ends");
 
-  for (const kind of ["ready", "vegemite", "dragon", "hurt"]) {
+  for (const kind of ["ready", "vegemite", "dragon", "combined"]) {
     game.gameScene = kind;
-    h.audio.sequence(
-      kind === "ready" ? "boot" : kind === "hurt" ? "hurt" : "power",
-    );
+    h.audio.sequence(kind === "ready" ? "boot" : "power");
     h.audio.start();
     h.audios.at(-1).onended();
-    h.audio.toggleMusic();
-    h.audio.toggleMusic();
+    h.audio.toggle();
+    h.audio.toggle();
     assert.ok(music.paused, kind + " blocks music until the scene finishes");
   }
   game.gameScene = "";
@@ -1174,15 +1114,15 @@ test("Pac-Man foreground cues finish before music resumes and scenes lock it out
   chewing.audio.start();
   chewing.audio.play("pellet");
   await new Promise((resolve) => setTimeout(resolve, 210));
-  assert.ok(chewing.audios[0].paused, "chomping stops when pickups stop");
+  assert.ok(chewing.audios.at(-1).paused, "chomping stops when pickups stop");
 });
 
-test("power scenes freeze movement and expire safely on skip or reset", () => {
+test("authored scenes run once while repeat powers stay on the board", () => {
   const timers = new Map();
   let timerId = 0;
   let stopped = 0;
-  let restored = 0;
   const cues = [];
+  const effects = [];
   const hunters = {
     children: [],
     replaceChildren() {
@@ -1194,8 +1134,16 @@ test("power scenes freeze movement and expire safely on skip or reset", () => {
   };
   const sceneNodes = new Map<string, any>();
   const sceneNode = (selector: string) => {
-    if (!sceneNodes.has(selector))
-      sceneNodes.set(selector, { textContent: "" });
+    if (!sceneNodes.has(selector)) {
+      const attributes = new Map<string, string>();
+      sceneNodes.set(selector, {
+        attributes,
+        setAttribute(name, value) {
+          attributes.set(name, value);
+        },
+        textContent: "",
+      });
+    }
     return sceneNodes.get(selector);
   };
   const scene = {
@@ -1207,7 +1155,6 @@ test("power scenes freeze movement and expire safely on skip or reset", () => {
       selector.includes("[data-scene-hunters]") ? hunters : sceneNode(selector),
   };
   const context = vm.createContext({
-    SCENE_COPY: JSON.parse(JSON.stringify(game.SCENE_COPY)),
     SCENE_DURATIONS: JSON.parse(JSON.stringify(game.SCENE_DURATIONS)),
     AUSSIE_SLANG: [...game.AUSSIE_SLANG],
     gameScene: "",
@@ -1217,7 +1164,7 @@ test("power scenes freeze movement and expire safely on skip or reset", () => {
     sceneTake: 0,
     sceneTakes: new Map(),
     sceneBags: new Map(),
-    dialogueRandom: () => 0,
+    effectsRandom: () => 0,
     running: true,
     paused: false,
     shuttingDown: false,
@@ -1233,10 +1180,9 @@ test("power scenes freeze movement and expire safely on skip or reset", () => {
       stop: () => stopped++,
       start() {},
       sequence: (cue) => cues.push(cue),
+      play: (cue) => effects.push(cue),
     },
     stopPlayerInput() {},
-    clearPredatorEffects() {},
-    resetPositions: () => restored++,
     flashRandomWalls() {},
     triggerPowerBurst() {},
     resolveCollision() {},
@@ -1253,27 +1199,44 @@ test("power scenes freeze movement and expire safely on skip or reset", () => {
     "takeFromBag",
     "finishGameScene",
     "startGameScene",
+    "triggerPowerScene",
     "movePlayer",
     "moveGhosts",
   ]);
-  let firstVegemiteCaption = "";
-  for (const kind of ["ready", "vegemite", "dragon", "combined"]) {
-    context.startGameScene(kind);
+
+  context.startGameScene("ready");
+  assert.equal(context.gameScene, "ready");
+  assert.equal(sceneNode(".game-scene__skip").textContent, "Play now");
+  assert.equal([...timers.values()][0].ms, 3200);
+  context.finishGameScene();
+
+  context.matchMedia = () => ({ matches: true });
+  context.startGameScene("ready");
+  assert.equal([...timers.values()][0].ms, 180);
+  context.finishGameScene();
+  delete context.matchMedia;
+
+  for (const kind of ["vegemite", "dragon", "combined"]) {
+    assert.equal(context.triggerPowerScene(kind), true);
     assert.equal(context.gameScene, kind);
     assert.equal(scene.hidden, false);
-    assert.equal(cues.at(-1), kind === "ready" ? "boot" : "power");
+    assert.equal(cues.at(-1), "power");
     assert.equal(
       hunters.children.length,
       2,
       "each scene gets exactly two hunters",
     );
     assert.equal([...timers.values()][0].ms, context.SCENE_DURATIONS[kind]);
-    assert.ok(sceneNode(".game-scene__caption").textContent);
+    assert.equal(sceneNode(".game-scene__skip").textContent, "▶");
+    assert.equal(
+      sceneNode(".game-scene__skip").attributes.get("aria-label"),
+      "Skip power-up",
+    );
     if (kind === "vegemite") {
-      firstVegemiteCaption = sceneNode(".game-scene__caption").textContent;
-      assert.match(
-        firstVegemiteCaption,
-        /Yeah, nah|She’ll be right|No worries, mate|Fair dinkum|Too easy/,
+      assert.ok(
+        context.AUSSIE_SLANG.includes(
+          sceneNode(".scene-vegemite__slang").textContent,
+        ),
       );
     }
     assert.doesNotThrow(
@@ -1288,47 +1251,42 @@ test("power scenes freeze movement and expire safely on skip or reset", () => {
     assert.equal(scene.hidden, true);
     assert.equal(context.gameScene, "");
     assert.equal(timers.size, 0);
+
+    assert.equal(context.triggerPowerScene(kind), false);
+    assert.equal(context.gameScene, "");
+    assert.equal(context.board.dataset.reaction, "power-" + kind);
+    assert.ok(context.board.dataset.callout);
+    assert.equal(effects.at(-1), "power");
+    const reaction = [...timers.values()][0];
+    assert.equal(reaction.ms, 420);
+    reaction.fn();
+    assert.equal(context.board.dataset.reaction, undefined);
+    assert.equal(context.board.dataset.callout, undefined);
+    timers.clear();
   }
+
+  context.startGameScene("ready");
+  const replaced = [...timers.values()][0].fn;
   context.startGameScene("vegemite");
-  assert.notEqual(
-    sceneNode(".game-scene__caption").textContent,
-    firstVegemiteCaption,
-    "repeat scenes rotate their punchline",
-  );
+  replaced();
+  assert.equal(context.gameScene, "vegemite");
+  assert.equal(scene.hidden, false);
+  assert.equal(timers.size, 1, "an old scene cannot finish its replacement");
   context.finishGameScene();
-  context.flashGameReaction("tunnel-miss");
-  assert.equal(context.board.dataset.reaction, "tunnel-miss");
-  const reaction = [...timers.values()][0];
-  assert.equal(reaction.ms, 420);
-  reaction.fn();
-  assert.equal(context.board.dataset.reaction, undefined);
-  timers.clear();
-  context.startGameScene("hurt");
-  const stale = [...timers.values()][0].fn;
-  context.clearGameScene();
-  stale();
-  assert.equal(restored, 0, "canceled death cannot reset a new game");
-  assert.equal(timers.size, 0);
-  context.startGameScene("dropped");
+
   let focusReturned = false;
   scene.contains = () => true;
   context.board.focus = () => {
     focusReturned = true;
   };
-  context.running = false;
-  assert.equal(cues.at(-1), "hurt");
+  context.startGameScene("ready");
   context.finishGameScene();
-  assert.equal(context.running, false, "defeat scene cannot revive the game");
   assert.equal(
     focusReturned,
     true,
-    "skipping defeat returns keyboard focus to the board",
+    "skipping the intro returns keyboard focus to the board",
   );
-  assert.equal(restored, 0);
-  assert.equal(hunters.children.length, 0);
-  assert.ok(stopped >= 6);
-  assert.match(source, /function resetGame\([\s\S]*?clearGameScene\(\)/);
-  assert.match(functionSource("startShutdownSequence"), /clearGameScene\(\)/);
+  assert.ok(stopped >= 5);
 });
 
 test("win countdown reserves the celebration for BOOM and then returns home", () => {
