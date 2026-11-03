@@ -15,9 +15,14 @@
   font: 0.62rem/1.35 var(--md-code-font-family);
   background: transparent;
   border: 0;
-  cursor: pointer;
+  cursor: grab;
+  touch-action: none;
   user-select: none;
   will-change: transform;
+}
+
+.dock-pet[data-dragging] {
+  cursor: grabbing;
 }
 
 [data-md-color-scheme="slate"] .dock-pet {
@@ -41,6 +46,15 @@
   display: block;
   width: 100%;
   height: 100%;
+  transform-origin: 50% 88%;
+  transition:
+    transform 140ms cubic-bezier(0.16, 1, 0.3, 1),
+    filter 140ms ease;
+}
+
+.dock-pet[data-dragging] .dock-pet__body {
+  filter: drop-shadow(0 0.4rem 0.35rem rgb(0 0 0 / 0.24));
+  transform: translateY(-4px) scale(1.04);
 }
 
 .dock-pet__art {
@@ -251,6 +265,29 @@
   transform-origin: center;
 }
 
+.dock-pet__paw--back-far,
+.dock-pet__paw--back-near,
+.dock-pet__paw--front-far,
+.dock-pet__paw--front-near {
+  transform-box: view-box;
+}
+
+.dock-pet__paw--back-far {
+  transform-origin: 36px 88px;
+}
+
+.dock-pet__paw--back-near {
+  transform-origin: 82px 88px;
+}
+
+.dock-pet__paw--front-far {
+  transform-origin: 40px 72px;
+}
+
+.dock-pet__paw--front-near {
+  transform-origin: 78px 72px;
+}
+
 .dock-pet__socket {
   fill: #f7f5eb;
   stroke: var(--dock-pet-fur-dark);
@@ -352,12 +389,12 @@
 
 .dock-pet:is([data-state="sitting"], [data-behavior="sit"])
   .dock-pet__paw--front-far {
-  transform: translate(-3px, 3px);
+  transform: rotate(-7deg);
 }
 
 .dock-pet:is([data-state="sitting"], [data-behavior="sit"])
   .dock-pet__paw--front-near {
-  transform: translate(3px, 3px);
+  transform: rotate(7deg);
 }
 
 .dock-pet__status {
@@ -386,12 +423,12 @@ html.freebsd-shutting-down .dock-pet__status {
 
   .dock-pet[data-state="walking"]
     :is(.dock-pet__paw--front-far, .dock-pet__paw--back-near) {
-    animation: dock-pet-paw-a 520ms ease-in-out infinite;
+    animation: dock-pet-joint-a 520ms ease-in-out infinite;
   }
 
   .dock-pet[data-state="walking"]
     :is(.dock-pet__paw--front-near, .dock-pet__paw--back-far) {
-    animation: dock-pet-paw-b 520ms ease-in-out infinite;
+    animation: dock-pet-joint-b 520ms ease-in-out infinite;
   }
 
   .dock-pet[data-behavior="peek"] .dock-pet__character {
@@ -421,6 +458,10 @@ html.freebsd-shutting-down .dock-pet__status {
     animation: dock-pet-blink 130ms ease-in-out;
   }
 
+  .dock-pet[data-dropping] .dock-pet__body {
+    animation: dock-pet-drop 180ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
   .dock-pet[data-paused]
     :is(
       .dock-pet__character,
@@ -444,25 +485,25 @@ html.freebsd-shutting-down .dock-pet__status {
   }
 }
 
-@keyframes dock-pet-paw-a {
+@keyframes dock-pet-joint-a {
   0%,
   100% {
-    transform: translateX(-2px);
+    transform: rotate(-4deg);
   }
 
   50% {
-    transform: translateX(2px);
+    transform: rotate(4deg);
   }
 }
 
-@keyframes dock-pet-paw-b {
+@keyframes dock-pet-joint-b {
   0%,
   100% {
-    transform: translateX(2px);
+    transform: rotate(4deg);
   }
 
   50% {
-    transform: translateX(-2px);
+    transform: rotate(-4deg);
   }
 }
 
@@ -486,7 +527,7 @@ html.freebsd-shutting-down .dock-pet__status {
 
   38%,
   70% {
-    transform: translate(4px, -5px) rotate(-8deg);
+    transform: rotate(-10deg);
   }
 }
 
@@ -545,6 +586,18 @@ html.freebsd-shutting-down .dock-pet__status {
   }
 }
 
+@keyframes dock-pet-drop {
+  from {
+    filter: drop-shadow(0 0.3rem 0.25rem rgb(0 0 0 / 0.18));
+    transform: translateY(-3px) scale(1.03);
+  }
+
+  to {
+    filter: none;
+    transform: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .dock-pet__character,
   .dock-pet__ears,
@@ -557,6 +610,11 @@ html.freebsd-shutting-down .dock-pet__status {
     animation: none !important;
     transition: none !important;
     transform: none !important;
+  }
+
+  .dock-pet__body {
+    animation: none !important;
+    transition: none !important;
   }
 }
 
