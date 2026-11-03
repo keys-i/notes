@@ -1,0 +1,768 @@
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import test from "node:test";
+import { fileURLToPath } from "node:url";
+import vm from "node:vm";
+
+const petPath = fileURLToPath(new URL("../assets/js/pet.js", import.meta.url));
+const source = fs.readFileSync(petPath, "utf8");
+const template = fs.readFileSync(
+  new URL("../site/theme/partials/koala.html", import.meta.url),
+  "utf8",
+);
+const mainTemplate = fs.readFileSync(
+  new URL("../site/theme/main.html", import.meta.url),
+  "utf8",
+);
+const style = fs.readFileSync(
+  new URL("../assets/styles/pet.css", import.meta.url),
+  "utf8",
+);
+const siteStyle = fs.readFileSync(
+  new URL("../assets/styles/site.css", import.meta.url),
+  "utf8",
+);
+const siteConfig = fs.readFileSync(
+  new URL("../site/mkdocs.yml", import.meta.url),
+  "utf8",
+);
+const pure: any = vm.createContext({ Math, Object });
+vm.runInContext(source.slice(0, source.indexOf("\n(function () {")), pure, {
+  filename: petPath,
+});
+
+test("reading helpers validate one page, find a heading, and bound labels", () => {
+  assert.equal(
+    pure.dockPetPageKey({ pathname: "/week-2/", search: "?print=1" }),
+    "/week-2/?print=1",
+  );
+  assert.deepEqual(
+    JSON.parse(
+      JSON.stringify(
+        pure.dockPetSpot(
+          {
+            heading: `  ${"Long heading ".repeat(10)} `,
+            id: "x".repeat(200),
+            page: "/week-2/",
+            y: 42.6,
+          },
+          "/week-2/",
+        ),
+      ),
+    ),
+    {
+      heading:
+        "Long heading Long heading Long heading Long heading Long heading Long heading Lo",
+      id: "x".repeat(160),
+      page: "/week-2/",
+      y: 43,
+    },
+  );
+  [
+    null,
+    { heading: "Topic", id: "topic", page: "/other/", y: 10 },
+    { heading: "", id: "topic", page: "/week-2/", y: 10 },
+    { heading: "Topic", id: "topic", page: "/week-2/", y: -1 },
+  ].forEach((spot) => assert.equal(pure.dockPetSpot(spot, "/week-2/"), null));
+
+  const headings = [
+    { id: "intro", offsetTop: 0, textContent: "Introduction" },
+    { id: "dynamics", offsetTop: 400, textContent: " Dynamics   and motion " },
+    { id: "energy", offsetTop: 800, textContent: "Energy" },
+  ];
+  assert.deepEqual(
+    JSON.parse(
+      JSON.stringify(pure.dockPetCurrentHeading(headings, 450, "Week 2")),
+    ),
+    { heading: "Dynamics and motion", id: "dynamics" },
+  );
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(pure.dockPetCurrentHeading([], 450, "Week 2"))),
+    { heading: "Week 2", id: "" },
+  );
+});
+
+test("local motivation decks are deterministic, complete, and never repeat at refill", () => {
+  const first = Array.from(pure.dockPetMotivationDeck("/week-2/:save:0", ""));
+  const again = Array.from(pure.dockPetMotivationDeck("/week-2/:save:0", ""));
+  assert.deepEqual(first, again);
+  assert.equal(first.length, 6);
+  assert.equal(new Set(first).size, first.length);
+  const refill = Array.from(
+    pure.dockPetMotivationDeck("/week-2/:save:1", first.at(-1)),
+  );
+  assert.notEqual(refill[0], first.at(-1));
+});
+
+test("gaze and cloud helpers stay bounded", () => {
+  const rect = { height: 80, left: 0, top: 0, width: 80 };
+  (
+    [
+      [{ x: 240, y: 40 }, 1, 2.4, 0],
+      [{ x: -160, y: 40 }, 1, -2.4, 0],
+      [{ x: 40, y: 240 }, 1, 0, 3.4],
+      [{ x: 240, y: 40 }, -1, -2.4, 0],
+    ] as Array<[{ x: number; y: number }, number, number, number]>
+  ).forEach(function ([pointer, facing, x, y]) {
+    const gaze = pure.dockPetGaze(rect, pointer, facing);
+    assert.ok(Math.abs(gaze.x - x) < 0.001);
+    assert.ok(Math.abs(gaze.y - y) < 0.001);
+  });
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(pure.dockPetGaze(rect, null, 1))),
+    { x: 0, y: 0 },
+  );
+  const cloud = pure.dockPetCloudPath(220, 82);
+  assert.match(cloud, /^M /);
+  assert.ok((cloud.match(/ Q /g) || []).length >= 10);
+  assert.match(cloud, / Z$/);
+  assert.equal((pure.dockPetCloudPath(1, 1).match(/ Q /g) || []).length, 10);
+  assert.equal(
+    (pure.dockPetCloudPath(500, 500).match(/ Q /g) || []).length,
+    16,
+  );
+});
+
+test("the koala is squat, asymmetric, and free of a skeletal rig", () => {
+  assert.equal(
+    (template.match(/class="dock-pet__paw(?: |")/g) || []).length,
+    4,
+  );
+  assert.match(template, /dock-pet__ear--notched/);
+  assert.match(template, /dock-pet__gumleaf-blade/);
+  assert.equal((template.match(/class="dock-pet__iris"/g) || []).length, 2);
+  assert.equal(
+    (template.match(/clip-path="url\(#dock-pet-eye-/g) || []).length,
+    2,
+  );
+  assert.doesNotMatch(
+    template,
+    /class="dock-pet__limb |dock-pet__joint|limb-grip|dock-pet__claws/,
+  );
+  ["fore-far", "fore-near", "hind-far", "hind-near"].forEach((paw) => {
+    assert.match(template, new RegExp(`dock-pet__limb--${paw}`));
+  });
+  assert.match(template, /dock-pet__yawn/);
+  assert.doesNotMatch(style, /climb|hanging|dock-pet-breathe|dock-pet-step/);
+  assert.match(style, /dock-pet-shuffle/);
+  assert.match(style, /dock-pet-leaf-thanks/);
+  assert.doesNotMatch(style, /translate\(13px, -55px\)/);
+  assert.match(style, /data-behavior="scratch"/);
+  assert.match(style, /data-behavior="sit"/);
+  assert.match(
+    style,
+    /prefers-reduced-motion: reduce[\s\S]*?transform: none !important/,
+  );
+});
+
+test("site chrome exposes progress and authored footer motion safely", () => {
+  assert.match(siteConfig, /copyright: A Radhesh Goel production/);
+  assert.match(siteConfig, /link: https:\/\/keysi\.dev/);
+  assert.match(siteConfig, /link: https:\/\/linkedin\.com\/in\/radhesh-g/);
+  assert.match(siteStyle, /--reading-progress/);
+  assert.match(siteStyle, /transform: scaleX\(var\(--reading-progress, 0\)\)/);
+  assert.match(siteStyle, /@keyframes site-footer-rule/);
+  assert.match(siteStyle, /@keyframes site-footer-detail/);
+  assert.match(siteStyle, /@supports \(animation-timeline: view\(\)\)/);
+  assert.match(siteStyle, /@supports not \(animation-timeline: view\(\)\)/);
+  assert.match(siteStyle, /\.md-footer\.has-reveal\.is-visible/);
+  assert.match(siteStyle, /\.md-header__button:is\(:hover, :focus-visible\)/);
+  assert.match(siteStyle, /background-color 760ms cubic-bezier/);
+  assert.match(siteStyle, /@keyframes theme-ripple/);
+  assert.match(siteStyle, /@keyframes theme-wave/);
+  assert.match(siteStyle, /@keyframes theme-fabric-rings/);
+  assert.match(siteStyle, /@keyframes theme-fabric-reveal/);
+  assert.match(siteStyle, /html\.theme-wave::view-transition-old\(root\)/);
+  assert.match(siteStyle, /repeating-radial-gradient/);
+  assert.match(
+    siteStyle,
+    /circle\(160vmax at var\(--theme-x\) var\(--theme-y\)\)/,
+  );
+  assert.match(siteStyle, /backdrop-filter: blur\(5px\)/);
+  assert.match(siteStyle, /max-width: 59\.99em[\s\S]*?padding-right: 5\.75rem/);
+  assert.match(
+    siteStyle,
+    /prefers-reduced-motion: reduce[\s\S]*?\.md-header,[\s\S]*?\.md-footer,[\s\S]*?animation: none/,
+  );
+  assert.match(mainTemplate, /<h2 id="__comments">Comments<\/h2>/);
+  assert.doesNotMatch(mainTemplate, /lang\.t|data-lang|giscus/);
+});
+
+test("personality is local and event-driven", () => {
+  assert.doesNotMatch(
+    source,
+    /dummyjson|dockPetQuote|window\.fetch|Math\.random|setInterval/,
+  );
+  assert.match(source, /handleAction/);
+  assert.match(source, /pendingMilestone/);
+  assert.match(source, /now - lastMotivationAt < 30000/);
+});
+
+function createRuntime({
+  desktop = true,
+  footerRight = null,
+  footerTop = 700,
+  getError = false,
+  now = 100000,
+  page = "/week-2/",
+  reduced = false,
+  scrollHeight = 1800,
+  scrollY = 0,
+  setError = false,
+  storedSpot = null,
+  viewportHeight = 800,
+  viewportWidth = 1000,
+  observed = false,
+  viewTransition = false,
+}: any = {}) {
+  const timers = new Map<number, any>();
+  const frames = new Map<number, any>();
+  const petHandlers: Record<string, any> = {};
+  const windowHandlers: Record<string, any> = {};
+  const scrollCalls: any[] = [];
+  const rectangle = (top, bottom, left, right) => ({
+    bottom,
+    height: bottom - top,
+    left,
+    right,
+    top,
+    width: right - left,
+  });
+  const iris = (): any => ({
+    attributes: {},
+    setAttribute(name, value) {
+      this.attributes[name] = value;
+    },
+  });
+  const irises = [iris(), iris()];
+  const bubbleText = { textContent: "" };
+  const bubble: any = {
+    hidden: true,
+    style: {},
+    getBoundingClientRect() {
+      const width = Number.parseFloat(this.style.width) || 220;
+      const height = bubbleText.textContent.length > 80 ? 96 : 70;
+      const petLeft = Number.parseFloat(pet.style.left) || 0;
+      const petTop = Number.parseFloat(pet.style.top) || 0;
+      let left =
+        pet.dataset.bubbleSide === "right"
+          ? petLeft + 48
+          : petLeft + 32 - width;
+      let top =
+        pet.dataset.bubbleVertical === "below"
+          ? petTop + 77
+          : petTop + 3 - height;
+      const shift = /translate\((-?[\d.]+)px, (-?[\d.]+)px\)/.exec(
+        this.style.transform || "",
+      );
+      if (shift) {
+        left += Number(shift[1]);
+        top += Number(shift[2]);
+      }
+      return rectangle(top, top + height, left, left + width);
+    },
+  };
+  const cloudPath: any = {
+    attributes: {},
+    setAttribute(name, value) {
+      this.attributes[name] = value;
+    },
+  };
+  const cloud: any = {
+    attributes: {},
+    style: {},
+    querySelector: (selector) => (selector === "path" ? cloudPath : null),
+    setAttribute(name, value) {
+      this.attributes[name] = value;
+    },
+  };
+  const status = { textContent: "" };
+  const paletteHandlers: Record<string, any> = {};
+  const palette = {
+    addEventListener(name, handler) {
+      paletteHandlers[name] = handler;
+    },
+  };
+  const bodyClasses = new Set<string>();
+  const bodyStyle: Record<string, string> = {};
+  const rootClasses = new Set<string>();
+  const rootClassChanges: string[] = [];
+  const body = {
+    classList: {
+      add: (name) => bodyClasses.add(name),
+      remove: (name) => bodyClasses.delete(name),
+    },
+    offsetWidth: viewportWidth,
+    style: {
+      setProperty(name, value) {
+        bodyStyle[name] = value;
+      },
+    },
+  };
+  let currentFooterTop = footerTop;
+  const footerClasses = new Set<string>();
+  const footer: any = {
+    classList: {
+      add(...names) {
+        names.forEach((name) => footerClasses.add(name));
+      },
+      toggle(name, enabled) {
+        if (enabled) footerClasses.add(name);
+        else footerClasses.delete(name);
+      },
+    },
+    getBoundingClientRect: () =>
+      rectangle(
+        currentFooterTop,
+        currentFooterTop + 80,
+        0,
+        footerRight ?? viewportWidth,
+      ),
+  };
+  const pet: any = {
+    attributes: {},
+    dataset: {},
+    hidden: true,
+    style: {
+      left: "",
+      top: "",
+      setProperty(name, value) {
+        this[name] = value;
+      },
+    },
+    addEventListener(name, handler) {
+      petHandlers[name] = handler;
+    },
+    getBoundingClientRect() {
+      const left = Number.parseFloat(this.style.left) || 0;
+      const top = Number.parseFloat(this.style.top) || 0;
+      return rectangle(top, top + 80, left, left + 80);
+    },
+    get offsetHeight() {
+      return this.hidden ? 0 : 80;
+    },
+    get offsetWidth() {
+      return this.hidden ? 0 : 80;
+    },
+    querySelector(selector) {
+      if (selector === ".dock-pet__bubble") return bubble;
+      if (selector === ".dock-pet__bubble-text") return bubbleText;
+      if (selector === ".dock-pet__cloud") return cloud;
+      return null;
+    },
+    querySelectorAll(selector) {
+      return selector === ".dock-pet__iris" ? irises : [];
+    },
+    setAttribute(name, value) {
+      this.attributes[name] = value;
+    },
+  };
+  const media = (matches) => ({
+    handlers: {} as Record<string, any>,
+    matches,
+    addEventListener(name, handler) {
+      this.handlers[name] = handler;
+    },
+  });
+  const reducedMedia = media(reduced);
+  const desktopMedia = media(desktop);
+  const headings = [
+    { id: "week-2", offsetTop: 0, textContent: "Week 2" },
+    { id: "dynamics", offsetTop: 400, textContent: "Dynamics" },
+    { id: "energy", offsetTop: 800, textContent: "Energy" },
+  ];
+  const rootStyle: Record<string, string> = {};
+  const document = {
+    body,
+    documentElement: {
+      classList: {
+        add(name) {
+          rootClasses.add(name);
+          rootClassChanges.push("add:" + name);
+        },
+        remove(name) {
+          rootClasses.delete(name);
+          rootClassChanges.push("remove:" + name);
+        },
+      },
+      clientWidth: viewportWidth,
+      scrollHeight,
+      style: {
+        setProperty(name, value) {
+          rootStyle[name] = value;
+        },
+      },
+    },
+    title: "Week 2 - Notes",
+    getElementById(id) {
+      if (id === "dock-pet") return pet;
+      if (id === "dock-pet-status") return status;
+      return null;
+    },
+    querySelector(selector) {
+      if (selector === ".md-footer") return footer;
+      if (selector === ".md-content h1") return headings[0];
+      if (selector === "[data-md-component=palette]") return palette;
+      return null;
+    },
+    querySelectorAll(selector) {
+      return selector === ".md-content :is(h1, h2, h3)" ? headings : [];
+    },
+  };
+  if (viewTransition) {
+    (document as any).startViewTransition = () => ({
+      finished: {
+        finally(callback) {
+          callback();
+        },
+      },
+      skipTransition() {},
+    });
+  }
+  const storage = new Map();
+  if (storedSpot) {
+    storage.set("dock-pet-reading-spot-v1", JSON.stringify(storedSpot));
+  }
+  const window: any = {
+    innerHeight: viewportHeight,
+    innerWidth: viewportWidth,
+    location: { pathname: page, search: "" },
+    localStorage: {
+      getItem(key) {
+        if (getError) throw new Error("storage read failed");
+        return storage.get(key) || null;
+      },
+      setItem(key, value) {
+        if (setError) throw new Error("storage write failed");
+        storage.set(key, value);
+      },
+    },
+    pageYOffset: scrollY,
+    scrollY,
+    addEventListener(name, handler) {
+      windowHandlers[name] = handler;
+    },
+    matchMedia(query) {
+      return query.includes("reduced-motion") ? reducedMedia : desktopMedia;
+    },
+    scrollTo(options) {
+      scrollCalls.push(options);
+      this.pageYOffset = options.top;
+      this.scrollY = options.top;
+    },
+  };
+  let footerIntersection: ((entries: any[]) => void) | undefined;
+  if (observed) {
+    window.IntersectionObserver = class {
+      constructor(callback) {
+        footerIntersection = callback;
+      }
+      observe() {}
+    };
+  }
+  let clock = now;
+  let timerId = 0;
+  let frameId = 0;
+  const context = vm.createContext({
+    Date: { now: () => clock },
+    Math,
+    Object,
+    clearTimeout(id) {
+      timers.delete(id);
+    },
+    document,
+    requestAnimationFrame(handler) {
+      frameId += 1;
+      frames.set(frameId, handler);
+      return frameId;
+    },
+    setTimeout(handler, delay) {
+      timerId += 1;
+      timers.set(timerId, { delay, handler });
+      return timerId;
+    },
+    window,
+  });
+  vm.runInContext(source, context, { filename: petPath });
+
+  return {
+    advance(milliseconds) {
+      clock += milliseconds;
+    },
+    bubble,
+    bubbleText,
+    cloud,
+    cloudPath,
+    desktop: desktopMedia,
+    bodyClasses,
+    bodyStyle,
+    footerClasses,
+    footerIntersection: () => footerIntersection,
+    frames,
+    irises,
+    pet,
+    petHandlers,
+    paletteHandlers,
+    reduced: reducedMedia,
+    rootStyle,
+    rootClasses,
+    rootClassChanges,
+    runAnimationFrames(timestamp = 0) {
+      const pending = [...frames.values()];
+      frames.clear();
+      pending.forEach((handler) => handler(timestamp));
+    },
+    runTimer(delay) {
+      const entry = [...timers].find(([, timer]) => timer.delay === delay);
+      assert.ok(entry, `timer ${delay}ms`);
+      const [id, timer] = entry;
+      timers.delete(id);
+      timer.handler();
+    },
+    scrollCalls,
+    setFooterTop(value) {
+      currentFooterTop = value;
+    },
+    setReduced(value) {
+      reducedMedia.matches = value;
+      reducedMedia.handlers.change({ matches: value });
+    },
+    status,
+    storage,
+    timers,
+    window,
+    windowHandlers,
+  };
+}
+
+test("click saves the nearest heading and keeps motivation secondary", () => {
+  const runtime = createRuntime({ scrollY: 450 });
+  assert.equal(runtime.pet.dataset.action, "save");
+  runtime.petHandlers.click();
+  const saved = JSON.parse(runtime.storage.get("dock-pet-reading-spot-v1"));
+  assert.deepEqual(saved, {
+    heading: "Dynamics",
+    id: "dynamics",
+    page: "/week-2/",
+    y: 450,
+  });
+  assert.match(
+    runtime.pet.attributes["aria-label"],
+    /Update saved reading spot at Dynamics/,
+  );
+  assert.match(runtime.bubbleText.textContent, /^Saved at “Dynamics” · /);
+  assert.equal(runtime.pet.dataset.behavior, "scratch");
+  runtime.runTimer(1100);
+  assert.equal(runtime.pet.dataset.behavior, undefined);
+
+  runtime.petHandlers.click();
+  assert.equal(runtime.bubbleText.textContent, "Saved at “Dynamics”");
+  runtime.runTimer(5200);
+  assert.equal(runtime.bubble.hidden, true);
+});
+
+test("a valid same-page spot offers one-click resume before the footer", () => {
+  const runtime = createRuntime({
+    footerTop: 900,
+    storedSpot: {
+      heading: "Dynamics",
+      id: "dynamics",
+      page: "/week-2/",
+      y: 640,
+    },
+  });
+  assert.equal(runtime.pet.hidden, false);
+  assert.equal(runtime.pet.dataset.dock, "resume");
+  assert.equal(runtime.pet.dataset.action, "resume");
+  assert.equal(
+    runtime.pet.attributes["aria-label"],
+    "Resume reading at Dynamics",
+  );
+  assert.equal(runtime.bubbleText.textContent, "Resume at “Dynamics”");
+
+  runtime.petHandlers.click();
+  assert.deepEqual(JSON.parse(JSON.stringify(runtime.scrollCalls)), [
+    { behavior: "smooth", top: 640 },
+  ]);
+  assert.equal(runtime.pet.dataset.action, "save");
+  assert.match(runtime.status.textContent, /^Resuming at “Dynamics”/);
+  runtime.windowHandlers.scroll();
+  runtime.runAnimationFrames();
+  runtime.runTimer(160);
+  assert.equal(runtime.pet.hidden, true);
+});
+
+test("storage failures are safe and cross-page state is overwritten once", () => {
+  const blockedRead = createRuntime({ footerTop: 900, getError: true });
+  assert.equal(blockedRead.pet.hidden, true);
+
+  const blockedWrite = createRuntime({ setError: true });
+  blockedWrite.petHandlers.click();
+  assert.match(blockedWrite.bubbleText.textContent, /couldn’t save/);
+  assert.equal(blockedWrite.pet.dataset.behavior, undefined);
+  assert.equal(blockedWrite.storage.size, 0);
+
+  const current = createRuntime({
+    storedSpot: { heading: "Other", id: "other", page: "/other/", y: 200 },
+  });
+  assert.equal(current.pet.dataset.action, "save");
+  current.petHandlers.click();
+  assert.equal(current.storage.size, 1);
+  assert.equal(
+    JSON.parse(current.storage.get("dock-pet-reading-spot-v1")).page,
+    "/week-2/",
+  );
+});
+
+test("scroll entry settles on the footer and exit hides without climbing", () => {
+  const runtime = createRuntime({ footerTop: 900 });
+  assert.equal(runtime.pet.hidden, true);
+  runtime.setFooterTop(700);
+  runtime.windowHandlers.scroll();
+  assert.equal(runtime.pet.dataset.paused, "true");
+  runtime.runAnimationFrames();
+  assert.equal(runtime.pet.hidden, true);
+  runtime.runTimer(160);
+  assert.equal(runtime.pet.hidden, false);
+  assert.equal(runtime.pet.dataset.state, "walking");
+  assert.equal(runtime.pet.style.top, "627.2px");
+  runtime.runTimer(520);
+  assert.equal(runtime.pet.dataset.state, "perched");
+
+  runtime.setFooterTop(900);
+  runtime.windowHandlers.scroll();
+  runtime.runAnimationFrames();
+  assert.equal(runtime.pet.hidden, true);
+});
+
+test("halfway and completion motivation is gated by real progress", () => {
+  const runtime = createRuntime({ footerTop: 900, scrollY: 500 });
+  assert.equal(runtime.rootStyle["--reading-progress"], "0.5000");
+  assert.equal(runtime.bubble.hidden, true);
+
+  runtime.setFooterTop(700);
+  runtime.windowHandlers.scroll();
+  runtime.runAnimationFrames();
+  runtime.runTimer(160);
+  assert.match(runtime.bubbleText.textContent, /^You’re halfway through · /);
+
+  runtime.advance(31000);
+  runtime.window.scrollY = 1000;
+  runtime.window.pageYOffset = 1000;
+  runtime.windowHandlers.scroll();
+  runtime.runAnimationFrames();
+  runtime.runTimer(160);
+  assert.equal(runtime.rootStyle["--reading-progress"], "1.0000");
+  assert.match(runtime.bubbleText.textContent, /^Page complete · /);
+});
+
+test("reduced motion resumes instantly and suppresses character reactions", () => {
+  const runtime = createRuntime({
+    footerTop: 900,
+    reduced: true,
+    storedSpot: {
+      heading: "Energy",
+      id: "energy",
+      page: "/week-2/",
+      y: 840,
+    },
+  });
+  runtime.petHandlers.click();
+  assert.deepEqual(JSON.parse(JSON.stringify(runtime.scrollCalls)), [
+    { behavior: "auto", top: 840 },
+  ]);
+  assert.equal(runtime.pet.dataset.behavior, undefined);
+  assert.equal(runtime.pet.dataset.wink, undefined);
+});
+
+test("pointer gaze settles back to neutral and thought clouds stay in view", () => {
+  const runtime = createRuntime({ viewportWidth: 320 });
+  runtime.windowHandlers.pointermove({ clientX: 20, clientY: 100 });
+  for (let frame = 0; frame < 12; frame += 1)
+    runtime.runAnimationFrames(frame * 16);
+  assert.notEqual(
+    runtime.irises[0].attributes.transform,
+    "translate(0.000 0.000)",
+  );
+  runtime.windowHandlers.blur();
+  runtime.runAnimationFrames(192);
+  runtime.setReduced(true);
+  runtime.runAnimationFrames(208);
+  assert.equal(
+    runtime.irises[0].attributes.transform,
+    "translate(0.000 0.000)",
+  );
+
+  runtime.petHandlers.click();
+  runtime.runAnimationFrames();
+  const rect = runtime.bubble.getBoundingClientRect();
+  assert.ok(rect.left >= 12);
+  assert.ok(rect.right <= 308);
+  assert.ok(rect.top >= 12);
+  assert.ok(rect.bottom <= 788);
+  assert.match(runtime.cloudPath.attributes.d, /^M /);
+});
+
+test("resize work coalesces into one layout frame", () => {
+  const runtime = createRuntime({ footerTop: 900 });
+  runtime.windowHandlers.resize();
+  runtime.windowHandlers.resize();
+  assert.equal(runtime.frames.size, 1);
+  runtime.runAnimationFrames();
+  runtime.runAnimationFrames();
+  assert.equal(runtime.frames.size, 0);
+});
+
+test("mobile footer docking stays stable and action labels remain explicit", () => {
+  const runtime = createRuntime({ desktop: false });
+  assert.equal(runtime.pet.style.top, "708px");
+  assert.equal(runtime.pet.dataset.state, "perched");
+  assert.equal(runtime.pet.attributes.title, "Save current reading spot");
+  assert.equal(runtime.footerClasses.has("has-reveal"), true);
+  assert.equal(runtime.footerClasses.has("is-visible"), true);
+});
+
+test("footer reveal follows intersection when the platform supports it", () => {
+  const runtime = createRuntime({ observed: true });
+  assert.equal(runtime.footerClasses.has("has-reveal"), true);
+  assert.equal(runtime.footerClasses.has("is-visible"), false);
+  runtime.footerIntersection()!([{ isIntersecting: true }]);
+  assert.equal(runtime.footerClasses.has("is-visible"), true);
+  runtime.footerIntersection()!([{ isIntersecting: false }]);
+  assert.equal(runtime.footerClasses.has("is-visible"), false);
+});
+
+test("theme changes radiate from the palette control and clean up", () => {
+  const runtime = createRuntime();
+  runtime.paletteHandlers.pointerdown({
+    target: {
+      closest: () => ({
+        getBoundingClientRect: () => ({
+          height: 40,
+          left: 900,
+          top: 12,
+          width: 40,
+        }),
+      }),
+    },
+  });
+  runtime.paletteHandlers.change();
+  assert.equal(runtime.rootStyle["--theme-x"], "920px");
+  assert.equal(runtime.rootStyle["--theme-y"], "32px");
+  assert.equal(runtime.bodyClasses.has("theme-ripple"), true);
+  runtime.runTimer(1120);
+  assert.equal(runtime.bodyClasses.has("theme-ripple"), false);
+
+  const reduced = createRuntime({ reduced: true });
+  reduced.paletteHandlers.change();
+  assert.equal(reduced.bodyClasses.has("theme-ripple"), false);
+
+  const native = createRuntime({ viewTransition: true });
+  native.paletteHandlers.change();
+  assert.deepEqual(native.rootClassChanges, [
+    "add:theme-wave",
+    "remove:theme-wave",
+  ]);
+  assert.equal(native.rootClasses.has("theme-wave"), false);
+  assert.equal(native.bodyClasses.has("theme-ripple"), false);
+});
