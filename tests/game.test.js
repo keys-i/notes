@@ -229,6 +229,103 @@ test("deterministic samples include valid tunnel and plain maps", () => {
   assert.deepEqual([...types].sort(), ["plain", "tunnel"]);
 });
 
+test("static routes and player distance fields are reused until position changes", () => {
+  game.maze = sample(404).maze;
+  game.mazeRoutes = game.buildMazeRoutes(game.maze);
+  game.player = { x: 1, y: 1 };
+  game.playerDistanceKey = undefined;
+
+  const first = game.distancesFromPlayer();
+  const reused = game.distancesFromPlayer();
+  assert.equal(reused, first);
+
+  game.player = { x: settings.map.columns - 2, y: settings.map.rows - 2 };
+  const moved = game.distancesFromPlayer();
+  assert.notEqual(moved, first);
+  assert.equal(moved.get(game.key(game.player.x, game.player.y)), 0);
+});
+
+test("dingo scent tracking and eagle interception use separate routing", () => {
+  const behaviour = vm.createContext({
+    Math,
+    corners: [
+      { x: 1, y: 1 },
+      { x: 5, y: 1 },
+      { x: 5, y: 5 },
+      { x: 1, y: 5 },
+    ],
+    ghostTick: 0,
+    lastDirection: { x: 1, y: 0 },
+    maze: Array.from({ length: 7 }, () => ".".repeat(7)),
+    player: { x: 3, y: 3 },
+    playerTrail: [
+      { x: 1, y: 3 },
+      { x: 2, y: 3 },
+      { x: 3, y: 3 },
+    ],
+    openIn: (map, x, y) => Boolean(map[y] && map[y][x] !== "#"),
+    stepIn: (_map, position, direction) => ({
+      x: position.x + direction[0],
+      y: position.y + direction[1],
+    }),
+  });
+  vm.runInContext(
+    [functionSource("dingoScentTarget"), functionSource("eagleTarget")].join(
+      "\n",
+    ),
+    behaviour,
+  );
+
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(behaviour.dingoScentTarget())),
+    { x: 1, y: 3 },
+    "the dingo follows an older ground scent",
+  );
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(behaviour.eagleTarget(true))),
+    { x: 5, y: 3 },
+    "the eagle aims ahead of a visible moving player",
+  );
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(behaviour.eagleTarget(false))),
+    { x: 5, y: 1 },
+    "the eagle patrols a perch when it is not swooping",
+  );
+
+  assert.doesNotMatch(source, /function moveGhost\(/);
+  assert.match(functionSource("moveDingo"), /dingoDistances\(\)/);
+  assert.match(functionSource("moveEagle"), /eaglePath\(maze, eagle, target\)/);
+});
+
+test("eagle A-star routes remain contiguous and shortest", () => {
+  game.maze = sample(404).maze;
+  game.mazeRoutes = game.buildMazeRoutes(game.maze);
+  const origin = { x: 1, y: 1 };
+  const goal = { x: settings.map.columns - 2, y: settings.map.rows - 2 };
+  const route = game.eaglePath(game.maze, origin, goal);
+
+  assert.deepEqual(JSON.parse(JSON.stringify(route.at(-1))), goal);
+  assert.equal(route.length, game.shortestPath(game.maze, origin, goal).length);
+  route.reduce((previous, current) => {
+    assert.ok(
+      game
+        .neighboursIn(game.maze, previous)
+        .some((next) => next.x === current.x && next.y === current.y),
+    );
+    return current;
+  }, origin);
+});
+
+test("eagle A-star takes the shortest tunnel route", () => {
+  const tunnel = [Array(settings.map.columns).fill("T")];
+  const origin = { x: 1, y: 0 };
+  const goal = { x: settings.map.columns - 2, y: 0 };
+  const route = game.eaglePath(tunnel, origin, goal);
+
+  assert.equal(route.length, 3);
+  assert.equal(route.length, game.shortestPath(tunnel, origin, goal).length);
+});
+
 test("powered capture scoring escalates and awards one extra life", () => {
   const base = settings.play.predator_points;
   assert.equal(game.predatorCapturePoints(0), base);
@@ -716,6 +813,7 @@ test("held movement repeats on game time, buffers corners, and stops on release"
     playerFrame: 0,
     inputDirection: null,
     nextInputAt: 0,
+    settings: { play: { player_interval_ms: 96 } },
     player: { x: 1, y: 1 },
     maze: [],
     performance: { now: () => now },
@@ -758,16 +856,16 @@ test("held movement repeats on game time, buffers corners, and stops on release"
   input.holdPlayerInput("ArrowRight", [1, 0]);
   assert.deepEqual(moves, [[1, 0]], "first move is immediate");
   input.holdPlayerInput("ArrowRight", [1, 0]);
-  frame(100);
+  frame(80);
   assert.equal(moves.length, 1, "OS repeat does not add moves");
   input.holdPlayerInput("ArrowDown", [0, 1]);
-  frame(160);
+  frame(96);
   assert.deepEqual(
     moves.at(-1),
     [1, 0],
     "blocked turn keeps moving to the corner",
   );
-  frame(320);
+  frame(192);
   assert.deepEqual(
     moves.at(-1),
     [0, 1],

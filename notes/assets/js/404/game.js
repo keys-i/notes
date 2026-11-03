@@ -4,6 +4,7 @@ var settings = JSON.parse(document.getElementById("map-config").textContent);
 var rows = settings.map.rows;
 var columns = settings.map.columns;
 var maze = [];
+var mazeRoutes = new Map();
 var board = document.getElementById("board");
 var grid = document.getElementById("maze");
 var playerElement = document.getElementById("player");
@@ -88,6 +89,13 @@ var dialogueRandom;
 var player;
 var ghosts;
 var ghostPrevious;
+var playerTrail = [];
+var playerDistanceKey;
+var playerDistanceMap = new Map();
+var dingoScentKey;
+var dingoScentMap = new Map();
+var eagleRoute = [];
+var eagleRouteTarget;
 var pellets;
 var score;
 var lives;
@@ -712,7 +720,7 @@ var FEAR_PATH_RADIUS = 3;
 
 function withinFearPath(actor, distances) {
   if (!actor) return false;
-  var distance = (distances || distancesFor(maze, player)).get(
+  var distance = (distances || distancesFromPlayer()).get(
     key(actor.x, actor.y),
   );
   return distance !== undefined && distance <= FEAR_PATH_RADIUS;
@@ -721,8 +729,7 @@ function withinFearPath(actor, distances) {
 function updateCrashTelemetry(fearMap) {
   var dingo = (ghosts && ghosts[0]) || ghostStarts[0] || playerOrigin;
   var eagle = (ghosts && ghosts[1]) || ghostStarts[1] || playerOrigin;
-  var distances =
-    fearMap || (maze.length ? distancesFor(maze, player) : new Map());
+  var distances = fearMap || (maze.length ? distancesFromPlayer() : new Map());
   var nearDingo = withinFearPath(dingo, distances) && !devoured.has(0);
   var nearEagle = withinFearPath(eagle, distances) && !devoured.has(1);
   var state = [
@@ -822,6 +829,9 @@ function stepIn(map, position, direction) {
 }
 
 function neighboursIn(map, position) {
+  if (map === maze && mazeRoutes.size) {
+    return mazeRoutes.get(key(position.x, position.y)) || [];
+  }
   return directions
     .map(function (direction) {
       return stepIn(map, position, direction);
@@ -829,6 +839,27 @@ function neighboursIn(map, position) {
     .filter(function (next) {
       return openIn(map, next.x, next.y);
     });
+}
+
+function buildMazeRoutes(map) {
+  var routes = new Map();
+  for (var y = 0; y < map.length; y += 1) {
+    for (var x = 0; x < columns; x += 1) {
+      if (!openIn(map, x, y)) continue;
+      var position = { x: x, y: y };
+      routes.set(
+        key(x, y),
+        directions
+          .map(function (direction) {
+            return stepIn(map, position, direction);
+          })
+          .filter(function (next) {
+            return openIn(map, next.x, next.y);
+          }),
+      );
+    }
+  }
+  return routes;
 }
 
 function distancesFor(map, origin, blocked) {
@@ -848,6 +879,69 @@ function distancesFor(map, origin, blocked) {
   }
 
   return distances;
+}
+
+function distancesFromPlayer() {
+  if (!player || !maze.length) return new Map();
+  var positionKey = key(player.x, player.y);
+  if (playerDistanceKey !== positionKey) {
+    playerDistanceKey = positionKey;
+    playerDistanceMap = distancesFor(maze, player);
+  }
+  return playerDistanceMap;
+}
+
+function eagleEstimate(origin, goal) {
+  var horizontal = Math.abs(origin.x - goal.x);
+  return (
+    Math.min(horizontal, columns - horizontal) + Math.abs(origin.y - goal.y)
+  );
+}
+
+function eaglePath(map, origin, goal) {
+  var originKey = key(origin.x, origin.y);
+  var goalKey = key(goal.x, goal.y);
+  var frontier = [{ x: origin.x, y: origin.y }];
+  var frontierKeys = new Set([originKey]);
+  var parents = new Map([[originKey, null]]);
+  var costs = new Map([[originKey, 0]]);
+
+  while (frontier.length) {
+    var bestIndex = 0;
+    var bestEstimate = Infinity;
+    frontier.forEach(function (position, index) {
+      var positionKey = key(position.x, position.y);
+      var estimate = costs.get(positionKey) + eagleEstimate(position, goal);
+      if (estimate < bestEstimate) {
+        bestEstimate = estimate;
+        bestIndex = index;
+      }
+    });
+    var current = frontier.splice(bestIndex, 1)[0];
+    var currentKey = key(current.x, current.y);
+    frontierKeys.delete(currentKey);
+    if (currentKey === goalKey) break;
+
+    neighboursIn(map, current).forEach(function (next) {
+      var nextKey = key(next.x, next.y);
+      var nextCost = costs.get(currentKey) + 1;
+      if (costs.has(nextKey) && costs.get(nextKey) <= nextCost) return;
+      costs.set(nextKey, nextCost);
+      parents.set(nextKey, current);
+      if (!frontierKeys.has(nextKey)) {
+        frontier.push(next);
+        frontierKeys.add(nextKey);
+      }
+    });
+  }
+
+  if (!parents.has(goalKey)) return [];
+  var path = [];
+  for (var node = goal; node; node = parents.get(key(node.x, node.y))) {
+    path.push({ x: node.x, y: node.y });
+  }
+  path.reverse();
+  return path.slice(1);
 }
 
 function cycleCount(map) {
@@ -1755,6 +1849,13 @@ function configureMaze(seed) {
   settings.seed = seed;
   if (typeof invalidateKernelScript === "function") invalidateKernelScript();
   maze = generated.maze;
+  mazeRoutes = buildMazeRoutes(maze);
+  playerDistanceKey = undefined;
+  playerDistanceMap = new Map();
+  dingoScentKey = undefined;
+  dingoScentMap = new Map();
+  eagleRoute = [];
+  eagleRouteTarget = undefined;
   tunnelRow = generated.tunnelRow;
   ghostStarts = [];
   pelletStarts = [];
@@ -1853,7 +1954,7 @@ function updateFear(fearMap) {
     osElement.classList.remove("frightened");
     return;
   }
-  var distances = fearMap || distancesFor(maze, player);
+  var distances = fearMap || distancesFromPlayer();
   var afraid = ghosts.some(function (ghost, index) {
     return !devoured.has(index) && withinFearPath(ghost, distances);
   });
@@ -1861,12 +1962,12 @@ function updateFear(fearMap) {
   osElement.classList.toggle("frightened", afraid);
 }
 
-function drawActors() {
+function drawActors(fearMap) {
   place(playerElement, player);
   ghosts.forEach(function (ghost, index) {
     place(ghostElements[index], ghost);
   });
-  var fearMap = maze.length ? distancesFor(maze, player) : new Map();
+  fearMap = fearMap || (maze.length ? distancesFromPlayer() : new Map());
   updateFear(fearMap);
   updateCrashTelemetry(fearMap);
 }
@@ -2389,6 +2490,11 @@ function resetPositions() {
   ghostPrevious = ghostStarts.map(function (ghost) {
     return { x: ghost.x, y: ghost.y };
   });
+  playerTrail = [{ x: player.x, y: player.y }];
+  playerDistanceKey = undefined;
+  dingoScentKey = undefined;
+  eagleRoute = [];
+  eagleRouteTarget = undefined;
   drawActors();
 }
 
@@ -2471,90 +2577,50 @@ function resolveCollision() {
   return true;
 }
 
+function eagleSees(origin, target) {
+  if (origin.x !== target.x && origin.y !== target.y) return false;
+  var dx = Math.sign(target.x - origin.x);
+  var dy = Math.sign(target.y - origin.y);
+  var position = { x: origin.x + dx, y: origin.y + dy };
+  while (position.x !== target.x || position.y !== target.y) {
+    if (!openIn(maze, position.x, position.y)) return false;
+    position = { x: position.x + dx, y: position.y + dy };
+  }
+  return true;
+}
+
 function eagleIsSwooping(playerDistances) {
   var eagle = ghosts[1];
-  var distance = playerDistances.get(key(eagle.x, eagle.y)) || Infinity;
-  return (
-    distance <= 6 ||
-    (distance <= 10 && (eagle.x === player.x || eagle.y === player.y))
-  );
+  var distance = playerDistances.get(key(eagle.x, eagle.y));
+  return distance <= 6 || eagleSees(eagle, player);
 }
 
-function ghostTarget(index, playerDistances) {
-  if (index === 1) {
-    return eagleIsSwooping(playerDistances)
-      ? { x: player.x, y: player.y }
-      : corners[(Math.floor(ghostTick / 5) + 1) % corners.length];
+function rememberPlayerPosition() {
+  var latest = playerTrail[playerTrail.length - 1];
+  if (!latest || latest.x !== player.x || latest.y !== player.y) {
+    playerTrail.push({ x: player.x, y: player.y });
+    if (playerTrail.length > 16) playerTrail.shift();
   }
+}
 
-  var target = { x: player.x, y: player.y };
-  var steps = ghostTick % 14 >= 11 ? 1 : 3;
+function dingoScentTarget() {
+  return playerTrail[Math.max(0, playerTrail.length - 3)] || player;
+}
 
-  while (steps > 0) {
-    var next = stepIn(maze, target, [lastDirection.x, lastDirection.y]);
-    if (!openIn(maze, next.x, next.y)) break;
-    target = next;
-    steps -= 1;
+function dingoDistances() {
+  var target = dingoScentTarget();
+  var targetKey = key(target.x, target.y);
+  if (targetKey !== dingoScentKey) {
+    dingoScentKey = targetKey;
+    dingoScentMap = distancesFor(maze, target);
   }
-
-  return target;
+  return dingoScentMap;
 }
 
-function ghostMoveScore(
-  targetDistance,
-  playerDistance,
-  reversing,
-  reserved,
-  powered,
-  crowded,
-  jitter,
-) {
-  var value = powered ? playerDistance * 5 : -targetDistance * 2;
-  if (crowded && playerDistance < 3) value -= (3 - playerDistance) * 7;
-  if (reversing) value -= 3;
-  if (reserved) value -= 8;
-  return value + jitter;
-}
-
-function moveGhost(ghost, index, playerDistances, reserved) {
-  var choices = neighboursIn(maze, ghost);
-
-  var target = ghostTarget(index, playerDistances);
-  var targetDistances =
-    target.x === player.x && target.y === player.y
-      ? playerDistances
-      : distancesFor(maze, target);
-  var crowded = ghosts.some(function (other, otherIndex) {
-    return (
-      otherIndex !== index && playerDistances.get(key(other.x, other.y)) <= 2
-    );
-  });
-  var previous = ghostPrevious[index];
-
-  choices = choices
-    .map(function (choice) {
-      var choiceKey = key(choice.x, choice.y);
-      return {
-        position: choice,
-        score: ghostMoveScore(
-          targetDistances.get(choiceKey),
-          playerDistances.get(choiceKey),
-          choice.x === previous.x && choice.y === previous.y,
-          reserved.has(choiceKey),
-          panicTicks > 0 &&
-            !ghostElements[index].classList.contains("recovered"),
-          crowded,
-          huntRandom() * 1.5,
-        ),
-      };
-    })
-    .sort(function (a, b) {
-      return b.score - a.score;
-    });
-
+function commitGhostMove(ghost, index, next, reserved) {
   ghostPrevious[index] = { x: ghost.x, y: ghost.y };
-  ghost.x = choices[0].position.x;
-  ghost.y = choices[0].position.y;
+  ghost.x = next.x;
+  ghost.y = next.y;
   var horizontal = ghost.x - ghostPrevious[index].x;
   if (Math.abs(horizontal) > 1) horizontal = -Math.sign(horizontal);
   ghostElements[index].dataset.motion =
@@ -2568,6 +2634,110 @@ function moveGhost(ghost, index, playerDistances, reserved) {
   reserved.add(key(ghost.x, ghost.y));
 }
 
+function moveDingo(playerDistances, reserved) {
+  var dingo = ghosts[0];
+  var previous = ghostPrevious[0];
+  var powered =
+    panicTicks > 0 && !ghostElements[0].classList.contains("recovered");
+  var scentDistances = dingoDistances();
+  var best;
+  var bestScore = -Infinity;
+
+  neighboursIn(maze, dingo).forEach(function (choice) {
+    var choiceKey = key(choice.x, choice.y);
+    var targetDistance = scentDistances.get(choiceKey);
+    var playerDistance = playerDistances.get(choiceKey);
+    var score = powered ? playerDistance * 6 : -targetDistance * 4;
+    if (choice.x === previous.x && choice.y === previous.y) score -= 3;
+    if (reserved.has(choiceKey)) score -= 20;
+    score += huntRandom() * 0.5;
+    if (score > bestScore) {
+      best = choice;
+      bestScore = score;
+    }
+  });
+
+  if (best) commitGhostMove(dingo, 0, best, reserved);
+}
+
+function eagleTarget(swooping) {
+  if (!swooping) {
+    return corners[(Math.floor(ghostTick / 5) + 1) % corners.length];
+  }
+
+  var target = { x: player.x, y: player.y };
+  for (var step = 0; step < 2; step += 1) {
+    var next = stepIn(maze, target, [lastDirection.x, lastDirection.y]);
+    if (!openIn(maze, next.x, next.y)) break;
+    target = next;
+  }
+  return target;
+}
+
+function moveEagle(playerDistances, reserved, swooping) {
+  var eagle = ghosts[1];
+  var previous = ghostPrevious[1];
+  var powered =
+    panicTicks > 0 && !ghostElements[1].classList.contains("recovered");
+  var target = eagleTarget(swooping);
+  var targetKey = key(target.x, target.y);
+  var choices = neighboursIn(maze, eagle);
+  var next;
+
+  if (powered) {
+    eagleRoute = [];
+    choices.forEach(function (choice) {
+      if (reserved.has(key(choice.x, choice.y))) return;
+      if (
+        !next ||
+        playerDistances.get(key(choice.x, choice.y)) >
+          playerDistances.get(key(next.x, next.y))
+      ) {
+        next = choice;
+      }
+    });
+  } else {
+    var expected = eagleRoute[0];
+    var stillOnRoute =
+      expected &&
+      choices.some(function (choice) {
+        return choice.x === expected.x && choice.y === expected.y;
+      });
+    if (targetKey !== eagleRouteTarget || !stillOnRoute) {
+      eagleRouteTarget = targetKey;
+      eagleRoute = eaglePath(maze, eagle, target);
+    }
+    next = eagleRoute[0];
+    if (next && reserved.has(key(next.x, next.y))) {
+      next = undefined;
+      choices.forEach(function (choice) {
+        var choiceKey = key(choice.x, choice.y);
+        if (reserved.has(choiceKey)) return;
+        if (
+          !next ||
+          eagleEstimate(choice, target) < eagleEstimate(next, target)
+        ) {
+          next = choice;
+        }
+      });
+      eagleRoute = [];
+    } else if (next) {
+      eagleRoute.shift();
+    }
+  }
+
+  if (!next) {
+    next =
+      choices.find(function (choice) {
+        return (
+          !reserved.has(key(choice.x, choice.y)) &&
+          (choice.x !== previous.x || choice.y !== previous.y)
+        );
+      }) || choices[0];
+  }
+  if (next) commitGhostMove(eagle, 1, next, reserved);
+}
+
 function moveGhosts() {
   if (!running || paused || gameScene || document.hidden) return;
   if (graceTicks > 0) {
@@ -2576,7 +2746,7 @@ function moveGhosts() {
   }
 
   ghostTick += 1;
-  var playerDistances = distancesFor(maze, player);
+  var playerDistances = distancesFromPlayer();
   var swooping = eagleIsSwooping(playerDistances);
   var reserved = new Set();
   ghostElements[0].classList.toggle(
@@ -2584,14 +2754,10 @@ function moveGhosts() {
     (playerDistances.get(key(ghosts[0].x, ghosts[0].y)) || Infinity) <= 2,
   );
   ghostElements[1].classList.toggle("swooping", swooping);
-  ghosts.forEach(function (ghost, index) {
-    if (
-      !devoured.has(index) &&
-      (index === 0 || swooping || ghostTick % 2 === 0)
-    ) {
-      moveGhost(ghost, index, playerDistances, reserved);
-    }
-  });
+  if (!devoured.has(0)) moveDingo(playerDistances, reserved);
+  if (!devoured.has(1) && (swooping || ghostTick % 2 === 0)) {
+    moveEagle(playerDistances, reserved, swooping);
+  }
   var wasPowered = panicTicks > 0;
   panicTicks = Math.max(0, panicTicks - 1);
   board.classList.toggle("powered", panicTicks > 0);
@@ -2599,7 +2765,7 @@ function moveGhosts() {
     "power-warning",
     panicTicks > 0 && panicTicks <= settings.play.power_warning_ticks,
   );
-  drawActors();
+  drawActors(playerDistances);
   if (resolveCollision()) return;
   if (wasPowered && panicTicks === 0) {
     powerCombo = 0;
@@ -2651,7 +2817,7 @@ function stepPlayerInput(now) {
     if (playerMayEnter(maze, next.x, next.y)) inputDirection = requested;
     var movement = inputDirection || requested;
     movePlayer(movement[0], movement[1]);
-    nextInputAt = now + 160;
+    nextInputAt = now + settings.play.player_interval_ms;
   }
   if (movementKeys.size) playerFrame = requestAnimationFrame(stepPlayerInput);
 }
@@ -2832,6 +2998,7 @@ function movePlayer(dx, dy) {
     randomised = fireGrayWarp();
   }
 
+  rememberPlayerPosition();
   drawActors();
 
   var pellet = key(player.x, player.y);

@@ -277,6 +277,7 @@ function emitKernelLine() {
 }
 
 function typeRecovery() {
+  if (telemetry.recovery.hidden) return;
   var phrases = recoveryPhrases();
   var phrase = phrases[Math.floor(effectsRandom() * phrases.length)];
   var index = 0;

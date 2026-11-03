@@ -88,6 +88,7 @@ player = [1, 1]
 home = [19, 13]
 lives = 3
 ghost_interval_ms = 320
+player_interval_ms = 96
 grace_ticks = 3
 predator_points = 200
 extra_life_score = 1000
@@ -99,14 +100,16 @@ neutral = "assets/images/game/koala/neutral.webp"
 scared = "assets/images/game/koala/scared.webp"
 happy = "assets/images/game/koala/happy.webp"
 dead = "assets/images/game/koala/crying.webp"
-beginning = "assets/audios/meow_beginning.wav"
-chomp = "assets/audios/meow_chomp.wav"
-death = "assets/audios/meow_death.wav"
-fruit = "assets/audios/meow_fruit.wav"
-ghost = "assets/audios/meow_ghost.wav"
-life = "assets/audios/meow_life.wav"
-danger = "assets/audios/meow_danger.wav"
-launch = "assets/audios/meow_launch.wav"
+beginning = "assets/audios/pacman_beginning.wav"
+music = "assets/audios/recovery-groove.wav"
+chomp = "assets/audios/pacman_chomp.wav"
+death = "assets/audios/pacman_death.wav"
+fruit = "assets/audios/pacman_eatfruit.wav"
+ghost = "assets/audios/pacman_eatghost.wav"
+life = "assets/audios/pacman_extrapac.wav"
+intermission = "assets/audios/pacman_intermission.wav"
+countdown = "assets/audios/recovery-tick.wav"
+launch = "assets/audios/recovery-boom.wav"
 
 # ---------------------------------------------------------------------------
 # Maze selection heuristic — fine-grained scoring, seed jitter, and combos.
