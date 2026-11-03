@@ -121,6 +121,7 @@ test("gaze and cloud helpers stay bounded", () => {
     (pure.dockPetCloudPath(500, 500).match(/ Q /g) || []).length,
     16,
   );
+  assert.equal(pure.dockPetThemeRadius({ x: 920, y: 32 }, 1000, 800), 1199);
 });
 
 test("the koala is squat, asymmetric, and free of a skeletal rig", () => {
@@ -130,6 +131,15 @@ test("the koala is squat, asymmetric, and free of a skeletal rig", () => {
   );
   assert.match(template, /dock-pet__ear--notched/);
   assert.match(template, /dock-pet__gumleaf-blade/);
+  assert.equal(
+    (template.match(/<path\s+class="dock-pet__paw /g) || []).length,
+    4,
+  );
+  assert.doesNotMatch(template, /<ellipse\s+class="dock-pet__paw /);
+  assert.ok(
+    template.indexOf('class="dock-pet__gumleaf"') <
+      template.indexOf('class="dock-pet__paw dock-pet__paw--front-far'),
+  );
   assert.equal((template.match(/class="dock-pet__iris"/g) || []).length, 2);
   assert.equal(
     (template.match(/clip-path="url\(#dock-pet-eye-/g) || []).length,
@@ -144,11 +154,12 @@ test("the koala is squat, asymmetric, and free of a skeletal rig", () => {
   });
   assert.match(template, /dock-pet__yawn/);
   assert.doesNotMatch(style, /climb|hanging|dock-pet-breathe|dock-pet-step/);
-  assert.match(style, /dock-pet-shuffle/);
-  assert.match(style, /dock-pet-leaf-thanks/);
-  assert.doesNotMatch(style, /translate\(13px, -55px\)/);
   assert.match(style, /data-behavior="scratch"/);
   assert.match(style, /data-behavior="sit"/);
+  assert.match(style, /transform-origin: 36px 88px/);
+  assert.match(style, /transform-origin: 82px 88px/);
+  assert.match(style, /transform-origin: 40px 72px/);
+  assert.match(style, /transform-origin: 78px 72px/);
   assert.match(
     style,
     /prefers-reduced-motion: reduce[\s\S]*?transform: none !important/,
@@ -167,18 +178,17 @@ test("site chrome exposes progress and authored footer motion safely", () => {
   assert.match(siteStyle, /@supports not \(animation-timeline: view\(\)\)/);
   assert.match(siteStyle, /\.md-footer\.has-reveal\.is-visible/);
   assert.match(siteStyle, /\.md-header__button:is\(:hover, :focus-visible\)/);
-  assert.match(siteStyle, /background-color 760ms cubic-bezier/);
-  assert.match(siteStyle, /@keyframes theme-ripple/);
-  assert.match(siteStyle, /@keyframes theme-wave/);
-  assert.match(siteStyle, /@keyframes theme-fabric-rings/);
-  assert.match(siteStyle, /@keyframes theme-fabric-reveal/);
+  assert.match(siteStyle, /@property --theme-reveal/);
+  assert.match(siteStyle, /@keyframes theme-wave-reveal/);
+  assert.match(siteStyle, /@keyframes theme-fallback/);
   assert.match(siteStyle, /html\.theme-wave::view-transition-old\(root\)/);
-  assert.match(siteStyle, /repeating-radial-gradient/);
-  assert.match(
+  assert.match(siteStyle, /html\.theme-wave::view-transition-new\(root\)/);
+  assert.match(siteStyle, /mask-image: radial-gradient/);
+  assert.match(siteStyle, /animation: theme-fallback 220ms/);
+  assert.doesNotMatch(
     siteStyle,
-    /circle\(160vmax at var\(--theme-x\) var\(--theme-y\)\)/,
+    /repeating-radial-gradient|160vmax|backdrop-filter|filter: blur/,
   );
-  assert.match(siteStyle, /backdrop-filter: blur\(5px\)/);
   assert.match(siteStyle, /max-width: 59\.99em[\s\S]*?padding-right: 5\.75rem/);
   assert.match(
     siteStyle,
@@ -220,6 +230,9 @@ function createRuntime({
   const petHandlers: Record<string, any> = {};
   const windowHandlers: Record<string, any> = {};
   const scrollCalls: any[] = [];
+  const capturedPointers: number[] = [];
+  const releasedPointers: number[] = [];
+  const viewTransitions: any[] = [];
   const rectangle = (top, bottom, left, right) => ({
     bottom,
     height: bottom - top,
@@ -326,6 +339,7 @@ function createRuntime({
     style: {
       left: "",
       top: "",
+      transform: "",
       setProperty(name, value) {
         this[name] = value;
       },
@@ -352,6 +366,12 @@ function createRuntime({
     },
     querySelectorAll(selector) {
       return selector === ".dock-pet__iris" ? irises : [];
+    },
+    releasePointerCapture(pointerId) {
+      releasedPointers.push(pointerId);
+    },
+    setPointerCapture(pointerId) {
+      capturedPointers.push(pointerId);
     },
     setAttribute(name, value) {
       this.attributes[name] = value;
@@ -410,14 +430,28 @@ function createRuntime({
     },
   };
   if (viewTransition) {
-    (document as any).startViewTransition = () => ({
-      finished: {
-        finally(callback) {
-          callback();
+    (document as any).startViewTransition = (update) => {
+      update();
+      let finish;
+      const record: any = {
+        finish() {
+          finish?.();
         },
-      },
-      skipTransition() {},
-    });
+        skipped: false,
+        transition: {
+          finished: {
+            finally(callback) {
+              finish = callback;
+            },
+          },
+          skipTransition() {
+            record.skipped = true;
+          },
+        },
+      };
+      viewTransitions.push(record);
+      return record.transition;
+    };
   }
   const storage = new Map();
   if (storedSpot) {
@@ -493,6 +527,7 @@ function createRuntime({
     bubbleText,
     cloud,
     cloudPath,
+    capturedPointers,
     desktop: desktopMedia,
     bodyClasses,
     bodyStyle,
@@ -507,6 +542,7 @@ function createRuntime({
     rootStyle,
     rootClasses,
     rootClassChanges,
+    releasedPointers,
     runAnimationFrames(timestamp = 0) {
       const pending = [...frames.values()];
       frames.clear();
@@ -523,6 +559,11 @@ function createRuntime({
     setFooterTop(value) {
       currentFooterTop = value;
     },
+    setViewport(width, height) {
+      document.documentElement.clientWidth = width;
+      window.innerWidth = width;
+      window.innerHeight = height;
+    },
     setReduced(value) {
       reducedMedia.matches = value;
       reducedMedia.handlers.change({ matches: value });
@@ -530,6 +571,7 @@ function createRuntime({
     status,
     storage,
     timers,
+    viewTransitions,
     window,
     windowHandlers,
   };
@@ -559,6 +601,142 @@ test("click saves the nearest heading and keeps motivation secondary", () => {
   assert.equal(runtime.bubbleText.textContent, "Saved at “Dynamics”");
   runtime.runTimer(5200);
   assert.equal(runtime.bubble.hidden, true);
+});
+
+test("pointer drag uses a threshold, capture, transform frame, and click guard", () => {
+  const tap = createRuntime();
+  tap.petHandlers.pointerdown({
+    button: 0,
+    clientX: 920,
+    clientY: 640,
+    pointerId: 3,
+  });
+  tap.petHandlers.pointermove({
+    clientX: 925,
+    clientY: 640,
+    pointerId: 3,
+  });
+  assert.equal(tap.pet.dataset.dragging, undefined);
+  tap.petHandlers.pointerup({ pointerId: 3 });
+  tap.petHandlers.click();
+  assert.equal(tap.storage.size, 1);
+
+  const drag = createRuntime();
+  let prevented = 0;
+  drag.petHandlers.pointerdown({
+    button: 0,
+    clientX: 920,
+    clientY: 640,
+    pointerId: 7,
+  });
+  drag.petHandlers.pointermove({
+    clientX: 900,
+    clientY: 670,
+    pointerId: 7,
+    preventDefault: () => (prevented += 1),
+  });
+  assert.deepEqual(drag.capturedPointers, [7]);
+  assert.equal(drag.pet.dataset.dragging, "true");
+  drag.runAnimationFrames();
+  assert.equal(drag.pet.style.transform, "translate3d(-20px, 30px, 0)");
+  drag.petHandlers.pointerup({ pointerId: 7 });
+  assert.deepEqual(drag.releasedPointers, [7]);
+  assert.equal(drag.pet.dataset.dock, "manual");
+  assert.equal(drag.pet.style.left, "892px");
+  assert.equal(drag.pet.style.top, "657.2px");
+  assert.equal(drag.pet.dataset.dropping, "true");
+  assert.equal(prevented, 1);
+  drag.petHandlers.click({ preventDefault: () => (prevented += 1) });
+  assert.equal(drag.storage.size, 0);
+  assert.equal(prevented, 2);
+  drag.runTimer(180);
+  assert.equal(drag.pet.dataset.dropping, undefined);
+
+  drag.setFooterTop(900);
+  drag.windowHandlers.scroll();
+  drag.runAnimationFrames();
+  drag.runTimer(160);
+  assert.equal(drag.pet.hidden, false);
+  assert.equal(drag.pet.style.left, "892px");
+  drag.setViewport(860, 650);
+  drag.windowHandlers.resize();
+  drag.runAnimationFrames();
+  assert.equal(drag.pet.style.left, "772px");
+  assert.equal(drag.pet.style.top, "562px");
+
+  const cancelled = createRuntime();
+  cancelled.petHandlers.pointerdown({
+    button: 2,
+    clientX: 920,
+    clientY: 640,
+    pointerId: 8,
+  });
+  assert.deepEqual(cancelled.capturedPointers, []);
+  cancelled.petHandlers.pointerdown({
+    button: 0,
+    clientX: 920,
+    clientY: 640,
+    pointerId: 9,
+  });
+  cancelled.petHandlers.pointermove({
+    clientX: 880,
+    clientY: 680,
+    pointerId: 9,
+    preventDefault() {},
+  });
+  cancelled.runAnimationFrames();
+  cancelled.petHandlers.pointercancel({ pointerId: 9 });
+  assert.deepEqual(cancelled.releasedPointers, [9]);
+  assert.equal(cancelled.pet.dataset.dragging, undefined);
+  assert.equal(cancelled.pet.dataset.dock, "footer");
+  assert.equal(cancelled.pet.dataset.dropping, undefined);
+  assert.equal(cancelled.pet.style.transform, "");
+
+  const lost = createRuntime();
+  lost.petHandlers.pointerdown({
+    button: 0,
+    clientX: 920,
+    clientY: 640,
+    pointerId: 10,
+  });
+  lost.petHandlers.lostpointercapture({ pointerId: 10 });
+  assert.equal(lost.pet.dataset.dock, "footer");
+});
+
+test("focused arrows place the pet and Escape restores automatic docking", () => {
+  const runtime = createRuntime();
+  let prevented = 0;
+  assert.equal(
+    runtime.pet.attributes["aria-keyshortcuts"],
+    "ArrowUp ArrowDown ArrowLeft ArrowRight Escape",
+  );
+  runtime.petHandlers.keydown({
+    key: "ArrowLeft",
+    preventDefault: () => (prevented += 1),
+    shiftKey: false,
+  });
+  assert.equal(runtime.pet.dataset.dock, "manual");
+  assert.equal(runtime.pet.style.left, "904px");
+  runtime.petHandlers.keydown({
+    key: "ArrowUp",
+    preventDefault: () => (prevented += 1),
+    shiftKey: true,
+  });
+  assert.equal(runtime.pet.style.top, "603.2px");
+  runtime.petHandlers.keydown({
+    key: "Escape",
+    preventDefault: () => (prevented += 1),
+  });
+  assert.equal(runtime.pet.dataset.dock, "footer");
+  assert.equal(runtime.pet.style.left, "912px");
+  assert.equal(runtime.pet.style.top, "627.2px");
+  runtime.petHandlers.keydown({
+    key: "Enter",
+    preventDefault: () => prevented++,
+  });
+  runtime.petHandlers.click();
+  assert.equal(runtime.storage.size, 1);
+  assert.equal(prevented, 3);
 });
 
 test("a valid same-page spot offers one-click resume before the footer", () => {
@@ -749,20 +927,25 @@ test("theme changes radiate from the palette control and clean up", () => {
   runtime.paletteHandlers.change();
   assert.equal(runtime.rootStyle["--theme-x"], "920px");
   assert.equal(runtime.rootStyle["--theme-y"], "32px");
-  assert.equal(runtime.bodyClasses.has("theme-ripple"), true);
-  runtime.runTimer(1120);
-  assert.equal(runtime.bodyClasses.has("theme-ripple"), false);
+  assert.equal(runtime.rootStyle["--theme-radius"], "1199px");
+  assert.equal(runtime.bodyClasses.has("theme-fade"), true);
+  runtime.runTimer(220);
+  assert.equal(runtime.bodyClasses.has("theme-fade"), false);
 
   const reduced = createRuntime({ reduced: true });
   reduced.paletteHandlers.change();
-  assert.equal(reduced.bodyClasses.has("theme-ripple"), false);
+  assert.equal(reduced.bodyClasses.has("theme-fade"), false);
 
   const native = createRuntime({ viewTransition: true });
   native.paletteHandlers.change();
-  assert.deepEqual(native.rootClassChanges, [
-    "add:theme-wave",
-    "remove:theme-wave",
-  ]);
+  assert.equal(native.rootClasses.has("theme-wave"), true);
+  assert.equal(native.viewTransitions.length, 1);
+  native.paletteHandlers.change();
+  assert.equal(native.viewTransitions[0].skipped, true);
+  assert.equal(native.viewTransitions.length, 2);
+  native.viewTransitions[0].finish();
+  assert.equal(native.rootClasses.has("theme-wave"), true);
+  native.viewTransitions[1].finish();
   assert.equal(native.rootClasses.has("theme-wave"), false);
-  assert.equal(native.bodyClasses.has("theme-ripple"), false);
+  assert.equal(native.bodyClasses.has("theme-fade"), false);
 });
