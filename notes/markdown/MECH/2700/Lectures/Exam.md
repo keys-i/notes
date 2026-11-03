@@ -12,7 +12,8 @@ applied and checked rather than recalled in isolation
 
 | Topic                          | Recurring question styles                                                                 |
 | ------------------------------ | ----------------------------------------------------------------------------------------- |
-| interpolation                  | construct or evaluate Lagrange, Newton or Chebyshev forms and discuss error               |
+| Python and NumPy               | predict list, array, slice, loop and truth-value behaviour                                |
+| interpolation                  | construct or evaluate polynomial, Lagrange or Chebyshev forms and discuss error           |
 | differentiation and quadrature | select a formula, identify order and calculate a numerical estimate                       |
 | linear systems                 | perform LU, elimination or Jacobi steps and judge convergence                             |
 | nonlinear equations            | perform bisection or Newton iterations and state stopping logic                           |
@@ -34,6 +35,55 @@ applied and checked rather than recalled in isolation
 
 This pattern makes ODEs, interpolation, linear algebra and PDE implementation
 especially high-value revision areas
+
+The 2022–2025 papers each begin with three Python or NumPy questions before
+testing the numerical methods. The 2021 paper uses a different applied format,
+but still assesses implementation and code quality
+
+## Python and NumPy Checks
+
+### Lists and Arrays
+
+Python lists and NumPy arrays use different arithmetic
+
+```python
+import numpy as np
+
+values = [1, 2, 3, 4]
+
+2 * values
+# [1, 2, 3, 4, 1, 2, 3, 4]
+
+2 * np.array(values)
+# array([2, 4, 6, 8])
+```
+
+| Expression                     | Result or effect                                  |
+| ------------------------------ | ------------------------------------------------- |
+| `list(range(1, 4))`            | `[1, 2, 3]`, because the stop value is excluded   |
+| `np.linspace(1, 2, 3)`         | `array([1.0, 1.5, 2.0])`, including both ends     |
+| `values.append(5)`             | mutates the list and returns `None`               |
+| `array[1:]`                    | selects from index `1` to the end                 |
+| `row = array[1, :]`            | normally creates a view sharing the original data |
+| `row = array[1, :].copy()`     | creates independent data                          |
+
+NumPy arrays have one common data type. Mixing integers and floating-point
+values normally promotes the integers to a floating-point type
+
+### Names, Mutation and Truth Values
+
+- indexing starts at `0`
+- slice and `range` stop values are excluded
+- several names can refer to the same mutable object
+- in-place operations such as `row += 2` also alter a shared base array
+- numeric zero and empty containers are false; nonzero numbers are true
+- a `while` loop may execute zero times when its condition starts false
+
+> [!EXAM] Trace code rather than reading it as algebra
+>
+> Record each object's type, shape and current bindings before selecting an
+> answer. In particular, decide whether an operation repeats a list, scales an
+> array, returns a view or mutates an existing object
 
 ## Formula Selection Map
 
@@ -77,9 +127,9 @@ especially high-value revision areas
 
 - $N$ points determine a polynomial of degree at most $N-1$
 - Lagrange basis functions satisfy $L_j(x_i)=\delta_{ij}$
-- Newton divided differences support incremental construction
 - interpolation is exact at each data point
 - high-degree equally spaced interpolation may oscillate near boundaries
+- Chebyshev nodes reduce endpoint oscillation
 
 ### Numerical Differentiation
 
@@ -126,6 +176,12 @@ especially high-value revision areas
 
 ### PDEs
 
+- parabolic equations smooth disturbances and have unlimited mathematical
+  propagation speed into the future
+- hyperbolic equations propagate information at a finite speed and in a
+  direction set by their characteristics
+- elliptic boundary data influence the whole domain; there is no initial
+  condition for a steady boundary-value problem
 - diffusion: $\sigma=D\Delta t/\Delta x^2\le1/2$ in one-dimensional explicit stepping
 - convection: choose the stencil from the sign of velocity and require
   $|v|\Delta t/\Delta x\le1$
