@@ -1,0 +1,15 @@
+{
+  "name": "notes-web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:web": "tsc --project site/tsconfig.json",
+    "check:web": "tsc --project site/tsconfig.json --noEmit && tsc --project site/tsconfig.tests.json",
+    "coverage:web": "npm run --silent build:web && node --test --experimental-test-coverage --test-coverage-include=assets/js/*.js --test-coverage-include=assets/js/404/*.js --test-coverage-exclude=assets/js/*.min.js --test-coverage-exclude=assets/js/404/*.min.js --test-coverage-lines=74 --test-coverage-branches=87 --test-coverage-functions=81 tests/*.test.ts",
+    "test:web": "tsc --project site/tsconfig.tests.json && node --test tests/*.test.ts"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.0",
+    "typescript": "5.9.3"
+  }
+}
