@@ -59,6 +59,12 @@ class RuntimeElement {
     (this.handlers[type] ||= []).push(handler);
   }
 
+  removeEventListener(type: string, handler: (event: any) => void) {
+    this.handlers[type] = (this.handlers[type] || []).filter(
+      (candidate) => candidate !== handler,
+    );
+  }
+
   append(...children: RuntimeElement[]) {
     children.forEach((child) => this.appendChild(child));
   }
@@ -510,6 +516,10 @@ function graphHarness() {
   (labels[1] as any).scrollWidth = 40;
   (labels[1] as any).clientWidth = 80;
   const body = new RuntimeElement();
+  const replay = new RuntimeElement();
+  replay.className = "graph-tool graph-timelapse";
+  const close = new RuntimeElement();
+  close.className = "graph-tool graph-close";
   const elements = new Map<string, RuntimeElement>([
     ["graph_button", graphButton],
   ]);
@@ -519,7 +529,13 @@ function graphHarness() {
     modal.hidden = true;
     const canvas = new RuntimeElement();
     canvas.id = "graph";
-    modal.appendChild(canvas);
+    const shell = new RuntimeElement();
+    shell.className = "graph-shell";
+    const tools = new RuntimeElement();
+    tools.className = "graph-tools";
+    tools.append(replay, close);
+    shell.append(canvas, tools);
+    modal.appendChild(shell);
     body.appendChild(modal);
     elements.set("modal_background", modal);
     elements.set("graph", canvas);
@@ -546,25 +562,54 @@ function graphHarness() {
     },
     querySelectorAll(selector: string) {
       if (selector === ".md-nav__link .md-ellipsis") return labels;
+      if (selector === ".graph-timelapse") return [replay];
       return [];
     },
   };
-  const timers: Array<() => void> = [];
+  let frameTime = 0;
+  const location = { href: "https://example.test/notes/page/" };
   const window: any = {
     addEventListener(type: string, handler: (event: any) => void) {
       (handlers[type] ||= []).push(handler);
     },
-    location: { href: "https://example.test/notes/page/" },
     matchMedia: () => ({ matches: true }),
   };
+  Object.defineProperty(window, "location", {
+    get: () => location,
+    set: (value) => {
+      location.href = new URL(value, location.href).href;
+    },
+  });
   const chartHandlers: Record<string, (event: any) => void> = {};
   const chart = {
+    actions: [] as any[],
     disposed: false,
+    dispatchAction(value: any) {
+      this.actions.push(value);
+    },
+    dispose() {
+      this.disposed = true;
+    },
+    getDom() {
+      return elements.get("graph");
+    },
+    getModel() {
+      return {
+        getSeriesByIndex: () => ({
+          getData: () => ({
+            getItemLayout: (index: number) => [index * 10, index * 20],
+          }),
+        }),
+      };
+    },
     isDisposed() {
       return this.disposed;
     },
     on(type: string, handler: (event: any) => void) {
       chartHandlers[type] = handler;
+    },
+    off() {
+      Object.keys(chartHandlers).forEach((key) => delete chartHandlers[key]);
     },
     options: [] as any[],
     resize() {},
@@ -572,7 +617,14 @@ function graphHarness() {
       this.options.push(value);
     },
   };
-  window.echarts = { init: () => chart };
+  let renderer = "";
+  window.echarts = {
+    init: (_element: any, _theme: any, settings: any) => {
+      chart.disposed = false;
+      renderer = settings.renderer;
+      return chart;
+    },
+  };
   const context: any = {
     Element: RuntimeElement,
     Map,
@@ -612,12 +664,9 @@ function graphHarness() {
       getPropertyValue: (name: string) =>
         name === "--md-accent-fg-color" ? " #fc0 " : " #fff ",
     }),
-    requestAnimationFrame: (callback: () => void) => {
-      callback();
-      return 1;
-    },
-    setInterval: (callback: () => void) => {
-      timers.push(callback);
+    requestAnimationFrame: (callback: (now: number) => void) => {
+      frameTime += 200;
+      callback(frameTime);
       return 1;
     },
     setTimeout: (callback: () => void) => {
@@ -631,13 +680,15 @@ function graphHarness() {
   return {
     chart,
     chartHandlers,
+    close,
     context: vmContext,
     elements,
     graphButton,
     handlers,
     labels,
     palette,
-    timers,
+    renderer: () => renderer,
+    replay,
     window,
   };
 }
@@ -647,22 +698,18 @@ test("graph helpers preserve routes, ordering, labels, and timeline state", asyn
   const call = (source: string) => vm.runInContext(source, graph.context);
   assert.equal(graph.labels[0].dataset.marquee, "Long label");
   assert.equal(graph.labels[1].dataset.marquee, undefined);
-  assert.equal(call("graph_glitch_text('a b', 1, 2)").startsWith("a "), true);
-  assert.equal(call("graph_reset_text('old', 'slug', 7)"), "slug");
   assert.equal(call("graph_node_size(3, 2)"), 8.5);
   assert.deepEqual(
     JSON.parse(
       call(
-        "JSON.stringify(graph_timeline_nodes([{id:1,graphDepth:0,graphEdgeCount:1,finalSymbolSize:9}],[{source:1,target:2}],new Set(['1']),2))",
+        "JSON.stringify(graph_timeline_nodes([{id:1,finalSymbolSize:9}],0.7))",
       ),
     ),
     [
       {
         finalSymbolSize: 9,
-        graphDepth: 0,
-        graphEdgeCount: 1,
         id: 1,
-        symbolSize: 18,
+        symbolSize: 6.3,
       },
     ],
   );
@@ -714,32 +761,39 @@ test("graph helpers preserve routes, ordering, labels, and timeline state", asyn
   assert.equal(call("option.series[0].data.length"), 2);
   assert.equal(call("option.series[0].links[0].source"), "0");
   assert.equal(call("option.series[0].emphasis.lineStyle.color"), "#fc0");
-  const label = {
-    style: { text: "Full root" },
-    painted: [] as any[],
-    setStyle(value: any) {
-      this.painted.push(value);
-    },
-  };
-  const labelChart = {
-    getDom: () => ({ id: "graph" }),
-    getModel: () => ({
-      getSeriesByIndex: () => ({
-        getData: () => ({
-          getItemGraphicEl: () => ({
-            getSymbolPath: () => ({ getTextContent: () => label }),
-          }),
-        }),
-      }),
-    }),
-    isDisposed: () => false,
-  };
-  (graph.context as any).labelChart = labelChart;
-  call("glitch_graph_node(labelChart,{id:'0',fullName:'Full root'},0)");
-  call(
-    "reset_graph_node(labelChart,{id:'0',name:'Root',fullName:'Full root'},0)",
+  assert.equal(call("option.series[0].data[0].itemStyle.color"), "#f2ff3d");
+  assert.equal(call("option.series[0].data[0].label.show"), true);
+  assert.equal(call("option.series[0].data[1].label.show"), false);
+  assert.equal(call("option.series[0].emphasis.label.show"), true);
+  assert.equal(
+    call(
+      "option.series[0].emphasis.label.formatter({data:{fullName:'Full title'}})",
+    ),
+    "Full title",
   );
-  assert.equal(label.painted.at(-1).text, "Root");
+  assert.equal(
+    call(`cache_graph_positions({
+      isDisposed:()=>false,
+      getModel:()=>({getSeriesByIndex:()=>({getData:()=>({
+        getItemLayout:index=>index ? [12,24] : [NaN,0]
+      })})})
+    })`),
+    true,
+  );
+  assert.equal(call("cache_graph_positions(null)"), false);
+  assert.equal(
+    call("cache_graph_positions({isDisposed:()=>true,getModel(){}})"),
+    false,
+  );
+  assert.equal(call("cache_graph_positions({isDisposed:()=>false})"), false);
+  assert.equal(
+    call(
+      "cache_graph_positions({isDisposed:()=>false,getModel:()=>({getSeriesByIndex:()=>null})})",
+    ),
+    false,
+  );
+  call("update_graph_labels(null)");
+  call("update_graph_labels({isDisposed:()=>true})");
   call("replay_graph_growth(null)");
   const chart = {
     isDisposed: () => false,
@@ -755,18 +809,203 @@ test("graph helpers preserve routes, ordering, labels, and timeline state", asyn
   await modalPromise;
   assert.equal(graph.elements.get("modal_background")!.hidden, false);
   assert.equal(graph.elements.get("graph")!.attributes["aria-busy"], undefined);
+  assert.equal(graph.renderer(), "canvas");
   assert.ok(graph.chartHandlers.click);
+  assert.ok(graph.chartHandlers.graphroam);
+  assert.equal(call("graphSitePath"), "");
+  assert.equal(call("graphNodePathPrefix"), "/notes");
+  const canvas = graph.elements.get("graph")!;
+  assert.equal(canvas.attributes.tabindex, "0");
+  canvas.dispatch("focus");
+  assert.equal(graph.chart.actions.at(-1).type, "highlight");
+  let prevented = 0;
+  canvas.dispatch("keydown", {
+    key: "ArrowRight",
+    preventDefault: () => (prevented += 1),
+  });
+  ["ArrowDown", "ArrowLeft", "ArrowUp", "Home", "End"].forEach((key) =>
+    canvas.dispatch("keydown", {
+      key,
+      preventDefault: () => (prevented += 1),
+    }),
+  );
+  assert.match(canvas.attributes["aria-label"], /Week/);
+  canvas.dispatch("keydown", {
+    key: "Enter",
+    preventDefault: () => (prevented += 1),
+  });
+  assert.equal(new URL(graph.window.location.href).pathname, "/week/");
+  canvas.dispatch("blur");
+  assert.equal(graph.chart.actions.at(-1).type, "downplay");
+  assert.equal(prevented, 7);
+  graph.chartHandlers.graphroam({ zoom: 2 });
+  assert.equal(graph.chart.options.at(-1).series[0].data[1].label.show, true);
+  graph.chartHandlers.click({ dataType: "edge" });
+  graph.chartHandlers.click({ dataType: "node", value: "/notes/week/" });
+  assert.equal(new URL(graph.window.location.href).pathname, "/week/");
   call("open_graph()");
   graph.palette.dispatch("change");
   assert.ok(graph.chart.options.length > 0);
   call("close_graph()");
   assert.equal(graph.elements.get("modal_background")!.hidden, true);
+  assert.equal(canvas.attributes.tabindex, undefined);
+  assert.equal(canvas.handlers.keydown.length, 0);
+  assert.equal(graph.chart.disposed, true);
+  assert.equal(call("myChart"), null);
   call("open_graph()");
+  await call("graphModalPromise");
+  assert.equal(graph.chart.disposed, false);
   graph.handlers.keydown[0]({ key: "Escape" });
   assert.equal(graph.elements.get("modal_background")!.hidden, true);
-  graph.chartHandlers.click({ dataType: "edge" });
-  graph.chartHandlers.click({ dataType: "node", value: "/notes/week/" });
-  assert.equal(graph.window.location, "/week/");
+});
+
+test("graph replay is one cancellable frame loop and data failures retry", async () => {
+  const graph = graphHarness();
+  const call = (source: string) => vm.runInContext(source, graph.context);
+  (graph.context as any).fetch = async () => ({ ok: false, status: 503 });
+  await assert.rejects(call("load_graph_data()"), /503/);
+  assert.equal(call("graphDataPromise"), null);
+
+  (graph.context as any).fetch = async () => ({
+    ok: true,
+    json: async () => ({
+      links: [{ source: "0 •Root", target: "1 •Week" }],
+      nodes: [
+        {
+          created: "2024-01-01",
+          id: "0",
+          name: "Root •Full root",
+          symbolSize: 2,
+          value: "/notes/",
+        },
+        {
+          created: "2024-01-02",
+          id: "1",
+          name: "Week",
+          symbolSize: 1,
+          value: "/notes/week/",
+        },
+      ],
+    }),
+  });
+  await call("load_graph_data()");
+
+  const frames: Array<(now: number) => void> = [];
+  const cancelled: number[] = [];
+  (graph.context as any).requestAnimationFrame = (
+    callback: (now: number) => void,
+  ) => {
+    frames.push(callback);
+    return frames.length;
+  };
+  (graph.context as any).cancelAnimationFrame = (id: number) =>
+    cancelled.push(id);
+  graph.window.matchMedia = () => ({ matches: false });
+  const chart = {
+    isDisposed: () => false,
+    options: [] as any[],
+    setOption(value: any) {
+      this.options.push(value);
+    },
+  };
+  (graph.context as any).replayChart = chart;
+  call("replay_graph_growth(replayChart)");
+  call("replay_graph_growth(replayChart)");
+  assert.deepEqual(cancelled, [1]);
+  frames[1](1);
+  frames[2](1201);
+  assert.equal(chart.options.at(-1).series[0].data.length, 2);
+  assert.equal(graph.replay.classList.contains("is-playing"), false);
+});
+
+test("graph loader and modal recover after failure or an early close", async () => {
+  const graph = graphHarness();
+  const call = (source: string) => vm.runInContext(source, graph.context);
+  const echarts = graph.window.echarts;
+  graph.window.echarts = null;
+
+  const failedLoader = call("load_echarts()");
+  const firstScript = (graph.context as any).document.head.children.at(-1);
+  assert.match(firstScript.integrity, /^sha384-/);
+  firstScript.onerror();
+  await assert.rejects(failedLoader, /Failed to load ECharts/);
+  assert.equal(call("echartsReady"), null);
+
+  const recoveredLoader = call("load_echarts()");
+  const secondScript = (graph.context as any).document.head.children.at(-1);
+  graph.window.echarts = echarts;
+  secondScript.onload();
+  assert.equal(await recoveredLoader, echarts);
+
+  (graph.context as any).fetch = async () => ({ ok: false, status: 503 });
+  const failedOpen = call("open_graph(); graphModalPromise");
+  await failedOpen;
+  const modal = graph.elements.get("modal_background")!;
+  const canvas = graph.elements.get("graph")!;
+  assert.equal(canvas.attributes.role, "alert");
+  assert.equal(canvas.textContent, "Graph unavailable. Close and try again.");
+  assert.equal(call("myChart"), null);
+
+  graph.handlers.click[0]({ target: graph.close });
+  assert.equal(modal.hidden, true);
+  call("close_graph()");
+
+  let releaseFetch: (response: any) => void = () => {};
+  (graph.context as any).fetch = () =>
+    new Promise((resolve) => {
+      releaseFetch = resolve;
+    });
+  call("open_graph()");
+  const abandonedOpen = call("graphModalPromise");
+  graph.handlers.click[0]({ target: graph.close });
+  releaseFetch({
+    ok: true,
+    json: async () => ({
+      links: [],
+      nodes: [
+        {
+          created: "2024-01-01",
+          id: "0",
+          name: "Root",
+          symbolSize: 1,
+          value: "/notes/",
+        },
+      ],
+    }),
+  });
+  await abandonedOpen;
+  assert.equal(call("myChart"), null);
+  assert.equal(modal.hidden, true);
+
+  (graph.context as any).fetch = async () => ({
+    ok: true,
+    json: async () => ({
+      links: [],
+      nodes: [
+        {
+          created: "2024-01-01",
+          id: "0",
+          name: "Root",
+          symbolSize: 1,
+          value: "/notes/",
+        },
+      ],
+    }),
+  });
+  call("graphDataPromise=null; open_graph()");
+  await call("graphModalPromise");
+  assert.notEqual(call("myChart"), null);
+
+  graph.handlers.click[0]({ preventDefault() {}, target: graph.replay });
+  graph.handlers.click[0]({ target: modal });
+  assert.equal(modal.hidden, true);
+  assert.equal(call("myChart"), null);
+  call("graphNodePathPrefix='/notes'; graphSitePath='/docs'");
+  assert.equal(call("graph_link_path('/notes')"), "/docs");
+  assert.equal(
+    call("find_graph_node_path_prefix([{value:'/'},{value:'/notes/'}])"),
+    "/notes",
+  );
 });
 
 test("Mermaid diagrams render, zoom, pan, reset, and isolate failures", async () => {
@@ -853,8 +1092,22 @@ test("Mermaid diagrams render, zoom, pan, reset, and isolate failures", async ()
   wrapper.dispatch("wheel", event(controls));
   wrapper.dispatch("wheel", event(viewport));
   assert.equal(wrapper.dataset.mermaidZoomScale, "1.2");
+  wrapper.dispatch("wheel", event(viewport, { deltaY: 1 }));
+  assert.equal(wrapper.dataset.mermaidZoomScale, "1");
+
+  for (let index = 0; index < 20; index += 1)
+    wrapper.dispatch("click", event(inButton));
+  assert.equal(wrapper.dataset.mermaidZoomScale, "8");
+  wrapper.dispatch("click", event(inButton));
+  assert.equal(wrapper.dataset.mermaidZoomScale, "8");
+  for (let index = 0; index < 30; index += 1)
+    wrapper.dispatch("click", event(outButton));
+  assert.equal(wrapper.dataset.mermaidZoomScale, "0.4");
+  wrapper.dispatch("click", event(outButton));
+  assert.equal(wrapper.dataset.mermaidZoomScale, "0.4");
 
   wrapper.dispatch("pointermove", event(viewport));
+  wrapper.dispatch("pointerdown", event(viewport, { button: 1 }));
   wrapper.dispatch("pointerdown", event(controls));
   wrapper.dispatch("pointerdown", event(viewport));
   assert.equal(wrapper.classList.contains("is-dragging"), true);
@@ -870,6 +1123,89 @@ test("Mermaid diagrams render, zoom, pan, reset, and isolate failures", async ()
   assert.equal(wrapper.dataset.mermaidZoomScale, "1");
   assert.equal(viewport.scrollLeft, 0);
   assert.equal(viewport.scrollTop, 0);
+});
+
+test("Mermaid startup handles intrinsic fallbacks and existing wrappers", () => {
+  const root = new RuntimeElement();
+  const sized = new RuntimeElement();
+  sized.className = "mermaid";
+  const sizedSvg = new RuntimeElement();
+  sizedSvg.tagName = "SVG";
+  sizedSvg.setAttribute("width", "320");
+  sizedSvg.setAttribute("height", "180");
+  sizedSvg.setAttribute("viewBox", "invalid");
+  sizedSvg.getBoundingClientRect = () => ({
+    bottom: 0,
+    height: 0,
+    left: 0,
+    right: 0,
+    top: 0,
+    width: 0,
+  });
+  sized.appendChild(sizedSvg);
+  root.appendChild(sized);
+
+  const fallback = new RuntimeElement();
+  fallback.className = "mermaid";
+  const fallbackSvg = new RuntimeElement();
+  fallbackSvg.tagName = "SVG";
+  fallbackSvg.setAttribute("width", "100%");
+  fallbackSvg.setAttribute("height", "-2");
+  fallbackSvg.getBoundingClientRect = sizedSvg.getBoundingClientRect;
+  fallback.appendChild(fallbackSvg);
+  root.appendChild(fallback);
+
+  const readyWrapper = new RuntimeElement();
+  readyWrapper.className = "mermaid-zoom";
+  readyWrapper.dataset.mermaidZoomReady = "true";
+  const ready = new RuntimeElement();
+  ready.className = "mermaid";
+  const readySvg = new RuntimeElement();
+  readySvg.tagName = "SVG";
+  ready.appendChild(readySvg);
+  readyWrapper.appendChild(ready);
+  root.appendChild(readyWrapper);
+
+  const empty = new RuntimeElement();
+  empty.className = "mermaid";
+  root.appendChild(empty);
+  const handlers: Record<string, () => void> = {};
+  const document = {
+    addEventListener(type: string, handler: () => void) {
+      handlers[type] = handler;
+    },
+    createElement(tag: string) {
+      const element = new RuntimeElement();
+      element.tagName = tag.toUpperCase();
+      return element;
+    },
+    querySelectorAll: () => [sized, fallback, ready, empty],
+    readyState: "loading",
+    scripts: [],
+  };
+  const context = vm.createContext({
+    Element: RuntimeElement,
+    Number,
+    document,
+    requestAnimationFrame: (callback: () => void) => callback(),
+    window: {},
+  });
+  runRuntime("zoom.mermaid", context);
+  assert.equal(root.querySelectorAll(".mermaid-zoom").length, 1);
+  handlers.DOMContentLoaded();
+
+  const sizedSurface = sized
+    .closest(".mermaid-zoom")!
+    .querySelector(".mermaid-zoom__surface")!;
+  const fallbackSurface = fallback
+    .closest(".mermaid-zoom")!
+    .querySelector(".mermaid-zoom__surface")!;
+  assert.equal(sizedSurface.style.width, "320px");
+  assert.equal(sizedSurface.style.height, "180px");
+  assert.equal(fallbackSurface.style.width, "800px");
+  assert.equal(fallbackSurface.style.height, "450px");
+  assert.equal(ready.parentElement, readyWrapper);
+  assert.equal(empty.parentElement, root);
 });
 
 test("Mermaid runtime starts safely when a page has no diagrams", () => {

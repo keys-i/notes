@@ -29,11 +29,21 @@
   box-shadow: 0 1rem 2.5rem rgb(6 18 115 / 0.24);
 }
 
-.graph-timelapse {
+.modal_graph:focus-visible {
+  outline: 2px solid var(--md-accent-fg-color);
+  outline-offset: -3px;
+}
+
+.graph-tools {
   position: absolute;
   z-index: 3;
   top: 0.7rem;
   right: 0.7rem;
+  display: flex;
+  gap: 0.4rem;
+}
+
+.graph-tool {
   display: grid;
   width: 2.35rem;
   height: 2.35rem;
@@ -51,9 +61,13 @@
     background-color 0.14s;
 }
 
-.graph-timelapse svg {
+.graph-tool svg {
   width: 1.35rem;
   height: 1.35rem;
+}
+
+.graph-close {
+  font: 1.55rem/1 var(--md-text-font-family);
 }
 
 .graph-timelapse__sparkle {
@@ -61,16 +75,20 @@
   transform-origin: center;
 }
 
-.graph-timelapse:hover {
+.graph-tool:hover {
   color: var(--md-accent-fg-color);
   border-color: currentcolor;
   transform: translateY(-1px) scale(1.03);
 }
 
-.graph-timelapse:focus-visible {
+.graph-tool:focus-visible {
   color: var(--md-accent-fg-color);
   outline: 2px solid var(--md-accent-fg-color);
   outline-offset: 2px;
+}
+
+.graph-tool:active {
+  transform: translateY(1px) scale(0.98);
 }
 
 .md-nav--secondary > .md-nav__list {
