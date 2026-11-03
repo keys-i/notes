@@ -17,7 +17,6 @@ var livesElement: any = document.getElementById("lives");
 var soundElement: any = document.getElementById("sound");
 var volumeElement: any = document.getElementById("volume");
 var statusElement: any = document.getElementById("status");
-var dialogueElement: any = document.getElementById("dialogue");
 var dumpElement: any = document.getElementById("dump");
 var osElement: any = document.getElementById("os");
 var stopElement: any = document.getElementById("stop-dump");
@@ -88,7 +87,6 @@ var tunnelRow;
 var mazeGeneration = 0;
 var huntRandom;
 var effectsRandom;
-var dialogueRandom;
 var player;
 var ghosts;
 var ghostPrevious;
@@ -167,149 +165,25 @@ ghostPen.add(
   key(settings.landmark.pen_exit[0][0], settings.landmark.ghosts[0][1] + 1),
 );
 
-var GAME_DIALOGUE = {
-  ready: [
-    "Snack run ready—keep one eye on those hungry shadows.",
-    "Tiny paws, big maze. Let’s go.",
-  ],
-  power: [
-    "Now the hunters look nervous.",
-    "Blue means brave. Chase them while it lasts!",
-  ],
-  bonus: [
-    "Bonus snack secured before anyone noticed.",
-    "Fruit tastes better when it comes with points.",
-  ],
-  warp: [
-    "That surprise jump was absolutely intentional.",
-    "New spot, same excellent koala.",
-  ],
-  tunnel: [
-    "Out one edge, in through the other. Physics is on smoko.",
-    "The tunnel worked. Please ignore the brief flattening.",
-  ],
-  tunnelMiss: [
-    "That is a wall, not a tunnel. Easy mistake at full koala speed.",
-    "Tunnel offline. Nose boop registered instead.",
-  ],
-  terminalMove: [
-    "Remote-controlled paws engaged. This feels extremely official.",
-    "The terminal moved a koala. Unix remains undefeated.",
-  ],
-  terminalDebug: [
-    "Kernel debugger open. I definitely know what all those numbers mean.",
-    "Please do not grep the dignity buffer.",
-  ],
-  terminalReset: [
-    "Fresh maze, same highly qualified rescue koala.",
-    "Recovery task restarted. Snacks have been re-indexed.",
-  ],
-  terminalError: [
-    "The shell said no in its special computer voice.",
-    "Command rejected. The keyboard is maintaining plausible deniability.",
-  ],
-  predator: [
-    "Got one! The others are already pretending not to worry.",
-    "Another hunter sent packing. Keep going!",
-  ],
-  life: [
-    "One more chance joined the adventure.",
-    "Extra life! That deserves a victory wiggle.",
-  ],
-  caught: [
-    "Ouch. Shake it off and try a sneakier route.",
-    "Caught this time—not for long.",
-  ],
-  clear: [
-    "Every snack is safe. Head for the eucalyptus!",
-    "The maze is clear; home is the last stop.",
-  ],
-  win: [
-    "Home at last—and not a snack left behind.",
-    "Maze conquered. Time for a well-earned nap.",
-  ],
-};
-
-var SCENE_COPY = {
-  ready: {
-    captions: [
-      "The home route is missing; recover the snacks and remount at the eucalyptus.",
-      "ENOENT found one koala, two hunters and a tree on the far side.",
-      "The zero is leaking predators. Tiny paws are now the incident team.",
-    ],
-  },
-  vegemite: {
-    captions: [
-      "Jar up, hard hat on, lunchbox open: the pie volley has right of way.",
-      "Platform cleared. Hi-vis fitted. Predators are now a smoko problem.",
-      "Tradie mode grew three sizes and brought a pie for each hunter.",
-    ],
-  },
-  dragon: {
-    captions: [
-      "A heroic charge produced one warm desk-lamp beam.",
-      "The koala gave it everything. The hunters gave it a four out of ten.",
-      "Seven balls requested; one polite sputter escaped.",
-    ],
-  },
-  combined: {
-    captions: [
-      "Hold the charge... orbit the pies... now clear the whole corridor.",
-      "Vegemite core stable. Full beam permit approved. Stand well back.",
-      "Hard hat secured. Lunch break weaponised. Hunters comprehensively splatted.",
-    ],
-  },
-  hurt: {
-    captions: [
-      "Gravity has filed another incident report.",
-      "Dignity buffer empty. Rebooting paws.",
-    ],
-  },
-  dropped: {
-    captions: [
-      "Press R. We are calling that landing tactical.",
-      "The replay has been sealed for quality assurance.",
-    ],
-  },
-};
-
 var SCENE_DURATIONS = {
-  ready: 1600,
-  vegemite: 2400,
-  dragon: 1800,
-  combined: 2800,
-  hurt: 1000,
-  dropped: 1000,
+  ready: 3200,
+  vegemite: 1350,
+  dragon: 1150,
+  combined: 1850,
 };
 
-var AUSSIE_SLANG = [
-  "Yeah, nah—smoko’s over",
-  "She’ll be right",
-  "No worries, mate",
-  "Fair dinkum",
-  "Too easy",
-];
+var AUSSIE_SLANG = ["Too easy", "Beauty", "No worries"];
 
-var lastDialogueByKind = new Map<string, number>();
-
-function showDialogue(kind) {
-  var lines = GAME_DIALOGUE[kind];
-  if (!dialogueElement || !lines) return;
-  var random = dialogueRandom || Math.random;
-  var index = Math.floor(random() * lines.length);
-  if (lines.length > 1 && lastDialogueByKind.get(kind) === index) {
-    index = (index + 1) % lines.length;
-  }
-  lastDialogueByKind.set(kind, index);
-  dialogueElement.textContent = lines[index];
-}
-
-function flashGameReaction(kind) {
+function flashGameReaction(kind, callout?) {
   clearTimeout(gameReactionTimer);
   board.dataset.reaction = kind;
+  if (callout) board.dataset.callout = callout;
+  else delete board.dataset.callout;
   gameReactionTimer = setTimeout(function () {
     gameReactionTimer = 0;
-    if (board.dataset.reaction === kind) delete board.dataset.reaction;
+    if (board.dataset.reaction !== kind) return;
+    delete board.dataset.reaction;
+    delete board.dataset.callout;
   }, 420);
 }
 
@@ -318,7 +192,7 @@ function takeFromBag(name, values, random?) {
   if (!state.items.length) {
     state.items = shuffle(
       values.slice(),
-      random || dialogueRandom || Math.random,
+      random || effectsRandom || Math.random,
     );
     if (
       state.items.length > 1 &&
@@ -366,14 +240,12 @@ function createGameAudio(
   storage,
   page,
   assets,
-  musicControl,
 ) {
   var muted = false;
   var volume = 0.8;
   var unlocked = false;
   var voices = new Set<any>();
   var music;
-  var musicEnabled = false;
   var sequenceActive = false;
   var pelletVoice;
   var pelletTimer;
@@ -410,7 +282,6 @@ function createGameAudio(
     control.disabled = true;
     control.setAttribute("aria-label", "Game sound unavailable");
     if (volumeControl) volumeControl.disabled = true;
-    if (musicControl) musicControl.disabled = true;
   }
 
   function renderControl() {
@@ -421,10 +292,6 @@ function createGameAudio(
       muted ? "Unmute game sound" : "Mute game sound",
     );
     if (volumeControl) volumeControl.value = volume;
-    if (musicControl) {
-      musicControl.textContent = musicEnabled ? "Music on" : "Music off";
-      musicControl.setAttribute("aria-pressed", String(musicEnabled));
-    }
   }
 
   function make(name, loop) {
@@ -456,7 +323,6 @@ function createGameAudio(
 
   function syncMusic() {
     if (
-      !musicEnabled ||
       sequenceActive ||
       gameScene ||
       !gameStarted ||
@@ -570,15 +436,6 @@ function createGameAudio(
     }
   }
 
-  function toggleMusic() {
-    if (!AudioClass) return;
-    musicEnabled = !musicEnabled;
-    unlocked = true;
-    renderControl();
-    if (musicEnabled && muted) toggle();
-    else syncMusic();
-  }
-
   function setVolume(event) {
     volume = Math.max(0, Math.min(1, Number(event.target.value)));
     voices.forEach(function (voice) {
@@ -599,7 +456,6 @@ function createGameAudio(
     control.addEventListener("click", toggle);
   }
   if (volumeControl) volumeControl.addEventListener("input", setVolume);
-  if (musicControl) musicControl.addEventListener("click", toggleMusic);
   page.addEventListener("visibilitychange", function () {
     if (page.hidden) pause();
     else syncMusic();
@@ -613,7 +469,6 @@ function createGameAudio(
     sequence: sequence,
     finish: finish,
     toggle: toggle,
-    toggleMusic: toggleMusic,
   };
 }
 
@@ -635,10 +490,6 @@ function finishGameScene() {
   if (restoreFocus && !document.hidden && !shuttingDown)
     board.focus({ preventScroll: true });
   if (!running || shuttingDown) return;
-  if (kind === "hurt") {
-    clearPredatorEffects();
-    resetPositions();
-  }
   if (kind === "vegemite" || kind === "dragon" || kind === "combined") {
     flashRandomWalls();
     triggerPowerBurst();
@@ -660,25 +511,21 @@ function startGameScene(kind) {
     typeof matchMedia === "function" &&
     matchMedia("(prefers-reduced-motion: reduce)").matches
   ) {
-    duration = Math.min(duration, 700);
+    duration = Math.min(duration, 180);
   }
-  var copy = SCENE_COPY[kind] || SCENE_COPY.hurt;
-  var kindTake = sceneTakes.get(kind) || 0;
-  var caption = takeFromBag("scene-" + kind, copy.captions);
   if (kind === "vegemite") {
-    caption += " “" + takeFromBag("aussie-slang", AUSSIE_SLANG) + "”";
+    sceneElement.querySelector(".scene-vegemite__slang").textContent =
+      takeFromBag("aussie-slang", AUSSIE_SLANG, effectsRandom);
   }
-  sceneTakes.set(kind, kindTake + 1);
+  sceneTakes.set(kind, (sceneTakes.get(kind) || 0) + 1);
   sceneTake += 1;
+  var take = sceneTake;
   sceneElement.dataset.kind = kind;
   sceneElement.dataset.take = String(sceneTake);
   sceneElement.style.setProperty("--scene-duration", duration + "ms");
-  sceneElement.querySelector(".game-scene__caption").textContent = caption;
-  sceneElement.querySelector(".game-scene__skip").textContent = power
-    ? "Skip power-up"
-    : kind === "ready"
-      ? "Skip briefing"
-      : "Skip replay";
+  var skip = sceneElement.querySelector(".game-scene__skip");
+  skip.textContent = power ? "▶" : "Play now";
+  skip.setAttribute("aria-label", power ? "Skip power-up" : "Play now");
   var hunters = sceneElement.querySelector(
     ".scene-stage--" + kind + " [data-scene-hunters]",
   );
@@ -692,8 +539,26 @@ function startGameScene(kind) {
   sceneElement.hidden = false;
   board.dataset.scene = kind;
   osElement.classList.toggle("power-cutscene", power);
-  gameAudio.sequence(power ? "power" : kind === "ready" ? "boot" : "hurt");
-  gameSceneTimer = setTimeout(finishGameScene, duration);
+  gameAudio.sequence(power ? "power" : "boot");
+  gameSceneTimer = setTimeout(function () {
+    if (sceneTake === take && gameScene === kind) finishGameScene();
+  }, duration);
+}
+
+function triggerPowerScene(kind) {
+  if (!sceneTakes.has(kind)) {
+    startGameScene(kind);
+    return true;
+  }
+  var callout =
+    kind === "vegemite"
+      ? takeFromBag("aussie-slang", AUSSIE_SLANG, effectsRandom)
+      : kind === "dragon"
+        ? "pfft"
+        : "KAME · HAME · HAAAAA";
+  flashGameReaction("power-" + kind, callout);
+  gameAudio.play("power");
+  return false;
 }
 
 function seededRandom(seed, stream) {
@@ -1911,7 +1776,6 @@ gameAudio = createGameAudio(
   soundStorage,
   document,
   settings.assets,
-  document.getElementById("music"),
 );
 
 function fruitHue(range, random) {
@@ -2042,7 +1906,6 @@ function configureMaze(seed) {
   board.style.setProperty("--maze-rows", rows);
   huntRandom = seededRandom(seed, settings.random.streams.hunt);
   effectsRandom = seededRandom(seed, settings.random.streams.effects);
-  dialogueRandom = seededRandom(seed, settings.random.streams.dialogue);
   sceneBags.clear();
   renderMaze();
   wallCells = Array.from(
@@ -2680,13 +2543,13 @@ function loseLife() {
   });
   updateScore();
   board.classList.add("caught");
-  showDialogue("caught");
   setTimeout(function () {
     board.classList.remove("caught");
   }, 500);
+  gameAudio.play("hurt");
 
   if (lives === 0) {
-    startGameScene("dropped");
+    flashGameReaction("dropped");
     running = false;
     stopGhosts();
     board.classList.add("lost");
@@ -2701,7 +2564,9 @@ function loseLife() {
     return;
   }
 
-  startGameScene("hurt");
+  flashGameReaction("hurt");
+  clearPredatorEffects();
+  resetPositions();
   statusElement.textContent =
     "kradkrnl: koala0 recovered from predator fault; " +
     lives +
@@ -2734,7 +2599,6 @@ function resolveCollision() {
     var restoredLife = addScore(capturePoints);
     gameAudio.play(restoredLife ? "life" : "capture");
     updateScore();
-    showDialogue(restoredLife ? "life" : "predator");
     statusElement.textContent =
       "kradkrnl: predator module detached; +" +
       capturePoints +
@@ -3123,10 +2987,6 @@ function fireGrayWarp() {
 
 function movePlayer(dx, dy) {
   if (!running || paused || gameScene || document.hidden) return;
-  if (!gameStarted) {
-    startGameScene("ready");
-    return;
-  }
   gameAudio.start();
   var now = performance.now();
   if (now >= slowUntil && grayStacks) {
@@ -3156,7 +3016,6 @@ function movePlayer(dx, dy) {
           next.y +
           "; select another vnode.";
     if (missedTunnel) {
-      showDialogue("tunnelMiss");
       triggerTunnelReaction(true);
     }
     return;
@@ -3203,7 +3062,7 @@ function movePlayer(dx, dy) {
       board.classList.add("powered");
       board.classList.remove("power-warning");
       setPlayerAura(selectedPower);
-      startGameScene(selectedPower);
+      triggerPowerScene(selectedPower);
     } else if (bonus) {
       if (!surgeSaiyan()) setFruitAura(bonus);
     }
@@ -3224,19 +3083,16 @@ function movePlayer(dx, dy) {
     dumpElement.textContent = "100%";
     statusElement.textContent =
       "init: route recovery complete; preparing remount of /";
-    showDialogue("win");
     gameAudio.finish("win");
     startWinSequence();
   } else if (pellets.size === 0) {
     statusElement.textContent =
       "fsck_krad: route bitmap clean; proceed to eucalyptus mountpoint.";
-    showDialogue("clear");
   } else if (collected && boost) {
     statusElement.textContent =
       "devd: " +
       boost.id +
       " power event; 404 wall bank lit; predators quarantined.";
-    showDialogue("power");
   } else if (collected && bonus) {
     var flame = FRUIT_FLAME[bonus.id];
     statusElement.textContent = playerElement.dataset.auraSurge
@@ -3254,7 +3110,6 @@ function movePlayer(dx, dy) {
         " flame " +
         ((flame && flame.ms) || 1300) / 1000 +
         "s.";
-    showDialogue("bonus");
   } else if (randomised) {
     statusElement.textContent =
       "kradkrnl: gray warp → " +
@@ -3264,11 +3119,9 @@ function movePlayer(dx, dy) {
       "; lag stacks=" +
       grayStacks +
       " (5s).";
-    showDialogue("warp");
   } else if (warped) {
     statusElement.textContent =
       "kradkrnl: black tunnel crossed; " + "maze0 edge vnode remapped.";
-    showDialogue("tunnel");
     triggerTunnelReaction(false);
   } else {
     statusElement.textContent =
@@ -3284,7 +3137,6 @@ function movePlayer(dx, dy) {
   }
   if (restoredLife) {
     statusElement.textContent += " init restored one restart slot.";
-    showDialogue("life");
   }
 }
 
@@ -3294,6 +3146,9 @@ function resetGame(regenerate?) {
   clearTimeout(gameReactionTimer);
   gameReactionTimer = 0;
   delete board.dataset.reaction;
+  delete board.dataset.callout;
+  sceneTakes.clear();
+  sceneBags.clear();
   gameStarted = false;
   stopGhosts();
   clearWallFlashes();
@@ -3337,10 +3192,8 @@ function resetGame(regenerate?) {
   resetPositions();
   updateScore();
   statusElement.textContent =
-    "kradkrnl: maze0 attached; koala0 pid=404; " +
-    "dingo0/eagle0 queued at the 0; tunnel=" +
-    (tunnelRow < 0 ? "offline." : "row" + tunnelRow + ".");
-  showDialogue("ready");
+    "Maze ready. Collect every pellet, then reach the eucalyptus tree.";
+  startGameScene("ready");
 }
 sceneElement.querySelector("button").addEventListener("click", finishGameScene);
 
