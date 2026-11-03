@@ -29,12 +29,14 @@ ASSETS = (
     "happy",
     "dead",
     "beginning",
+    "music",
     "chomp",
     "death",
     "fruit",
     "ghost",
     "life",
-    "danger",
+    "intermission",
+    "countdown",
     "launch",
 )
 MAP_TOML = Path("assets") / "game.map.toml"
