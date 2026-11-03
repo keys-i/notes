@@ -354,7 +354,6 @@ function shellRuntime({ fetchOk = true } = {}) {
     renderer: "https://man.freebsd.org/cgi/man.cgi",
   };
   const moves: number[][] = [];
-  const reactions: string[] = [];
   const base: any = {
     Array,
     Date,
@@ -415,7 +414,6 @@ function shellRuntime({ fetchOk = true } = {}) {
     resetGame() {},
     running: true,
     score: 100,
-    showDialogue: (kind: string) => reactions.push(kind),
     setTimeout: (fn: () => void) => {
       fn();
       return 1;
@@ -428,7 +426,7 @@ function shellRuntime({ fetchOk = true } = {}) {
   };
   const context = vm.createContext(base);
   run(shellPath, context);
-  return { base, clock, get, manual, moves, reactions };
+  return { base, clock, get, manual, moves };
 }
 
 async function command(runtime: any, source: string) {
@@ -438,6 +436,9 @@ async function command(runtime: any, source: string) {
 
 test("recovery shell exposes FreeBSD, manual, file, and game behaviour", async () => {
   const runtime = shellRuntime();
+  assert.deepEqual(Array.from(runtime.base.shell.lines), [
+    "KoalaBSD rescue shell ready · type help",
+  ]);
   const cases = [
     "",
     "echo hello | cat",
@@ -589,15 +590,16 @@ test("recovery shell exposes FreeBSD, manual, file, and game behaviour", async (
 
 test("debugger and shell events preserve modes, history, and errors", async () => {
   const runtime = shellRuntime({ fetchOk: false });
+  runtime.base.setTimeout = () => 1;
   runtime.base.reactToShell("koalactl move e", "koalactl: maze0 now at 4,4");
+  assert.equal(runtime.base.shell.form.dataset.reaction, "terminalMove");
+  runtime.base.reactToShell("koalactl reset", "restarted");
+  assert.equal(runtime.base.shell.form.dataset.reaction, "terminalReset");
   runtime.base.reactToShell("trace", "trace dump");
+  assert.equal(runtime.base.shell.form.dataset.reaction, "terminalDebug");
   runtime.base.reactToShell("missing", "sh: missing: not found in /rescue");
   runtime.base.reactToShell("missing", "sh: missing: not found in /rescue");
-  assert.deepEqual(runtime.reactions, [
-    "terminalMove",
-    "terminalDebug",
-    "terminalError",
-  ]);
+  assert.equal(runtime.base.shell.form.dataset.reaction, "terminalError");
   assert.match(await runtime.base.manualSearch("man", false), /unavailable/);
   runtime.base.shell.manuals = Promise.reject(new Error("offline"));
   assert.match(await command(runtime, "man -f man"), /offline/);

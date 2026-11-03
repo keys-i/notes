@@ -49,7 +49,7 @@ endblock %} {% block content %}
 <section class="os" id="os" data-damage="0" aria-labelledby="404-title">
   <header class="os__bar">
     <span class="os__signal">KoalaBSD 14.2-RECOVERY</span>
-    <span><span id="kernel-phase">KDB</span> · kradkrnl.ko</span>
+    <span><span id="kernel-phase">KDB</span> · maze0</span>
     <span id="kernel-clock">cpu0 · t+00:00.000</span>
   </header>
 
@@ -96,32 +96,13 @@ Dumping 404 out of 404 MB</pre>
             404
           </h1>
         </div>
-        <p class="game__recovery" aria-label="Live recovery activity">
-          <span id="recovery-text" aria-hidden="true"
-            >Enter full pathname of shell or RETURN for /bin/sh:</span
-          ><span class="game__cursor" aria-hidden="true">█</span>
-        </p>
       </div>
-
-      <nav class="game__links" aria-label="Page recovery">
-        <span>Page not found.</span>
-        <a href="{{ site_root }}">Return to notes</a>
-        <a href="#board">Play recovery</a>
-      </nav>
 
       <div class="score">
         <span aria-live="polite">Score <strong id="score">0000</strong></span>
         <span aria-live="polite">Moves <strong id="moves">000</strong></span>
         <span aria-live="polite">Lives <strong id="lives">♥♥♥</strong></span>
         <span class="score__audio">
-          <button
-            id="music"
-            class="score__music"
-            type="button"
-            aria-pressed="false"
-          >
-            Music off
-          </button>
           <button
             class="score__sound"
             id="sound"
@@ -144,12 +125,19 @@ Dumping 404 out of 404 MB</pre>
           />
         </span>
       </div>
-      <p class="game__dialogue" id="dialogue" aria-hidden="true"></p>
+
+      <p class="game__objective" id="game-objective">
+        Collect every pellet, then guide the koala to the eucalyptus tree
+      </p>
+      <p class="game__status" id="status" aria-live="polite">
+        Recovery maze ready
+      </p>
 
       <div
         class="board"
         id="board"
         tabindex="0"
+        aria-describedby="game-objective status"
         aria-label="Koala arcade maze with branching rounded neon walls and a compact 404 collision landmark. The zero is the predator regeneration pen. Some maps open a wraparound tunnel at the left and right edges. Collect the evenly spread Vegemite, Dragon Ball, and fruit, then reach the eucalyptus escape using arrow keys, W A S D, or the mobile controls."
       >
         <div
@@ -237,14 +225,25 @@ Dumping 404 out of 404 MB</pre>
         </span>
         <div class="game-scene" id="game-scene" hidden>
           <div class="scene-stage scene-stage--ready" aria-hidden="true">
-            <svg class="scene-ready__route" viewBox="0 0 100 48">
-              <path d="M8 35C24 6 42 44 58 18S80 22 92 8" />
-              <circle cx="8" cy="35" r="2" />
-              <circle cx="92" cy="8" r="2" />
-            </svg>
-            <code class="scene-ready__error">404 /route/home · ENOENT</code>
-            <span class="scene-ready__zero">0</span>
+            <div class="scene-ready__tunnel">
+              <span class="scene-ready__sign">
+                <span class="scene-ready__sign-front">HOME&nbsp; →</span>
+                <span class="scene-ready__sign-back">← &nbsp;HOME</span>
+              </span>
+            </div>
+            <div class="scene-ready__snacks">
+              <span class="scene-ready__bag"></span>
+              <span class="scene-ready__snack scene-ready__snack--jar">V</span>
+              <span class="scene-ready__snack scene-ready__snack--ball">★</span>
+              <span class="scene-ready__snack scene-ready__snack--fruit"
+                >●</span
+              >
+            </div>
             <div class="scene-ready__hunters" data-scene-hunters></div>
+            <div class="scene-ready__pellets">· · · · · · · ·</div>
+            <div class="scene-ready__moves">
+              <span>W</span><span>A S D</span><span>↑</span><span>← ↓ →</span>
+            </div>
             <img
               class="scene-ready__home"
               src="{{ site_root }}{{ game.assets.goal }}"
@@ -252,6 +251,7 @@ Dumping 404 out of 404 MB</pre>
               height="512"
               alt=""
             />
+            <p class="scene-ready__line">Right. Long way home.</p>
           </div>
 
           <div class="scene-stage scene-stage--vegemite" aria-hidden="true">
@@ -263,10 +263,11 @@ Dumping 404 out of 404 MB</pre>
             ></span>
             <span class="scene-vegemite__jar">V</span>
             <div class="scene-vegemite__hunters" data-scene-hunters></div>
-            <span class="scene-vegemite__pie scene-vegemite__pie--a">PIE</span>
-            <span class="scene-vegemite__pie scene-vegemite__pie--b">PIE</span>
-            <span class="scene-vegemite__pie scene-vegemite__pie--c">PIE</span>
-            <span class="scene-vegemite__splat">SPLAT</span>
+            <span class="scene-vegemite__pie scene-vegemite__pie--a">×</span>
+            <span class="scene-vegemite__pie scene-vegemite__pie--b">×</span>
+            <span class="scene-vegemite__pie scene-vegemite__pie--c">×</span>
+            <span class="scene-vegemite__splat"></span>
+            <strong class="scene-vegemite__slang">Too easy</strong>
           </div>
 
           <div class="scene-stage scene-stage--dragon" aria-hidden="true">
@@ -277,23 +278,13 @@ Dumping 404 out of 404 MB</pre>
           </div>
 
           <div class="scene-stage scene-stage--combined" aria-hidden="true">
-            <span class="scene-combined__pie scene-combined__pie--a">PIE</span>
-            <span class="scene-combined__pie scene-combined__pie--b">PIE</span>
-            <span class="scene-combined__pie scene-combined__pie--c">PIE</span>
+            <span class="scene-combined__pie scene-combined__pie--a">×</span>
+            <span class="scene-combined__pie scene-combined__pie--b">×</span>
+            <span class="scene-combined__pie scene-combined__pie--c">×</span>
             <span class="scene-combined__charge"></span>
             <span class="scene-combined__beam"></span>
             <strong class="scene-combined__chant">KAME · HAME · HAAAAA!</strong>
             <div class="scene-combined__hunters" data-scene-hunters></div>
-            <span class="scene-combined__aftermath">PIE-SPLAT CLEAR</span>
-          </div>
-
-          <div class="scene-stage scene-stage--hurt" aria-hidden="true">
-            <span class="scene-hurt__impact">PAW CAM · BONK</span>
-          </div>
-
-          <div class="scene-stage scene-stage--dropped" aria-hidden="true">
-            <span class="scene-dropped__warning">DROP BEAR DOWN</span>
-            <span class="scene-dropped__crater"></span>
           </div>
 
           <div class="game-scene__koala" aria-hidden="true">
@@ -301,8 +292,7 @@ Dumping 404 out of 404 MB</pre>
             <span class="game-scene__hardhat"></span>
             <span class="game-scene__vest"></span>
           </div>
-          <p class="game-scene__caption" role="status" aria-live="polite"></p>
-          <button class="game-scene__skip" type="button">Skip intro</button>
+          <button class="game-scene__skip" type="button">Play now</button>
         </div>
       </div>
 
@@ -349,17 +339,8 @@ Dumping 404 out of 404 MB</pre>
         </button>
       </div>
 
-      <p class="game__hint">
-        Hold arrow keys or WASD to move. R restarts. M mutes.<br />
-        Collect every pellet, then reach the eucalyptus tree.
-      </p>
-      <details class="game__terminal" open>
-        <summary>/rescue/sh · recovery terminal</summary>
-        <p class="game__status" id="status" aria-live="polite">
-          kradkrnl: maze0 attached; koala0 pid=404; dingo0/eagle0 queued at the
-          0.
-        </p>
-
+      <details class="game__terminal">
+        <summary>&gt;_ Terminal</summary>
         <form
           class="recovery-shell"
           id="shell"
@@ -372,11 +353,7 @@ Dumping 404 out of 404 MB</pre>
             aria-live="polite"
             aria-relevant="additions text"
           >
-            <pre id="shell-output">
-FreeBSD/amd64 14.2-RECOVERY; ttyv0; single-user mode
-Enter full pathname of shell or RETURN for /bin/sh: /rescue/sh
-/dev/ada0p2: FILE SYSTEM CLEAN; SKIPPING CHECKS
-kradkrnl.ko: maze0 attached; pid 404; type help or ddb</pre>
+            <pre id="shell-output">KoalaBSD rescue shell ready · type help</pre>
           </div>
           <label class="recovery-shell__line">
             <span id="shell-prompt" aria-hidden="true">rad@recv #</span>
@@ -395,7 +372,7 @@ kradkrnl.ko: maze0 attached; pid 404; type help or ddb</pre>
         </form>
       </details>
       <noscript>
-        The game needs JavaScript. Use Return to notes to leave this page.
+        The game needs JavaScript. Use the home link below to leave this page.
       </noscript>
     </div>
 
