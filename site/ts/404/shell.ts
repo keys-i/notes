@@ -67,12 +67,7 @@ var shell: any = {
   form: document.getElementById("shell"),
   history: [],
   input: document.getElementById("shell-input"),
-  lines: [
-    "FreeBSD/amd64 14.2-RECOVERY; ttyv0; single-user mode",
-    "Enter full pathname of shell or RETURN for /bin/sh: /rescue/sh",
-    "/dev/ada0p2: FILE SYSTEM CLEAN; SKIPPING CHECKS",
-    "kradkrnl.ko: maze0 attached; pid 404; type help or ddb",
-  ],
+  lines: ["KoalaBSD rescue shell ready · type help"],
   manuals: null,
   manualUrl: new URL("../../man/freebsd.json", shellScriptUrl).href,
   mode: "sh",
@@ -630,7 +625,6 @@ function reactToShell(source, result) {
     kind = "terminalError";
   }
   if (!kind) return;
-  if (typeof showDialogue === "function") showDialogue(kind);
   clearTimeout(shell.reactionTimer);
   shell.form.dataset.reaction = kind;
   shell.reactionTimer = setTimeout(function () {
