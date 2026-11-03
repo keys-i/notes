@@ -8,7 +8,7 @@ body:
     attributes:
       label: Course and page
       description: Link to the page or give its repository path.
-      placeholder: COMP4403 — notes/markdown/COMP/4403/Lectures/Foundations.md
+      placeholder: COMP4403 — content/COMP/4403/Lectures/Foundations.md
     validations:
       required: true
 

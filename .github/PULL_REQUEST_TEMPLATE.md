@@ -17,6 +17,6 @@ List the affected course codes, pages, or site components.
 - [ ] I ran `uv run fmt`.
 - [ ] I ran `uv run lint`.
 - [ ] I ran `uv run test`.
-- [ ] I ran `uv run mkdocs build --strict`.
+- [ ] I ran `uv run mkdocs build --strict --config-file site/mkdocs.yml`
 
 Related issue:
