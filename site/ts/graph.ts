@@ -44,142 +44,19 @@ var graphSitePath = graphScriptUrl.pathname.replace(
 );
 var echartsReady;
 var graphNodePathPrefix = "";
-var graphGlitchCharacters = "@#$%&*+=?<>░▒▓█╳╱╲";
-var graphGlitchTimers = {};
 var graphTimelineNodes = [];
 var graphTimelineLinks = [];
-var graphTimelineTimer;
-var graphTimelinePopTimers = [];
+var graphTimelineFrame = 0;
 var graphDataPromise;
 var graphModalPromise;
 var graphResizeFrame;
+var graphLabelFrame = 0;
+var graphSettleTimer = 0;
+var graphHasPositions = false;
+var graphZoom = 2;
+var graphKeyboardCleanup;
 var myChart;
 var option;
-
-function graph_glitch_text(text, revealed, frame) {
-  return Array.from(text, function (character, index) {
-    if (character === " " || index < revealed) {
-      return character;
-    }
-    return graphGlitchCharacters[
-      (frame * 7 + index * 11) % graphGlitchCharacters.length
-    ];
-  }).join("");
-}
-
-function graph_reset_text(fromText, slug, frame) {
-  if (frame === 7) {
-    return slug;
-  }
-
-  var text = frame < 3 ? fromText : slug;
-  return graph_glitch_text(
-    text,
-    Math.floor(
-      Array.from(text).length * (frame < 3 ? (2 - frame) / 2 : (frame - 3) / 4),
-    ),
-    frame + 11,
-  );
-}
-
-function graph_glitch_key(chart, node) {
-  return chart.getDom().id + ":" + node.id;
-}
-
-function graph_label_element(chart, dataIndex) {
-  if (!chart || chart.isDisposed()) {
-    return null;
-  }
-
-  var element = chart.getModel().getSeriesByIndex(0);
-  element = element && element.getData().getItemGraphicEl(dataIndex);
-  element =
-    element && element.getSymbolPath ? element.getSymbolPath() : element;
-  return element && element.getTextContent ? element.getTextContent() : null;
-}
-
-function paint_graph_label(chart, dataIndex, text) {
-  // Repaint one text element; setOption here would restart graph layout.
-  graph_label_element(chart, dataIndex)?.setStyle({
-    text: text,
-    stroke: null,
-    lineWidth: 0,
-    shadowBlur: 0,
-    shadowColor: "transparent",
-  });
-}
-
-function glitch_graph_node(chart, node, dataIndex) {
-  var timerKey = graph_glitch_key(chart, node);
-  clearTimeout(graphGlitchTimers[timerKey]);
-
-  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-    paint_graph_label(chart, dataIndex, node.fullName);
-    return;
-  }
-
-  var frame = 0;
-  var steps = 11;
-  var titleLength = Array.from(node.fullName).length;
-  var prefixes = ["▓▓ ", "// ", "ERR ", "░▒ ", "<> ", "404 "];
-  var suffixes = [" ░", " //", " ✦", " ╳"];
-
-  function next_glitch_frame() {
-    paint_graph_label(
-      chart,
-      dataIndex,
-      frame === steps
-        ? node.fullName
-        : prefixes[frame % prefixes.length] +
-            graph_glitch_text(
-              node.fullName,
-              Math.floor((titleLength * Math.max(0, frame - 2)) / (steps - 2)),
-              frame,
-            ) +
-            suffixes[frame % suffixes.length],
-    );
-
-    if (frame === steps) {
-      delete graphGlitchTimers[timerKey];
-    } else {
-      frame += 1;
-      graphGlitchTimers[timerKey] = setTimeout(next_glitch_frame, 30);
-    }
-  }
-
-  next_glitch_frame();
-}
-
-function reset_graph_node(chart, node, dataIndex) {
-  var timerKey = graph_glitch_key(chart, node);
-  clearTimeout(graphGlitchTimers[timerKey]);
-
-  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-    delete graphGlitchTimers[timerKey];
-    paint_graph_label(chart, dataIndex, node.name);
-    return;
-  }
-
-  var fromText =
-    graph_label_element(chart, dataIndex)?.style.text || node.fullName;
-  var frame = 0;
-
-  function next_reset_frame() {
-    paint_graph_label(
-      chart,
-      dataIndex,
-      graph_reset_text(fromText, node.name, frame),
-    );
-    if (frame === 7) {
-      delete graphGlitchTimers[timerKey];
-    } else {
-      frame += 1;
-      graphGlitchTimers[timerKey] = setTimeout(next_reset_frame, 30);
-    }
-  }
-
-  next_reset_frame();
-}
 
 function graph_visible_links(links, visibleIds) {
   return links.filter(function (link) {
@@ -193,31 +70,10 @@ function graph_node_size(edgeCount, depth) {
   return 5.5 + (edgeCount * 3) / (depth + 1);
 }
 
-function graph_timeline_nodes(nodes, links, appearingIds, popScale?) {
-  var visibleEdges = new Map();
-  links.forEach(function (link) {
-    var source = String(link.source);
-    var target = String(link.target);
-    visibleEdges.set(source, (visibleEdges.get(source) || 0) + 1);
-    visibleEdges.set(target, (visibleEdges.get(target) || 0) + 1);
-  });
-
+function graph_timeline_nodes(nodes, scale) {
   return nodes.map(function (node) {
-    var id = String(node.id);
-    var baseSize = graph_node_size(0, node.graphDepth);
-    var size =
-      baseSize +
-      (node.finalSymbolSize - baseSize) *
-        Math.min(
-          1,
-          (visibleEdges.get(id) || 0) / Math.max(1, node.graphEdgeCount),
-        );
     return Object.assign({}, node, {
-      symbolSize: appearingIds.has(id)
-        ? popScale
-          ? Math.max(16, size * popScale)
-          : 1
-        : size,
+      symbolSize: node.finalSymbolSize * scale,
     });
   });
 }
@@ -245,9 +101,8 @@ function graph_next_timeline_index(nodes, shown) {
 }
 
 function finish_graph_timelapse() {
-  clearInterval(graphTimelineTimer);
-  graphTimelinePopTimers.forEach(clearTimeout);
-  graphTimelinePopTimers = [];
+  if (graphTimelineFrame) cancelAnimationFrame(graphTimelineFrame);
+  graphTimelineFrame = 0;
   document.querySelectorAll(".graph-timelapse").forEach(function (button) {
     button.classList.remove("is-playing");
   });
@@ -271,12 +126,15 @@ function replay_graph_growth(chart) {
     return;
   }
 
-  var shown = 0;
+  var started = 0;
+  var duration = 1200;
   chart.setOption({ series: [{ data: [], links: [] }] });
 
-  function reveal_nodes() {
-    var previouslyShown = shown;
-    shown = graph_next_timeline_index(graphTimelineNodes, shown);
+  function reveal_nodes(now) {
+    if (!started) started = now;
+    var progress = Math.min(1, (now - started) / duration);
+    var shown = Math.max(1, Math.ceil(graphTimelineNodes.length * progress));
+    shown = graph_next_timeline_index(graphTimelineNodes, shown - 1);
     var nodes = graphTimelineNodes.slice(0, shown);
     var visibleLinks = graph_visible_links(
       graphTimelineLinks,
@@ -286,64 +144,29 @@ function replay_graph_growth(chart) {
         }),
       ),
     );
-    var appearingIds = new Set(
-      nodes.slice(previouslyShown).map(function (node) {
-        return String(node.id);
-      }),
-    );
+    var scale = 0.7 + progress * 0.3;
 
     chart.setOption({
       series: [
         {
-          data: graph_timeline_nodes(nodes, visibleLinks, appearingIds),
+          data: graph_timeline_nodes(nodes, scale),
           links: visibleLinks,
         },
       ],
     });
 
-    graphTimelinePopTimers.push(
-      setTimeout(function () {
-        if (chart.isDisposed()) {
-          return;
-        }
-        chart.setOption({
-          series: [
-            {
-              data: graph_timeline_nodes(
-                nodes,
-                visibleLinks,
-                appearingIds,
-                1.8,
-              ),
-              links: visibleLinks,
-            },
-          ],
-        });
-      }, 90),
-    );
+    if (progress < 1 && !chart.isDisposed()) {
+      graphTimelineFrame = requestAnimationFrame(reveal_nodes);
+      return;
+    }
 
-    graphTimelinePopTimers.push(
-      setTimeout(function () {
-        if (chart.isDisposed()) {
-          return;
-        }
-        chart.setOption({
-          series: [
-            {
-              data: graph_timeline_nodes(nodes, visibleLinks, new Set()),
-              links: visibleLinks,
-            },
-          ],
-        });
-        if (nodes.length === graphTimelineNodes.length) {
-          finish_graph_timelapse();
-        }
-      }, 400),
-    );
+    chart.setOption({
+      series: [{ data: graphTimelineNodes, links: graphTimelineLinks }],
+    });
+    finish_graph_timelapse();
   }
 
-  graphTimelineTimer = setInterval(reveal_nodes, 620);
-  reveal_nodes();
+  graphTimelineFrame = requestAnimationFrame(reveal_nodes);
 }
 
 function graph_pathname(link) {
@@ -438,7 +261,7 @@ function load_echarts() {
 }
 
 function init_graph(element) {
-  return window.echarts.init(element, null, { renderer: "svg" });
+  return window.echarts.init(element, null, { renderer: "canvas" });
 }
 
 function graph_background_color() {
@@ -468,40 +291,180 @@ function request_graph_resize() {
 
 window.addEventListener("resize", request_graph_resize);
 
+function graph_label_data(expanded, activeIndex?) {
+  return graphTimelineNodes.map(function (node, index) {
+    var active = index === activeIndex;
+    return Object.assign({}, node, {
+      label: {
+        formatter: active ? node.fullName : node.name,
+        show: expanded || node.graphHub || active,
+      },
+    });
+  });
+}
+
+function update_graph_labels(chart, activeIndex?) {
+  if (!chart || chart.isDisposed()) return;
+  cancelAnimationFrame(graphLabelFrame);
+  graphLabelFrame = requestAnimationFrame(function () {
+    graphLabelFrame = 0;
+    if (!chart.isDisposed()) {
+      chart.setOption({
+        series: [{ data: graph_label_data(graphZoom >= 2.8, activeIndex) }],
+      });
+    }
+  });
+}
+
+function bind_graph_keyboard(chart, element) {
+  if (!graphTimelineNodes.length) return;
+  var active = graphTimelineNodes.findIndex(function (node) {
+    return (
+      graph_pathname(node.value).replace(/\/+$/, "") === graphNodePathPrefix
+    );
+  });
+  if (active < 0) active = 0;
+
+  function describe() {
+    var node = graphTimelineNodes[active];
+    element.setAttribute(
+      "aria-label",
+      "Graph node " +
+        (active + 1) +
+        " of " +
+        graphTimelineNodes.length +
+        ": " +
+        node.fullName +
+        ". Use arrow keys to explore and Enter to open",
+    );
+  }
+
+  function highlight() {
+    chart.dispatchAction?.({ type: "downplay", seriesIndex: 0 });
+    chart.dispatchAction?.({
+      type: "highlight",
+      seriesIndex: 0,
+      dataIndex: active,
+    });
+    update_graph_labels(chart, active);
+    describe();
+  }
+
+  function blur() {
+    chart.dispatchAction?.({ type: "downplay", seriesIndex: 0 });
+    update_graph_labels(chart);
+  }
+
+  function keydown(event) {
+    var offset =
+      event.key === "ArrowRight" || event.key === "ArrowDown"
+        ? 1
+        : event.key === "ArrowLeft" || event.key === "ArrowUp"
+          ? -1
+          : 0;
+    if (offset) {
+      active =
+        (active + offset + graphTimelineNodes.length) %
+        graphTimelineNodes.length;
+      event.preventDefault();
+      highlight();
+    } else if (event.key === "Home" || event.key === "End") {
+      active = event.key === "Home" ? 0 : graphTimelineNodes.length - 1;
+      event.preventDefault();
+      highlight();
+    } else if (event.key === "Enter") {
+      event.preventDefault();
+      window.location = graph_link_path(graphTimelineNodes[active].value);
+    }
+  }
+
+  element.setAttribute("tabindex", "0");
+  describe();
+  element.addEventListener("focus", highlight);
+  element.addEventListener("blur", blur);
+  element.addEventListener("keydown", keydown);
+  graphKeyboardCleanup = function () {
+    element.removeAttribute("tabindex");
+    element.removeAttribute("aria-label");
+    element.removeEventListener("focus", highlight);
+    element.removeEventListener("blur", blur);
+    element.removeEventListener("keydown", keydown);
+    graphKeyboardCleanup = null;
+  };
+}
+
+function cache_graph_positions(chart) {
+  if (!chart || chart.isDisposed() || !chart.getModel) return false;
+  var series = chart.getModel().getSeriesByIndex(0);
+  var data = series && series.getData();
+  if (!data || !data.getItemLayout) return false;
+  var cached = false;
+  graphTimelineNodes.forEach(function (node, index) {
+    var point = data.getItemLayout(index);
+    if (!point || !Number.isFinite(point[0]) || !Number.isFinite(point[1])) {
+      return;
+    }
+    node.x = point[0];
+    node.y = point[1];
+    cached = true;
+  });
+  graphHasPositions = cached;
+  return cached;
+}
+
+function settle_graph(chart) {
+  clearTimeout(graphSettleTimer);
+  graphSettleTimer = 0;
+  if (!cache_graph_positions(chart) || chart.isDisposed()) return;
+  chart.setOption({
+    series: [
+      {
+        data: graph_label_data(graphZoom >= 2.8),
+        layout: "none",
+        links: graphTimelineLinks,
+      },
+    ],
+  });
+}
+
 function draw_graph(chart) {
-  // Draw the graph
   requestAnimationFrame(function () {
     if (!chart.isDisposed() && option) {
       chart.resize();
+      option.series[0].layout = graphHasPositions ? "none" : "force";
+      option.series[0].data = graph_label_data(graphZoom >= 2.8);
+      option.series[0].force.layoutAnimation =
+        !graphHasPositions &&
+        !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       chart.setOption(option, { notMerge: true });
+      if (!graphHasPositions) {
+        graphSettleTimer = setTimeout(function () {
+          settle_graph(chart);
+        }, 700);
+      }
     }
   });
 
-  // Add click event for nodes
   chart.on("click", function (params) {
     if (params.dataType == "node") {
       window.location = graph_link_path(params.value);
     }
   });
 
-  chart.on("mouseover", function (params) {
-    if (params.dataType === "node") {
-      glitch_graph_node(chart, params.data, params.dataIndex);
-    }
+  chart.on("graphroam", function (params) {
+    if (Number.isFinite(params.zoom)) graphZoom *= params.zoom;
+    update_graph_labels(chart);
   });
-
-  chart.on("mouseout", function (params) {
-    if (params.dataType === "node") {
-      reset_graph_node(chart, params.data, params.dataIndex);
-    }
-  });
+  bind_graph_keyboard(chart, chart.getDom());
 }
 
 function prepare_graph(graph) {
   graphNodePathPrefix = find_graph_node_path_prefix(graph.nodes);
-  var graphColourHue = Math.floor(Math.random() * 360);
+  graphHasPositions = false;
+  graphZoom = 2;
   var graphRootDepth = graphNodePathPrefix.split("/").filter(Boolean).length;
   var largestNodeSize = 0;
+  var colours = ["#f2ff3d", "#58d9e8", "#3f78d8", "#7893cf"];
 
   // Size by edge count, with each path level reducing its influence.
   graph.nodes.forEach(function (node) {
@@ -512,9 +475,12 @@ function prepare_graph(graph) {
     node.graphEdgeCount = node.symbolSize;
     node.symbolSize = graph_node_size(node.graphEdgeCount, depth);
     node.finalSymbolSize = node.symbolSize;
+    node.graphHub = node.graphEdgeCount >= 3;
     largestNodeSize = Math.max(largestNodeSize, node.symbolSize);
     node.itemStyle = {
-      color: "hsl(" + ((graphColourHue + depth * 42) % 360) + ", 62%, 55%)",
+      color: node.graphHub
+        ? colours[1]
+        : colours[Math.min(depth + 1, colours.length - 1)],
       shadowBlur: 0,
     };
     node.emphasis = {
@@ -534,6 +500,8 @@ function prepare_graph(graph) {
   if (rootNode) {
     rootNode.symbolSize = largestNodeSize + 1;
     rootNode.finalSymbolSize = rootNode.symbolSize;
+    rootNode.graphHub = true;
+    rootNode.itemStyle.color = colours[0];
   }
 
   // Special feature for long node titles
@@ -568,12 +536,12 @@ function prepare_graph(graph) {
         name: "Interactive Graph",
         type: "graph",
         layout: "force",
-        data: graph.nodes,
+        data: graph_label_data(false),
         links: graph.links,
         categories: [],
         zoom: 2,
         roam: true,
-        draggable: true, // Enable dragging of nodes
+        draggable: true,
         force: {
           repulsion: 72,
           gravity: 0.08,
@@ -582,7 +550,7 @@ function prepare_graph(graph) {
           layoutAnimation: true,
         },
         label: {
-          show: true,
+          show: false,
           position: "right",
           formatter: "{b}",
           textBorderWidth: 0,
@@ -600,8 +568,11 @@ function prepare_graph(graph) {
             shadowBlur: 0,
           },
           label: {
+            show: true,
             fontWeight: "bold",
-            formatter: "{b}",
+            formatter: function (params) {
+              return params.data.fullName;
+            },
             textBorderWidth: 0,
             textShadowBlur: 0,
           },
@@ -612,7 +583,7 @@ function prepare_graph(graph) {
           label: { opacity: 0.2 },
         },
         labelLayout: {
-          hideOverlap: false,
+          hideOverlap: true,
         },
         scaleLimit: {
           min: 0.5,
@@ -654,9 +625,12 @@ function ensure_graph_modal() {
       '<div id="modal_background" role="dialog" aria-modal="true" aria-label="Obsidian graph" hidden>' +
         '<div class="graph-shell">' +
         '<div id="graph" class="modal_graph"></div>' +
-        '<button class="graph-timelapse" type="button" title="Replay graph growth" aria-label="Replay graph growth">' +
+        '<div class="graph-tools">' +
+        '<button class="graph-tool graph-timelapse" type="button" title="Replay graph growth" aria-label="Replay graph growth">' +
         graphTimelapseIcon +
         "</button>" +
+        '<button class="graph-tool graph-close" type="button" title="Close graph" aria-label="Close graph">×</button>' +
+        "</div>" +
         "</div>" +
         "</div>",
     );
@@ -665,8 +639,10 @@ function ensure_graph_modal() {
 }
 
 function open_graph() {
-  ensure_graph_modal().hidden = false;
+  var modal = ensure_graph_modal();
+  modal.hidden = false;
   document.body.style.overflow = "hidden";
+  (modal.querySelector(".graph-close") as HTMLElement)?.focus();
 
   if (myChart || graphModalPromise) {
     request_graph_resize();
@@ -679,6 +655,7 @@ function open_graph() {
   element.setAttribute("aria-busy", "true");
   graphModalPromise = Promise.all([load_echarts(), load_graph_data()])
     .then(function () {
+      if (modal.hidden) return;
       element.removeAttribute("aria-busy");
       myChart = init_graph(element);
       draw_graph(myChart);
@@ -695,12 +672,28 @@ function open_graph() {
     });
 }
 
+function dispose_graph() {
+  finish_graph_timelapse();
+  graphKeyboardCleanup?.();
+  cancelAnimationFrame(graphResizeFrame);
+  cancelAnimationFrame(graphLabelFrame);
+  clearTimeout(graphSettleTimer);
+  graphResizeFrame = 0;
+  graphLabelFrame = 0;
+  graphSettleTimer = 0;
+  if (!myChart) return;
+  cache_graph_positions(myChart);
+  myChart.off?.();
+  myChart.dispose();
+  myChart = null;
+}
+
 function close_graph() {
   var modal = document.getElementById("modal_background");
   if (!modal || modal.hidden) {
     return;
   }
-  finish_graph_timelapse();
+  dispose_graph();
   modal.hidden = true;
   document.body.style.overflow = "";
   document.getElementById("graph_button").focus();
@@ -733,6 +726,11 @@ document.addEventListener("click", function (event) {
   if (button) {
     event.preventDefault();
     replay_graph_growth(myChart);
+  } else if (
+    event.target instanceof Element &&
+    event.target.closest(".graph-close")
+  ) {
+    close_graph();
   } else if (
     event.target instanceof Element &&
     event.target.id === "modal_background"
