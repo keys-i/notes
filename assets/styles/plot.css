@@ -1,0 +1,77 @@
+.note-plot {
+  position: relative;
+  margin: 1.6rem 0;
+  overflow: hidden;
+  border: 1px solid var(--site-rule);
+  border-radius: 0.65rem;
+  background: var(--site-surface);
+  box-shadow: 0 0.45rem 1.4rem rgb(6 18 115 / 0.08);
+  contain: layout paint;
+}
+
+.note-plot:focus-visible {
+  outline: 2px solid var(--md-accent-fg-color);
+  outline-offset: 3px;
+}
+
+.note-plot__canvas {
+  display: grid;
+  min-height: 24rem;
+  color: var(--md-default-fg-color--light);
+  place-items: center;
+}
+
+.note-plot--3d .note-plot__canvas {
+  min-height: 30rem;
+}
+
+.note-plot__reset {
+  position: absolute;
+  z-index: 2;
+  top: 0.65rem;
+  right: 0.65rem;
+  padding: 0.38rem 0.62rem;
+  border: 1px solid var(--site-rule);
+  border-radius: 0.35rem;
+  color: var(--md-default-fg-color);
+  background: var(--md-default-bg-color);
+  font: inherit;
+  font-size: 0.68rem;
+  cursor: pointer;
+}
+
+.note-plot__reset:is(:hover, :focus-visible) {
+  color: var(--md-accent-fg-color);
+  border-color: currentcolor;
+}
+
+.note-plot figcaption {
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.75rem 1rem 0.9rem;
+  border-top: 1px solid var(--site-rule);
+  color: var(--md-default-fg-color--light);
+  font-size: 0.72rem;
+}
+
+.note-plot figcaption strong {
+  color: var(--md-default-fg-color);
+  font-size: 0.8rem;
+}
+
+@media (max-width: 44.99em) {
+  .note-plot__canvas,
+  .note-plot--3d .note-plot__canvas {
+    min-height: 20rem;
+  }
+}
+
+@media print {
+  .note-plot__reset {
+    display: none;
+  }
+
+  .note-plot:not([data-state="ready"]) .note-plot__canvas {
+    display: none;
+  }
+}
