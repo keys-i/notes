@@ -1,0 +1,148 @@
+.recovery-shell {
+  margin-top: 0.55rem;
+  border: 1px solid #6bdcff;
+  background: #000319;
+  box-shadow:
+    inset 0 0 0.8rem rgb(23 67 245 / 0.28),
+    0 0 0.35rem rgb(107 220 255 / 0.18);
+  color: #d9fff0;
+  font:
+    700 0.62rem/1.35 ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+}
+
+.recovery-shell:focus-within {
+  border-color: #f2ff3d;
+  box-shadow: 0 0 0 1px #f2ff3d;
+}
+
+.recovery-shell[data-reaction] {
+  border-color: #f2ff3d;
+}
+
+.recovery-shell[data-reaction="terminalError"] {
+  border-color: #ff667d;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .recovery-shell[data-reaction="terminalMove"] {
+    animation: terminal-hop 560ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  .recovery-shell[data-reaction="terminalDebug"] {
+    animation: terminal-scan 560ms steps(2, end);
+  }
+
+  .recovery-shell[data-reaction="terminalReset"] {
+    animation: terminal-reboot 560ms ease-out;
+  }
+
+  .recovery-shell[data-reaction="terminalError"] {
+    animation: terminal-denied 320ms ease-out;
+  }
+
+  @keyframes terminal-hop {
+    0%,
+    100% {
+      transform: none;
+    }
+    35% {
+      transform: translateY(-0.2rem) rotate(-0.35deg);
+    }
+  }
+
+  @keyframes terminal-scan {
+    0%,
+    100% {
+      filter: none;
+    }
+    50% {
+      filter: brightness(1.35) contrast(1.15);
+    }
+  }
+
+  @keyframes terminal-reboot {
+    0% {
+      opacity: 0.45;
+      transform: scaleY(0.92);
+    }
+    100% {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @keyframes terminal-denied {
+    0%,
+    100% {
+      transform: none;
+    }
+    30% {
+      transform: translateX(-0.18rem);
+    }
+    65% {
+      transform: translateX(0.13rem);
+    }
+  }
+}
+
+.recovery-shell__log {
+  height: 8.1em;
+  overflow: auto;
+  padding: 0.38rem 0.5rem;
+}
+
+.recovery-shell__log pre {
+  margin: 0;
+  color: inherit;
+  font: inherit;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.shell-prompt {
+  color: #f2ff3d;
+}
+
+.shell-man-title {
+  color: #6bdcff;
+  text-shadow: 0 0 0.3rem rgb(107 220 255 / 0.45);
+}
+
+.shell-man-heading {
+  color: #ffbd45;
+}
+
+.shell-error {
+  color: #ff667d;
+}
+
+.recovery-shell__line {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.28rem 0.5rem;
+  border-top: 1px solid rgb(107 220 255 / 0.48);
+  color: #f2ff3d;
+  cursor: text;
+}
+
+.recovery-shell__line input {
+  min-width: 0;
+  flex: 1;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  color: #fff;
+  background: transparent;
+  caret-color: #f2ff3d;
+  font: inherit;
+}
+
+@media (max-width: 1024px) {
+  .recovery-shell__line input {
+    font-size: 16px;
+  }
+}
