@@ -4,6 +4,7 @@ use serde_json::Value;
 use worker::{Env, Fetch, Headers, Method, Request, RequestInit, Response, Url};
 
 const MAX_RESPONSE_BYTES: usize = 2 * 1024 * 1024;
+const GROQ_BASE_URL: &str = "https://api.groq.com/openai/v1/";
 
 #[derive(Clone, Debug)]
 pub struct Client {
@@ -20,16 +21,11 @@ pub enum Error {
 
 impl Client {
     pub fn from_env(env: &Env) -> Result<Self, Error> {
-        let base = env
-            .secret("MODEL_BASE_URL")
-            .or_else(|_| env.var("MODEL_BASE_URL"))
-            .map_err(|_| Error::Config)?
-            .to_string();
         let token = env
             .secret("MODEL_API_KEY")
             .map_err(|_| Error::Config)?
             .to_string();
-        Self::new(&base, &token)
+        Self::new(GROQ_BASE_URL, &token)
     }
 
     pub fn new(base: &str, token: &str) -> Result<Self, Error> {
@@ -61,24 +57,6 @@ impl Client {
     {
         self.post("chat/completions", request_body(model, input)?)
             .await
-    }
-
-    pub async fn rerank<T, R>(&self, model: &str, input: &T) -> Result<R, Error>
-    where
-        T: Serialize,
-        R: DeserializeOwned,
-    {
-        self.post("rerank", request_body(model, input)?).await
-    }
-
-    pub async fn embeddings<T>(&self, model: &str, input: &T) -> Result<Vec<Vec<f32>>, Error>
-    where
-        T: Serialize,
-    {
-        let reply = self
-            .post::<_, EmbeddingReply>("embeddings", request_body(model, input)?)
-            .await?;
-        ordered_embeddings(reply)
     }
 
     pub async fn transcribe(
@@ -149,15 +127,6 @@ impl Client {
     }
 }
 
-fn ordered_embeddings(reply: EmbeddingReply) -> Result<Vec<Vec<f32>>, Error> {
-    let mut data = reply.data;
-    data.sort_by_key(|item| item.index);
-    if data.is_empty() || data.iter().any(|item| item.embedding.is_empty()) {
-        return Err(Error::Response);
-    }
-    Ok(data.into_iter().map(|item| item.embedding).collect())
-}
-
 fn request_body<T: Serialize>(model: &str, input: &T) -> Result<Value, Error> {
     validate_model(model)?;
     let mut body = serde_json::to_value(input).map_err(|_| Error::Request)?;
@@ -219,24 +188,13 @@ async fn bounded_body(response: &mut Response) -> Result<Vec<u8>, Error> {
 }
 
 #[derive(Debug, serde::Deserialize)]
-struct EmbeddingReply {
-    data: Vec<Embedding>,
-}
-
-#[derive(Debug, serde::Deserialize)]
-struct Embedding {
-    embedding: Vec<f32>,
-    index: usize,
-}
-
-#[derive(Debug, serde::Deserialize)]
 struct TranscriptionReply {
     text: String,
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{Client, EmbeddingReply, Error, audio_multipart, ordered_embeddings, request_body};
+    use super::{Client, Error, GROQ_BASE_URL, audio_multipart, request_body};
     use serde::Serialize;
 
     #[derive(Serialize)]
@@ -252,6 +210,7 @@ mod tests {
 
     #[test]
     fn backend_requires_a_credentialed_https_origin() {
+        assert_eq!(GROQ_BASE_URL, "https://api.groq.com/openai/v1/");
         assert!(Client::new("https://models.example/v1", "secret").is_ok());
         assert_eq!(
             Client::new("http://models.example/v1", "secret").unwrap_err(),
@@ -307,16 +266,5 @@ mod tests {
             audio_multipart("audio", b"RIFF", "wav\r\nunsafe"),
             Err(Error::Request)
         );
-    }
-
-    #[test]
-    fn embeddings_are_returned_in_provider_index_order() {
-        let reply: EmbeddingReply = serde_json::from_str(
-            r#"{"data":[{"embedding":[2.0],"index":1},{"embedding":[1.0],"index":0}]}"#,
-        )
-        .unwrap();
-        assert_eq!(ordered_embeddings(reply), Ok(vec![vec![1.0], vec![2.0]]));
-        let empty: EmbeddingReply = serde_json::from_str(r#"{"data":[]}"#).unwrap();
-        assert_eq!(ordered_embeddings(empty), Err(Error::Response));
     }
 }
