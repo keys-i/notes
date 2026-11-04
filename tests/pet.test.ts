@@ -334,13 +334,17 @@ test("personality is local and event-driven", () => {
     mainTemplate,
     /placeholder="Explain, quiz, follow up, or ask in any language…"/,
   );
-  assert.match(mainTemplate, /\.icons\/material\/apps\.svg/);
+  assert.doesNotMatch(mainTemplate, /dock-pet__help-(?:close|minis)/);
   assert.doesNotMatch(mainTemplate, /Save spot|Resume spot/);
   assert.doesNotMatch(
     mainTemplate,
     /data-pet-action="(?:fact|focus|motivate)"/,
   );
-  assert.match(mainTemplate, /href="https:\/\/uni\.keysi\.dev\/mini\/"/);
+  assert.doesNotMatch(mainTemplate, /href="https:\/\/uni\.keysi\.dev\/mini\/"/);
+  assert.match(
+    siteConfig,
+    /link: https:\/\/uni\.keysi\.dev\/mini\/[\s\S]*?name: Minis/,
+  );
 });
 
 function createRuntime({
@@ -375,7 +379,7 @@ function createRuntime({
   const petHandlers: Record<string, any> = {};
   const documentHandlers: Record<string, any> = {};
   const formHandlers: Record<string, any> = {};
-  const questionHandlers: Record<string, any> = {};
+  const helpHandlers: Record<string, any> = {};
   const windowHandlers: Record<string, any> = {};
   const scrollCalls: any[] = [];
   const capturedPointers: number[] = [];
@@ -441,26 +445,14 @@ function createRuntime({
     },
   };
   const status = { textContent: "" };
-  const control = (action): any => ({
-    attributes: {},
-    dataset: { petAction: action },
-    handlers: {},
-    textContent: action,
-    addEventListener(name, handler) {
-      this.handlers[name] = handler;
-    },
-    setAttribute(name, value) {
-      this.attributes[name] = value;
-    },
-  });
-  const actionControls = [control("close")];
   const help: any = {
     hidden: true,
     offsetHeight: 190,
     offsetWidth: 320,
     style: {},
-    querySelectorAll: (selector) =>
-      selector === "[data-pet-action]" ? actionControls : [],
+    addEventListener(name, handler) {
+      helpHandlers[name] = handler;
+    },
   };
   const helpForm: any = {
     addEventListener(name, handler) {
@@ -471,9 +463,6 @@ function createRuntime({
     blurred: false,
     focused: false,
     value: "",
-    addEventListener(name, handler) {
-      questionHandlers[name] = handler;
-    },
     blur() {
       this.blurred = true;
       this.focused = false;
@@ -560,6 +549,7 @@ function createRuntime({
   const pet: any = {
     attributes: {},
     dataset: {},
+    focused: false,
     hidden: true,
     style: {
       left: "",
@@ -604,7 +594,9 @@ function createRuntime({
     setAttribute(name, value) {
       this.attributes[name] = value;
     },
-    focus() {},
+    focus() {
+      this.focused = true;
+    },
   };
   const media = (matches) => ({
     handlers: {} as Record<string, any>,
@@ -888,7 +880,6 @@ function createRuntime({
   vm.runInContext(source, context, { filename: petPath });
 
   return {
-    actionControls,
     aborts,
     advance(milliseconds) {
       clock += milliseconds;
@@ -909,6 +900,7 @@ function createRuntime({
     fetchCalls,
     frames,
     help,
+    helpHandlers,
     irises,
     listenButton,
     listenHandlers,
@@ -917,7 +909,6 @@ function createRuntime({
     paletteHandlers,
     reduced: reducedMedia,
     question,
-    questionHandlers,
     rootStyle,
     rootClasses,
     rootClassChanges,
@@ -1480,11 +1471,11 @@ test("help and voice controls recover from empty, cancelled, and failed input", 
   assert.equal(runtime.threadItems.length, 0);
   assert.equal(runtime.question.focused, true);
 
-  runtime.actionControls[0].handlers.click();
+  runtime.documentHandlers.pointerdown({ composedPath: () => [] });
   assert.equal(runtime.help.hidden, true);
   runtime.petHandlers.click();
   let prevented = 0;
-  runtime.questionHandlers.keydown({
+  runtime.helpHandlers.keydown({
     key: "Escape",
     preventDefault: () => prevented++,
   });
@@ -1519,6 +1510,29 @@ test("help and voice controls recover from empty, cancelled, and failed input", 
   assert.equal(busy.question.placeholder, "Voice is busy. Type it instead");
 });
 
+test("study help ignores inside pointers and closes outside with focus recovery", () => {
+  const runtime = createRuntime();
+  runtime.petHandlers.click();
+
+  runtime.documentHandlers.pointerdown({
+    composedPath: () => [runtime.question, runtime.help],
+  });
+  assert.equal(runtime.help.hidden, false);
+
+  runtime.documentHandlers.pointerdown({
+    composedPath: () => [runtime.pet],
+  });
+  assert.equal(runtime.help.hidden, false);
+  runtime.petHandlers.click();
+  assert.equal(runtime.help.hidden, true);
+
+  runtime.petHandlers.click();
+  runtime.documentHandlers.pointerdown({ composedPath: () => [] });
+  assert.equal(runtime.help.hidden, true);
+  assert.equal(runtime.question.blurred, true);
+  assert.equal(runtime.pet.focused, true);
+});
+
 test("visibility and media changes cancel work and settle live movement", async () => {
   const hidden = createRuntime({
     abortController: true,
@@ -1539,7 +1553,7 @@ test("visibility and media changes cancel work and settle live movement", async 
   assert.ok(hidden.spoken.filter((item) => item === "cancel").length >= 2);
   await flushStudy();
 
-  hidden.actionControls[0].handlers.click();
+  hidden.documentHandlers.pointerdown({ composedPath: () => [] });
   hidden.document.hidden = false;
   hidden.documentHandlers.visibilitychange();
   assert.equal(

@@ -256,7 +256,7 @@
   border-radius: 0.55rem;
 }
 
-.dock-pet__help :is(button, .dock-pet__help-minis) svg {
+.dock-pet__help button svg {
   display: block;
   width: 1.05rem;
   height: 1.05rem;
@@ -275,39 +275,10 @@
 }
 
 .dock-pet__help button:is(:hover, :focus-visible),
-.dock-pet__help-minis:is(:hover, :focus-visible),
 .dock-pet__help input:focus-visible {
   color: var(--md-accent-fg-color);
   border-color: currentcolor;
   outline: none;
-}
-
-.dock-pet__help-minis {
-  position: absolute;
-  top: 0.45rem;
-  right: 2.55rem;
-  display: grid;
-  width: 1.8rem;
-  height: 1.8rem;
-  color: inherit;
-  border-radius: 0.45rem;
-  place-items: center;
-}
-
-.dock-pet__help-minis:focus-visible {
-  box-shadow: 0 0 0 0.1rem currentcolor;
-}
-
-.dock-pet__help-close {
-  position: absolute;
-  top: 0.45rem;
-  right: 0.45rem;
-  width: 1.8rem;
-  min-height: 1.8rem !important;
-  padding: 0 !important;
-  font-size: 1.15rem !important;
-  line-height: 1 !important;
-  border: 0 !important;
 }
 
 .dock-pet__thread {
