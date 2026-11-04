@@ -1,9 +1,11 @@
 use notes_pet::{
     Attachment, AttachmentKind, InputClass, Message, ModelRoute, PetReply, PetRequest, ReplyKind,
-    ReplyMode, Role, Scope, Section, answer_kind, audio_question, authorize_scope, cache_key,
-    cited_headings, classify_input, clean_answer, grounded_answer, guard_allows, image_prompt,
-    model_prompt, reply_mode, retrieve, select_model, select_verifier, semantic_cache_keys,
-    semantic_match, semantic_record, shared_cacheable, validate, verification_allows,
+    ReplyMode, RerankScore, RetrievalAction, Role, Scope, Section, answer_kind, audio_question,
+    authorize_scope, cache_key, cited_headings, classify_input, clean_answer,
+    evidence_from_indices, grounded_answer, guard_allows, image_prompt, model_prompt,
+    parse_retrieval_plan, planned_candidates, reply_mode, reranked_evidence, retrieve,
+    select_model, select_verifier, semantic_cache_keys, semantic_match, semantic_record,
+    shared_cacheable, uses_planned_retrieval, validate, verification_allows,
 };
 
 fn request() -> PetRequest {
@@ -226,6 +228,128 @@ fn hybrid_retrieval_ranks_dense_evidence_then_an_adjacent_section() {
     assert_eq!(evidence[1].heading, "Impulse");
     assert_eq!(evidence[0].source, 1);
     assert_eq!(evidence[1].source, 2);
+}
+
+#[test]
+fn bounded_planning_is_reserved_for_difficult_note_questions() {
+    let mut input = request();
+    input.messages[0].content = "Derive the momentum balance step by step".into();
+    assert!(uses_planned_retrieval(&input));
+
+    input.messages[0].content = "Define momentum".into();
+    assert!(!uses_planned_retrieval(&input));
+
+    input.messages[0].content = "Compare several ways to revise a new subject step by step".into();
+    assert_eq!(select_model(&input), ModelRoute::Deep);
+    assert_eq!(answer_kind(&input), ReplyKind::General);
+    assert!(!uses_planned_retrieval(&input));
+
+    input.attachment = Some(png_attachment());
+    assert!(!uses_planned_retrieval(&input));
+}
+
+#[test]
+fn retrieval_plan_accepts_one_bounded_action_and_rejects_model_drift() {
+    let plan = parse_retrieval_plan(
+        r#"```json
+{"action":"retrieve","query":"impulse momentum relation","hypothetical_answer":"Impulse changes momentum over a time interval"}
+```"#,
+    )
+    .unwrap();
+    assert_eq!(plan.action, RetrievalAction::Retrieve);
+    assert_eq!(plan.query, "impulse momentum relation");
+
+    assert!(
+        parse_retrieval_plan(
+            r#"{"action":"browse","query":"momentum","hypothetical_answer":"answer"}"#
+        )
+        .is_none()
+    );
+    assert!(
+        parse_retrieval_plan(
+            r#"{"action":"retrieve","query":"momentum","hypothetical_answer":"answer","reasoning":"hidden"}"#
+        )
+        .is_none()
+    );
+    assert!(
+        parse_retrieval_plan(&format!(
+            r#"{{"action":"retrieve","query":"{}","hypothetical_answer":"answer"}}"#,
+            "x".repeat(301)
+        ))
+        .is_none()
+    );
+}
+
+#[test]
+fn bm25_and_dense_fusion_preserves_lexical_matches_and_hyde_signal() {
+    let mut input = request();
+    input.messages[0].content = "Derive the impulse momentum relation step by step".into();
+    let lexical = planned_candidates(&input, &[], "integral force time changes momentum");
+    assert_eq!(input.sections[lexical[0]].heading, "Impulse");
+
+    let hyde = planned_candidates(
+        &input,
+        &[
+            vec![1.0, 0.0],
+            vec![0.0, 1.0],
+            vec![0.2, 0.8],
+            vec![1.0, 0.0],
+        ],
+        "relation between force and momentum",
+    );
+    assert!(hyde.iter().position(|index| *index == 2).unwrap() < 2);
+}
+
+#[test]
+fn learned_reranking_is_validated_and_renumbers_evidence() {
+    let input = request();
+    let candidates = vec![0, 1, 2];
+    let evidence = reranked_evidence(
+        &input,
+        &candidates,
+        &[
+            RerankScore { id: 2, score: 0.9 },
+            RerankScore { id: 0, score: 0.5 },
+            RerankScore { id: 1, score: 0.7 },
+        ],
+    )
+    .unwrap();
+    assert_eq!(evidence[0].heading, "Impulse");
+    assert_eq!(evidence[1].heading, "Newton's second law");
+    assert_eq!(evidence[2].heading, "Energy");
+    assert_eq!(
+        evidence.iter().map(|item| item.source).collect::<Vec<_>>(),
+        [1, 2, 3]
+    );
+
+    assert!(
+        reranked_evidence(
+            &input,
+            &candidates,
+            &[
+                RerankScore { id: 0, score: 0.9 },
+                RerankScore { id: 0, score: 0.8 },
+                RerankScore { id: 1, score: 0.7 },
+            ],
+        )
+        .is_none()
+    );
+    assert!(
+        reranked_evidence(
+            &input,
+            &candidates,
+            &[
+                RerankScore { id: 0, score: 0.9 },
+                RerankScore {
+                    id: 1,
+                    score: f32::NAN
+                },
+                RerankScore { id: 3, score: 0.7 },
+            ],
+        )
+        .is_none()
+    );
+    assert_eq!(evidence_from_indices(&input, &candidates).len(), 3);
 }
 
 #[test]
