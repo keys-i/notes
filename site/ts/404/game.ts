@@ -166,7 +166,7 @@ ghostPen.add(
 );
 
 var SCENE_DURATIONS = {
-  ready: 3200,
+  ready: 4300,
   vegemite: 1350,
   dragon: 1150,
   combined: 1850,
@@ -475,6 +475,7 @@ function createGameAudio(
 function clearGameScene() {
   clearTimeout(gameSceneTimer);
   gameSceneTimer = 0;
+  sceneTake += 1;
   gameScene = "";
   sceneElement.hidden = true;
   delete board.dataset.scene;
@@ -482,9 +483,43 @@ function clearGameScene() {
   gameAudio.stop();
 }
 
+function populateSceneHunters(kind) {
+  var hunters = sceneElement.querySelector(
+    ".scene-stage--" + kind + " [data-scene-hunters]",
+  );
+  if (!hunters) return;
+  hunters.replaceChildren();
+  ghostElements.forEach(function (ghost) {
+    hunters.appendChild(ghost.querySelector("svg").cloneNode(true));
+  });
+}
+
+function showGameAttract() {
+  gameScene = "attract";
+  gameStarted = false;
+  delete osElement.dataset.game;
+  sceneElement.dataset.kind = "attract";
+  sceneElement.dataset.take = String(sceneTake);
+  sceneElement.style.removeProperty("--scene-duration");
+  var play = sceneElement.querySelector(".game-scene__skip");
+  play.textContent = "Play";
+  play.setAttribute("aria-label", "Play Long Way Home");
+  populateSceneHunters("attract");
+  sceneElement.hidden = false;
+}
+
+function handleGameSceneAction() {
+  if (gameScene === "attract") {
+    gameAudio.start();
+    startGameScene("ready");
+    return;
+  }
+  finishGameScene();
+}
+
 function finishGameScene() {
   var kind = gameScene;
-  if (!kind) return;
+  if (!kind || kind === "attract") return;
   var restoreFocus = sceneElement.contains(document.activeElement);
   clearGameScene();
   if (restoreFocus && !document.hidden && !shuttingDown)
@@ -505,6 +540,7 @@ function startGameScene(kind) {
   stopPlayerInput();
   gameScene = kind;
   gameStarted = true;
+  osElement.dataset.game = "playing";
   var power = kind === "vegemite" || kind === "dragon" || kind === "combined";
   var duration = SCENE_DURATIONS[kind] || 1000;
   if (
@@ -518,22 +554,17 @@ function startGameScene(kind) {
       takeFromBag("aussie-slang", AUSSIE_SLANG, effectsRandom);
   }
   sceneTakes.set(kind, (sceneTakes.get(kind) || 0) + 1);
-  sceneTake += 1;
   var take = sceneTake;
   sceneElement.dataset.kind = kind;
   sceneElement.dataset.take = String(sceneTake);
   sceneElement.style.setProperty("--scene-duration", duration + "ms");
   var skip = sceneElement.querySelector(".game-scene__skip");
-  skip.textContent = power ? "▶" : "Play now";
-  skip.setAttribute("aria-label", power ? "Skip power-up" : "Play now");
-  var hunters = sceneElement.querySelector(
-    ".scene-stage--" + kind + " [data-scene-hunters]",
+  skip.textContent = "Skip";
+  skip.setAttribute(
+    "aria-label",
+    power ? "Skip power-up" : "Skip introduction",
   );
-  if (hunters) hunters.replaceChildren();
-  if (hunters && (power || kind === "ready"))
-    ghostElements.forEach(function (ghost) {
-      hunters.appendChild(ghost.querySelector("svg").cloneNode(true));
-    });
+  populateSceneHunters(kind);
   // Restart the cutscene even when a reset selects the same power again
   void sceneElement.offsetWidth;
   sceneElement.hidden = false;
@@ -3193,9 +3224,11 @@ function resetGame(regenerate?) {
   updateScore();
   statusElement.textContent =
     "Maze ready. Collect every pellet, then reach the eucalyptus tree.";
-  startGameScene("ready");
+  showGameAttract();
 }
-sceneElement.querySelector("button").addEventListener("click", finishGameScene);
+sceneElement
+  .querySelector("button")
+  .addEventListener("click", handleGameSceneAction);
 
 document
   .querySelectorAll<HTMLElement>("[data-move]")
