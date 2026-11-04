@@ -1,8 +1,8 @@
-// Add graph button to the header controls.
+// Add graph button to the header controls
 document.querySelector(".md-search")?.insertAdjacentHTML(
   "afterend",
   '<button id="graph_button" class="md-header__button md-header__graph-option md-icon" type="button" title="Open graph" aria-label="Open graph"> \
-    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.5 17c-.13 0-.26 0-.39.04l-1.61-3.25a2.5 2.5 0 0 0-1.75-4.29c-.13 0-.25 0-.39.04l-1.63-3.25c.48-.45.77-1.08.77-1.79a2.5 2.5 0 0 0-5 0c0 .71.29 1.34.76 1.79L8.64 9.54c-.14-.04-.26-.04-.39-.04a2.5 2.5 0 0 0-1.75 4.29l-1.61 3.25C4.76 17 4.63 17 4.5 17a2.5 2.5 0 0 0 0 5A2.5 2.5 0 0 0 7 19.5c0-.7-.29-1.34-.76-1.79l1.62-3.25c.14.04.26.04.39.04s.25 0 .39-.04l1.63 3.25c-.47.45-.77 1.09-.77 1.79a2.5 2.5 0 0 0 5 0A2.5 2.5 0 0 0 12 17c-.13 0-.26 0-.39.04L10 13.79c.46-.45.75-1.08.75-1.79s-.29-1.34-.75-1.79l1.61-3.25c.13.04.26.04.39.04s.26 0 .39-.04L14 10.21c-.45.45-.75 1.09-.75 1.79a2.5 2.5 0 0 0 2.5 2.5c.13 0 .25 0 .39-.04l1.63 3.25c-.47.45-.77 1.09-.77 1.79a2.5 2.5 0 0 0 5 0 2.5 2.5 0 0 0-2.5-2.5"/></svg> \
+    <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" fill="none"><path d="M6 6 12 11l6-5M12 11l5 7m-5-7-6 7" stroke="currentColor" stroke-width="1.8"/><circle cx="6" cy="6" r="2.3" fill="currentColor"/><circle cx="18" cy="6" r="2.3" fill="currentColor"/><circle cx="12" cy="11" r="2.3" fill="currentColor"/><circle cx="6" cy="18" r="2.3" fill="currentColor"/><circle cx="17" cy="18" r="2.3" fill="currentColor"/></svg> \
 	  </button>',
 );
 
@@ -44,19 +44,160 @@ var graphSitePath = graphScriptUrl.pathname.replace(
 );
 var echartsReady;
 var graphNodePathPrefix = "";
+var graphGlitchCharacters = "@#$%&*+=?<>░▒▓█╳╱╲";
+var graphGlitchTimers = {};
+var graphHoverFrames = 19;
+var graphResetFrames = 12;
+var graphTextFrameDelay = 45;
 var graphTimelineNodes = [];
 var graphTimelineLinks = [];
 var graphTimelineFrame = 0;
 var graphDataPromise;
 var graphModalPromise;
+var graphDrawFrame = 0;
 var graphResizeFrame;
 var graphLabelFrame = 0;
 var graphSettleTimer = 0;
+var graphDragActive = false;
 var graphHasPositions = false;
 var graphZoom = 2;
 var graphKeyboardCleanup;
 var myChart;
 var option;
+
+function graph_glitch_text(text, revealed, frame) {
+  return Array.from(text, function (character, index) {
+    if (character === " " || index < revealed) return character;
+    return graphGlitchCharacters[
+      (frame * 7 + index * 11) % graphGlitchCharacters.length
+    ];
+  }).join("");
+}
+
+function graph_reset_text(fromText, slug, frame) {
+  if (frame === graphResetFrames) return slug;
+  var text = frame < 3 ? fromText : slug;
+  return graph_glitch_text(
+    text,
+    Math.floor(
+      Array.from(text).length *
+        (frame < 3 ? (2 - frame) / 2 : (frame - 3) / (graphResetFrames - 3)),
+    ),
+    frame + 11,
+  );
+}
+
+function graph_glitch_key(chart, node) {
+  return chart.getDom().id + ":" + node.id;
+}
+
+function graph_label_element(chart, dataIndex) {
+  if (!chart || chart.isDisposed()) return null;
+  var element = chart.getModel().getSeriesByIndex(0);
+  element = element && element.getData();
+  element =
+    element && element.getItemGraphicEl
+      ? element.getItemGraphicEl(dataIndex)
+      : null;
+  element =
+    element && element.getSymbolPath ? element.getSymbolPath() : element;
+  return element && element.getTextContent ? element.getTextContent() : null;
+}
+
+function paint_graph_label(chart, dataIndex, text) {
+  // Repaint one text element without restarting graph layout
+  graph_label_element(chart, dataIndex)?.setStyle({
+    text: text,
+    stroke: null,
+    lineWidth: 0,
+    shadowBlur: 0,
+    shadowColor: "transparent",
+  });
+}
+
+function clear_graph_text_motion() {
+  Object.keys(graphGlitchTimers).forEach(function (timerKey) {
+    clearTimeout(graphGlitchTimers[timerKey]);
+  });
+  graphGlitchTimers = {};
+}
+
+function glitch_graph_node(chart, node, dataIndex) {
+  var timerKey = graph_glitch_key(chart, node);
+  clearTimeout(graphGlitchTimers[timerKey]);
+  delete graphGlitchTimers[timerKey];
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    paint_graph_label(chart, dataIndex, node.fullName);
+    return;
+  }
+
+  var frame = 0;
+  var titleLength = Array.from(node.fullName).length;
+  var prefixes = ["▓▓ ", "// ", "ERR ", "░▒ ", "<> ", "404 "];
+  var suffixes = [" ░", " //", " ✦", " ╳"];
+
+  function next_glitch_frame() {
+    paint_graph_label(
+      chart,
+      dataIndex,
+      frame === graphHoverFrames
+        ? node.fullName
+        : prefixes[frame % prefixes.length] +
+            graph_glitch_text(
+              node.fullName,
+              Math.floor(
+                (titleLength * Math.max(0, frame - 2)) / (graphHoverFrames - 2),
+              ),
+              frame,
+            ) +
+            suffixes[frame % suffixes.length],
+    );
+    if (frame === graphHoverFrames) {
+      delete graphGlitchTimers[timerKey];
+    } else {
+      frame += 1;
+      graphGlitchTimers[timerKey] = setTimeout(
+        next_glitch_frame,
+        graphTextFrameDelay,
+      );
+    }
+  }
+
+  next_glitch_frame();
+}
+
+function reset_graph_node(chart, node, dataIndex) {
+  var timerKey = graph_glitch_key(chart, node);
+  clearTimeout(graphGlitchTimers[timerKey]);
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    delete graphGlitchTimers[timerKey];
+    paint_graph_label(chart, dataIndex, node.name);
+    return;
+  }
+
+  var fromText =
+    graph_label_element(chart, dataIndex)?.style.text || node.fullName;
+  var frame = 0;
+
+  function next_reset_frame() {
+    paint_graph_label(
+      chart,
+      dataIndex,
+      graph_reset_text(fromText, node.name, frame),
+    );
+    if (frame === graphResetFrames) {
+      delete graphGlitchTimers[timerKey];
+    } else {
+      frame += 1;
+      graphGlitchTimers[timerKey] = setTimeout(
+        next_reset_frame,
+        graphTextFrameDelay,
+      );
+    }
+  }
+
+  next_reset_frame();
+}
 
 function graph_visible_links(links, visibleIds) {
   return links.filter(function (link) {
@@ -70,10 +211,31 @@ function graph_node_size(edgeCount, depth) {
   return 5.5 + (edgeCount * 3) / (depth + 1);
 }
 
-function graph_timeline_nodes(nodes, scale) {
+function graph_timeline_nodes(nodes, links, appearingIds, popScale?) {
+  var visibleEdges = new Map();
+  links.forEach(function (link) {
+    var source = String(link.source);
+    var target = String(link.target);
+    visibleEdges.set(source, (visibleEdges.get(source) || 0) + 1);
+    visibleEdges.set(target, (visibleEdges.get(target) || 0) + 1);
+  });
+
   return nodes.map(function (node) {
+    var id = String(node.id);
+    var baseSize = graph_node_size(0, node.graphDepth);
+    var size =
+      baseSize +
+      (node.finalSymbolSize - baseSize) *
+        Math.min(
+          1,
+          (visibleEdges.get(id) || 0) / Math.max(1, node.graphEdgeCount),
+        );
     return Object.assign({}, node, {
-      symbolSize: node.finalSymbolSize * scale,
+      symbolSize: appearingIds.has(id)
+        ? popScale
+          ? Math.max(16, size * popScale)
+          : 1
+        : size,
     });
   });
 }
@@ -88,6 +250,21 @@ function graph_creation_order(a, b) {
   );
 }
 
+function graph_colour_hue(nodes) {
+  var ordered = nodes.slice().sort(graph_creation_order);
+  var created = ordered.length ? Date.parse(ordered[0].created) : NaN;
+  if (!Number.isNaN(created)) {
+    return ((Math.floor(created / 86400000) % 360) + 360) % 360;
+  }
+
+  var hash = ordered.reduce(function (value, node) {
+    return Array.from(String(node.value)).reduce(function (sum, character) {
+      return ((sum * 31 + (character.codePointAt(0) || 0)) >>> 0) % 2147483647;
+    }, value);
+  }, 0);
+  return hash % 360;
+}
+
 function graph_next_timeline_index(nodes, shown) {
   if (shown >= nodes.length) {
     return shown;
@@ -98,6 +275,16 @@ function graph_next_timeline_index(nodes, shown) {
     shown += 1;
   } while (shown < nodes.length && nodes[shown].created === created);
   return shown;
+}
+
+function graph_timeline_steps(nodes) {
+  var steps = [];
+  var shown = 0;
+  while (shown < nodes.length) {
+    shown = graph_next_timeline_index(nodes, shown);
+    steps.push(shown);
+  }
+  return steps;
 }
 
 function finish_graph_timelapse() {
@@ -114,6 +301,20 @@ function replay_graph_growth(chart) {
   }
 
   finish_graph_timelapse();
+  clear_graph_text_motion();
+  graphDragActive = false;
+  clearTimeout(graphSettleTimer);
+  graphSettleTimer = 0;
+  cache_graph_positions(chart);
+  chart.setOption({
+    series: [
+      {
+        data: graphTimelineNodes,
+        layout: "none",
+        links: graphTimelineLinks,
+      },
+    ],
+  });
   document.querySelectorAll(".graph-timelapse").forEach(function (button) {
     button.classList.add("is-playing");
   });
@@ -122,48 +323,71 @@ function replay_graph_growth(chart) {
     chart.setOption({
       series: [{ data: graphTimelineNodes, links: graphTimelineLinks }],
     });
+    fit_graph(chart);
     finish_graph_timelapse();
     return;
   }
 
+  var steps = graph_timeline_steps(graphTimelineNodes);
   var started = 0;
-  var duration = 1200;
+  var renderedBeat = -1;
+  var renderedPhase = -1;
+  var beatDuration = 620;
   chart.setOption({ series: [{ data: [], links: [] }] });
 
   function reveal_nodes(now) {
-    if (!started) started = now;
-    var progress = Math.min(1, (now - started) / duration);
-    var shown = Math.max(1, Math.ceil(graphTimelineNodes.length * progress));
-    shown = graph_next_timeline_index(graphTimelineNodes, shown - 1);
-    var nodes = graphTimelineNodes.slice(0, shown);
-    var visibleLinks = graph_visible_links(
-      graphTimelineLinks,
-      new Set(
-        nodes.map(function (node) {
-          return String(node.id);
-        }),
-      ),
-    );
-    var scale = 0.7 + progress * 0.3;
-
-    chart.setOption({
-      series: [
-        {
-          data: graph_timeline_nodes(nodes, scale),
-          links: visibleLinks,
-        },
-      ],
-    });
-
-    if (progress < 1 && !chart.isDisposed()) {
-      graphTimelineFrame = requestAnimationFrame(reveal_nodes);
+    if (chart.isDisposed()) {
+      finish_graph_timelapse();
       return;
     }
+    if (!started) started = now;
+    var elapsed = now - started;
+    var beat = Math.min(steps.length - 1, Math.floor(elapsed / beatDuration));
+    var beatElapsed = elapsed - beat * beatDuration;
+    var phase = beatElapsed >= 400 ? 2 : beatElapsed >= 90 ? 1 : 0;
 
-    chart.setOption({
-      series: [{ data: graphTimelineNodes, links: graphTimelineLinks }],
-    });
-    finish_graph_timelapse();
+    if (beat !== renderedBeat || phase !== renderedPhase) {
+      var previousShown = beat === 0 ? 0 : steps[beat - 1];
+      var nodes = graphTimelineNodes.slice(0, steps[beat]);
+      var visibleLinks = graph_visible_links(
+        graphTimelineLinks,
+        new Set(
+          nodes.map(function (node) {
+            return String(node.id);
+          }),
+        ),
+      );
+      var appearingIds = new Set(
+        nodes.slice(previousShown).map(function (node) {
+          return String(node.id);
+        }),
+      );
+      chart.setOption({
+        series: [
+          {
+            data: graph_timeline_nodes(
+              nodes,
+              visibleLinks,
+              phase === 2 ? new Set() : appearingIds,
+              phase === 1 ? 1.8 : undefined,
+            ),
+            links: visibleLinks,
+          },
+        ],
+      });
+      renderedBeat = beat;
+      renderedPhase = phase;
+    }
+
+    if (beat === steps.length - 1 && phase === 2) {
+      chart.setOption({
+        series: [{ data: graphTimelineNodes, links: graphTimelineLinks }],
+      });
+      fit_graph(chart);
+      finish_graph_timelapse();
+    } else if (!chart.isDisposed()) {
+      graphTimelineFrame = requestAnimationFrame(reveal_nodes);
+    }
   }
 
   graphTimelineFrame = requestAnimationFrame(reveal_nodes);
@@ -265,10 +489,7 @@ function init_graph(element) {
 }
 
 function graph_background_color() {
-  var style = getComputedStyle(document.body);
-  return (
-    style.getPropertyValue("--graph-bg-color").trim() || style.backgroundColor
-  );
+  return "transparent";
 }
 
 function graph_accent_color() {
@@ -277,6 +498,19 @@ function graph_accent_color() {
       .getPropertyValue("--md-accent-fg-color")
       .trim() || "#1739b7"
   );
+}
+
+function graph_colours() {
+  var style = getComputedStyle(document.body);
+  function colour(name, fallback) {
+    return style.getPropertyValue(name).trim() || fallback;
+  }
+  return {
+    glow: colour("--graph-glow-color", graph_accent_color()),
+    hub: colour("--graph-hub-color", "#0b7180"),
+    leaf: colour("--graph-leaf-color", "#4263c7"),
+    root: colour("--graph-root-color", "#0719aa"),
+  };
 }
 
 function request_graph_resize() {
@@ -291,15 +525,45 @@ function request_graph_resize() {
 
 window.addEventListener("resize", request_graph_resize);
 
-function graph_label_data(expanded, activeIndex?) {
+function graph_label_data(_expanded, activeIndex?) {
   return graphTimelineNodes.map(function (node, index) {
     var active = index === activeIndex;
     return Object.assign({}, node, {
       label: {
         formatter: active ? node.fullName : node.name,
-        show: expanded || node.graphHub || active,
+        show: true,
       },
     });
+  });
+}
+
+function style_graph_nodes() {
+  var colours = graph_colours();
+  graphTimelineNodes.forEach(function (node) {
+    var colour =
+      node.graphColour ||
+      (node.graphRoot
+        ? colours.root
+        : node.graphHub
+          ? colours.hub
+          : colours.leaf);
+    node.itemStyle = Object.assign({}, node.itemStyle, {
+      color: colour,
+      shadowBlur: 0,
+    });
+    node.emphasis = {
+      itemStyle: {
+        borderColor: colours.glow,
+        borderWidth: 2,
+        shadowBlur: 16,
+        shadowColor: colours.glow,
+      },
+      label: {
+        color: colour,
+        textBorderWidth: 0,
+        textShadowBlur: 0,
+      },
+    };
   });
 }
 
@@ -412,9 +676,68 @@ function cache_graph_positions(chart) {
   return cached;
 }
 
+function fit_graph(chart) {
+  if (
+    !chart ||
+    chart.isDisposed() ||
+    !chart.getWidth ||
+    !chart.getHeight ||
+    graphTimelineNodes.length === 0
+  ) {
+    return null;
+  }
+
+  var minX = Infinity;
+  var maxX = -Infinity;
+  var minY = Infinity;
+  var maxY = -Infinity;
+  var largestNode = 0;
+  var widestPinnedLabel = 0;
+  graphTimelineNodes.forEach(function (node) {
+    if (!Number.isFinite(node.x) || !Number.isFinite(node.y)) return;
+    minX = Math.min(minX, node.x);
+    maxX = Math.max(maxX, node.x);
+    minY = Math.min(minY, node.y);
+    maxY = Math.max(maxY, node.y);
+    largestNode = Math.max(largestNode, Number(node.finalSymbolSize) || 0);
+    widestPinnedLabel = Math.max(
+      widestPinnedLabel,
+      String(node.name || "").length * 7,
+    );
+  });
+  if (!Number.isFinite(minX)) return null;
+  var nodeInset = Math.max(12, largestNode / 2);
+  var labelInset = Math.min(180, Math.max(44, widestPinnedLabel));
+  var left = 36 + nodeInset;
+  var right = left + labelInset;
+  var top = 40 + nodeInset;
+  var bottom = top;
+  var width = Math.max(1, chart.getWidth() - left - right);
+  var height = Math.max(1, chart.getHeight() - top - bottom);
+  var zoom = Math.max(
+    0.01,
+    Math.min(
+      2.8,
+      width / Math.max(1, maxX - minX),
+      height / Math.max(1, maxY - minY),
+    ),
+  );
+  var fit = {
+    center: [
+      (minX + maxX) / 2 + (right - left) / (2 * zoom),
+      (minY + maxY) / 2 + (bottom - top) / (2 * zoom),
+    ],
+    zoom: zoom,
+  };
+  graphZoom = zoom;
+  chart.setOption({ series: [fit] });
+  return fit;
+}
+
 function settle_graph(chart) {
   clearTimeout(graphSettleTimer);
   graphSettleTimer = 0;
+  graphDragActive = false;
   if (!cache_graph_positions(chart) || chart.isDisposed()) return;
   chart.setOption({
     series: [
@@ -425,23 +748,77 @@ function settle_graph(chart) {
       },
     ],
   });
+  fit_graph(chart);
+}
+
+function start_graph_drag_response(chart, params) {
+  if (params.dataType !== "node" || !chart || chart.isDisposed() || !option) {
+    return;
+  }
+
+  finish_graph_timelapse();
+  clearTimeout(graphSettleTimer);
+  graphSettleTimer = 0;
+  cache_graph_positions(chart);
+  graphDragActive = true;
+  var reducedMotion = window.matchMedia(
+    "(prefers-reduced-motion: reduce)",
+  ).matches;
+  chart.setOption({
+    series: [
+      {
+        data: graph_label_data(graphZoom >= 2.8),
+        force: Object.assign({}, option.series[0].force, {
+          initLayout: "none",
+          layoutAnimation: !reducedMotion,
+        }),
+        layout: "force",
+        links: graphTimelineLinks,
+      },
+    ],
+  });
+  graphSettleTimer = setTimeout(
+    function () {
+      settle_graph(chart);
+    },
+    reducedMotion ? 0 : 3000,
+  );
+}
+
+function release_graph_drag_response(chart) {
+  if (!graphDragActive || !chart || chart.isDisposed()) return;
+  clearTimeout(graphSettleTimer);
+  graphSettleTimer = setTimeout(
+    function () {
+      settle_graph(chart);
+    },
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 180,
+  );
 }
 
 function draw_graph(chart) {
-  requestAnimationFrame(function () {
+  cancelAnimationFrame(graphDrawFrame);
+  graphDrawFrame = requestAnimationFrame(function () {
+    graphDrawFrame = 0;
     if (!chart.isDisposed() && option) {
+      var hadPositions = graphHasPositions;
+      var reducedMotion = window.matchMedia(
+        "(prefers-reduced-motion: reduce)",
+      ).matches;
       chart.resize();
-      option.series[0].layout = graphHasPositions ? "none" : "force";
+      option.series[0].layout = "force";
       option.series[0].data = graph_label_data(graphZoom >= 2.8);
-      option.series[0].force.layoutAnimation =
-        !graphHasPositions &&
-        !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      option.series[0].force.initLayout = hadPositions ? "none" : "circular";
+      option.series[0].force.layoutAnimation = !reducedMotion;
       chart.setOption(option, { notMerge: true });
-      if (!graphHasPositions) {
-        graphSettleTimer = setTimeout(function () {
+      if (cache_graph_positions(chart)) fit_graph(chart);
+      clearTimeout(graphSettleTimer);
+      graphSettleTimer = setTimeout(
+        function () {
           settle_graph(chart);
-        }, 700);
-      }
+        },
+        reducedMotion ? 0 : hadPositions ? 260 : 700,
+      );
     }
   });
 
@@ -455,18 +832,37 @@ function draw_graph(chart) {
     if (Number.isFinite(params.zoom)) graphZoom *= params.zoom;
     update_graph_labels(chart);
   });
+  chart.on("mouseover", function (params) {
+    if (params.dataType === "node") {
+      glitch_graph_node(chart, params.data, params.dataIndex);
+    }
+  });
+  chart.on("mouseout", function (params) {
+    if (params.dataType === "node") {
+      reset_graph_node(chart, params.data, params.dataIndex);
+    }
+  });
+  chart.on("mousedown", function (params) {
+    start_graph_drag_response(chart, params);
+  });
+  chart.on("mouseup", function () {
+    release_graph_drag_response(chart);
+  });
+  chart.on("globalout", function () {
+    release_graph_drag_response(chart);
+  });
   bind_graph_keyboard(chart, chart.getDom());
 }
 
 function prepare_graph(graph) {
   graphNodePathPrefix = find_graph_node_path_prefix(graph.nodes);
   graphHasPositions = false;
-  graphZoom = 2;
+  graphZoom = 1;
+  var graphColourHue = graph_colour_hue(graph.nodes);
   var graphRootDepth = graphNodePathPrefix.split("/").filter(Boolean).length;
   var largestNodeSize = 0;
-  var colours = ["#f2ff3d", "#58d9e8", "#3f78d8", "#7893cf"];
 
-  // Size by edge count, with each path level reducing its influence.
+  // Size by edge count, with each path level reducing its influence
   graph.nodes.forEach(function (node) {
     var depth =
       graph_pathname(node.value).split("/").filter(Boolean).length -
@@ -476,20 +872,9 @@ function prepare_graph(graph) {
     node.symbolSize = graph_node_size(node.graphEdgeCount, depth);
     node.finalSymbolSize = node.symbolSize;
     node.graphHub = node.graphEdgeCount >= 3;
+    node.graphColour =
+      "hsl(" + ((graphColourHue + depth * 42) % 360) + ", 62%, 55%)";
     largestNodeSize = Math.max(largestNodeSize, node.symbolSize);
-    node.itemStyle = {
-      color: node.graphHub
-        ? colours[1]
-        : colours[Math.min(depth + 1, colours.length - 1)],
-      shadowBlur: 0,
-    };
-    node.emphasis = {
-      label: {
-        color: node.itemStyle.color,
-        textBorderWidth: 0,
-        textShadowBlur: 0,
-      },
-    };
   });
 
   var rootNode = graph.nodes.find(function (node) {
@@ -501,10 +886,10 @@ function prepare_graph(graph) {
     rootNode.symbolSize = largestNodeSize + 1;
     rootNode.finalSymbolSize = rootNode.symbolSize;
     rootNode.graphHub = true;
-    rootNode.itemStyle.color = colours[0];
+    rootNode.graphRoot = true;
   }
 
-  // Special feature for long node titles
+  // Preserve full titles for focused labels
   graph.nodes.forEach(function (node) {
     var names = node.name.split(" •");
     node.fullName = names.slice(1).join(" •") || node.name;
@@ -518,6 +903,8 @@ function prepare_graph(graph) {
 
   graphTimelineNodes = graph.nodes.slice().sort(graph_creation_order);
   graphTimelineLinks = graph.links.slice();
+  style_graph_nodes();
+  var colours = graph_colours();
 
   option = {
     tooltip: {
@@ -539,33 +926,43 @@ function prepare_graph(graph) {
         data: graph_label_data(false),
         links: graph.links,
         categories: [],
-        zoom: 2,
+        nodeScaleRatio: 0.01,
+        zoom: 1,
         roam: true,
         draggable: true,
         force: {
-          repulsion: 72,
-          gravity: 0.08,
-          edgeLength: [20, 52],
-          friction: 0.62,
+          repulsion: 52,
+          gravity: 0.14,
+          edgeLength: [18, 46],
+          friction: 0.66,
           layoutAnimation: true,
         },
         label: {
-          show: false,
+          distance: 6,
+          show: true,
           position: "right",
           formatter: "{b}",
+          overflow: "truncate",
           textBorderWidth: 0,
           textShadowBlur: 0,
+          width: 180,
         },
         emphasis: {
           focus: "adjacency",
+          scale: true,
+          scaleSize: 8,
           itemStyle: {
-            shadowBlur: 0,
+            borderColor: colours.glow,
+            borderWidth: 2,
+            shadowBlur: 16,
+            shadowColor: colours.glow,
           },
           lineStyle: {
             color: graph_accent_color(),
             width: 3,
             opacity: 1,
-            shadowBlur: 0,
+            shadowBlur: 8,
+            shadowColor: colours.glow,
           },
           label: {
             show: true,
@@ -575,6 +972,8 @@ function prepare_graph(graph) {
             },
             textBorderWidth: 0,
             textShadowBlur: 0,
+            overflow: "truncate",
+            width: 180,
           },
         },
         blur: {
@@ -583,10 +982,10 @@ function prepare_graph(graph) {
           label: { opacity: 0.2 },
         },
         labelLayout: {
-          hideOverlap: true,
+          hideOverlap: false,
         },
         scaleLimit: {
-          min: 0.5,
+          min: 0.01,
           max: 5,
         },
         lineStyle: {
@@ -674,13 +1073,17 @@ function open_graph() {
 
 function dispose_graph() {
   finish_graph_timelapse();
+  clear_graph_text_motion();
   graphKeyboardCleanup?.();
+  cancelAnimationFrame(graphDrawFrame);
   cancelAnimationFrame(graphResizeFrame);
   cancelAnimationFrame(graphLabelFrame);
   clearTimeout(graphSettleTimer);
+  graphDrawFrame = 0;
   graphResizeFrame = 0;
   graphLabelFrame = 0;
   graphSettleTimer = 0;
+  graphDragActive = false;
   if (!myChart) return;
   cache_graph_positions(myChart);
   myChart.off?.();
@@ -704,14 +1107,22 @@ document
   ?.addEventListener("change", function () {
     if (option) {
       option.backgroundColor = graph_background_color();
+      style_graph_nodes();
+      var colours = graph_colours();
+      option.series[0].data = graph_label_data(graphZoom >= 2.8);
+      option.series[0].emphasis.itemStyle.borderColor = colours.glow;
+      option.series[0].emphasis.itemStyle.shadowColor = colours.glow;
       option.series[0].emphasis.lineStyle.color = graph_accent_color();
+      option.series[0].emphasis.lineStyle.shadowColor = colours.glow;
       if (myChart && !myChart.isDisposed()) {
         myChart.setOption({
           backgroundColor: option.backgroundColor,
           series: [
             {
+              data: option.series[0].data,
               emphasis: {
-                lineStyle: { color: option.series[0].emphasis.lineStyle.color },
+                itemStyle: option.series[0].emphasis.itemStyle,
+                lineStyle: option.series[0].emphasis.lineStyle,
               },
             },
           ],
