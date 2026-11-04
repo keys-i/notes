@@ -524,7 +524,6 @@ function dockPetSpeechText(value) {
   var themeTimer = 0;
   var themeView;
   var themeOrigin = { x: window.innerWidth - 32, y: 32 };
-  var themeOriginCaptured = false;
 
   pet.setAttribute(
     "aria-keyshortcuts",
@@ -550,64 +549,60 @@ function dockPetSpeechText(value) {
   }
 
   if (palette) {
-    palette.addEventListener("pointerdown", function (event) {
-      themeOriginCaptured = captureThemeOrigin(event);
-    });
     palette.addEventListener(
-      "keydown",
+      "click",
       function (event) {
-        if (event.key !== "Enter" && event.key !== " ") return;
-        themeOriginCaptured = captureThemeOrigin(event);
-      },
-      true,
-    );
-    palette.addEventListener(
-      "change",
-      function (event) {
-        if (!themeOriginCaptured) captureThemeOrigin(event);
-        themeOriginCaptured = false;
+        var target = event.target as HTMLElement;
+        var label = target?.closest?.("label") as HTMLLabelElement;
+        var control = label?.control as HTMLInputElement;
+        if (!control || target === control) return;
+        event.preventDefault();
+        captureThemeOrigin(event);
         clearThemeEffect();
-        var control = event.target as HTMLElement;
-        var scheme = control?.dataset?.mdColorScheme;
-        if (!scheme) return;
-        if (
-          !reducedMotion.matches &&
-          typeof (document as any).startViewTransition === "function"
-        ) {
-          beginThemeWave(scheme);
+        if (reducedMotion.matches) {
+          control.click();
           return;
         }
-        applyTheme(scheme);
-        if (reducedMotion.matches) return;
         setThemeGeometry();
-        document.body.classList.remove("theme-fade");
-        void document.body.offsetWidth;
-        document.body.classList.add("theme-fade");
-        themeTimer = setTimeout(function () {
-          themeTimer = 0;
-          document.body.classList.remove("theme-fade");
-        }, 220);
+        if (!beginThemeWave(control)) runThemeFallback(control);
       },
       true,
     );
   }
 
-  function beginThemeWave(scheme) {
-    setThemeGeometry();
+  function beginThemeWave(control) {
+    if (typeof (document as any).startViewTransition !== "function") {
+      return false;
+    }
     document.documentElement.classList.add("theme-wave");
-    var transition = (document as any).startViewTransition(function () {
-      applyTheme(scheme);
-    });
+    var transition;
+    try {
+      transition = (document as any).startViewTransition(function () {
+        control.click();
+      });
+    } catch (_) {
+      document.documentElement.classList.remove("theme-wave");
+      return false;
+    }
     themeView = transition;
-    transition.finished.finally(function () {
+    var finish = function () {
       if (themeView !== transition) return;
       themeView = null;
       document.documentElement.classList.remove("theme-wave");
-    });
+    };
+    transition.finished.then(finish, finish);
+    return true;
   }
 
-  function applyTheme(scheme) {
-    document.body.setAttribute("data-md-color-scheme", scheme);
+  function runThemeFallback(control) {
+    control.click();
+    document.body.classList.remove("theme-fade");
+    void document.body.offsetWidth;
+    document.body.classList.add("theme-fade");
+    themeTimer = setTimeout(function () {
+      themeTimer = 0;
+      document.body.classList.remove("theme-fade");
+    }, 220);
   }
 
   function setThemeGeometry() {
