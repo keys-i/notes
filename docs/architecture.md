@@ -13,6 +13,7 @@
 │   ├── game.toml         # recovery-game data and tuning
 │   ├── mkdocs.yml        # MkDocs configuration
 │   └── tsconfig*.json    # browser and test type checking
+├── api/                  # Rust Cloudflare Worker for grounded study answers
 ├── tests/                # all Python and TypeScript behaviour tests
 ├── docs/                 # architecture, development and deployment guides
 ├── .github/              # contribution policy, issue templates and CI workflows
@@ -27,6 +28,8 @@
 assets/js/                # compiled browser scripts
 public/                   # built website
 node_modules/              # installed Node dependencies
+api/build/                 # compiled Worker bundle
+api/target/                # Rust build cache
 ```
 
 The root keeps standard tool entry files where `uv`, npm and GitHub expect
@@ -73,10 +76,45 @@ Keep a hook only when it owns build-time behaviour. Browser interaction belongs
 in `site/ts/`; note content belongs in `content/`; published files belong in
 `assets/`
 
+The optional study helper backend is independent of the static build
+
+```text
+current public note sections + short conversation
+  → api/worker.rs                  # validation, public-scope access and rate limit
+  → Workers AI guard + embeddings # input classification and hybrid retrieval
+  → routed answer + verifier      # cited response or a closed failure
+  → browser thread                # plain text only, local fallback on failure
+```
+
+The browser first selects the relevant heading and its neighbours, then the
+Worker combines multilingual embedding similarity, term overlap and adjacency
+before generation. A response is accepted only when its citations resolve to
+the retrieved sections and the verifier finds every factual claim supported
+
+Exact and locality-sensitive semantic cache keys include the prompt version,
+public access scope, locale, note content and model route. Shared edge caching
+is disabled for follow-ups and personal-looking prompts. The browser keeps a
+small page-session cache so repeated questions remain fast without durable chat
+history
+
 ## Runtime ownership
 
 Normal note pages use the Material theme plus the shared styles and scripts in
 `assets/`. The 404 page additionally loads the recovery game and shell
+
+The koala remains useful without the Worker: its local answer path searches the
+rendered note, states when evidence is absent and never inserts returned markup
+as HTML. Hosted answers add multilingual conversation and cited retrieval when
+`/api/pet` is available
+
+`/api/pet` accepts public note context only. A requested Minis scope fails
+closed; the helper links to `/mini/`, whose separate authenticated gateway owns
+its sessions, roles and private student data. The pet Worker never receives a
+Minis cookie, credential, plan or marks record
+
+Analytics Engine receives only outcome, selected model, prompt version,
+latency and cache-hit state. Questions, note text, answers, IP addresses and
+user identifiers are excluded from telemetry
 
 Interactive note plots load the pinned Plotly browser bundle only on a page
 that contains a validated `plot` fence. Generated JavaScript in `assets/js/`
@@ -90,3 +128,4 @@ is build output and must never be edited directly
 - Browser source is TypeScript under `site/ts/`
 - Tests live under `tests/`
 - Generated `assets/js/` and `public/` files are disposable build output
+- The study Worker serves only `/api/pet`; private Minis routes stay separate

@@ -31,40 +31,7 @@ vm.runInContext(source.slice(0, source.indexOf("\n(function () {")), pure, {
   filename: petPath,
 });
 
-test("reading helpers validate one page, find a heading, and bound labels", () => {
-  assert.equal(
-    pure.dockPetPageKey({ pathname: "/week-2/", search: "?print=1" }),
-    "/week-2/?print=1",
-  );
-  assert.deepEqual(
-    JSON.parse(
-      JSON.stringify(
-        pure.dockPetSpot(
-          {
-            heading: `  ${"Long heading ".repeat(10)} `,
-            id: "x".repeat(200),
-            page: "/week-2/",
-            y: 42.6,
-          },
-          "/week-2/",
-        ),
-      ),
-    ),
-    {
-      heading:
-        "Long heading Long heading Long heading Long heading Long heading Long heading Lo",
-      id: "x".repeat(160),
-      page: "/week-2/",
-      y: 43,
-    },
-  );
-  [
-    null,
-    { heading: "Topic", id: "topic", page: "/other/", y: 10 },
-    { heading: "", id: "topic", page: "/week-2/", y: 10 },
-    { heading: "Topic", id: "topic", page: "/week-2/", y: -1 },
-  ].forEach((spot) => assert.equal(pure.dockPetSpot(spot, "/week-2/"), null));
-
+test("reading helpers find a heading and keep grounded replies short", () => {
   const headings = [
     { id: "intro", offsetTop: 0, textContent: "Introduction" },
     { id: "dynamics", offsetTop: 400, textContent: " Dynamics   and motion " },
@@ -80,13 +47,153 @@ test("reading helpers validate one page, find a heading, and bound labels", () =
     JSON.parse(JSON.stringify(pure.dockPetCurrentHeading([], 450, "Week 2"))),
     { heading: "Week 2", id: "" },
   );
+  assert.equal(
+    pure.dockPetSummary(
+      "Dynamics relates force and motion. A second sentence should not be needed.",
+    ),
+    "Dynamics relates force and motion.",
+  );
+  const sections = [
+    {
+      heading: "Energy",
+      id: "energy",
+      text: "Energy compares work and storage.",
+    },
+    {
+      heading: "Dynamics",
+      id: "dynamics",
+      text: "Dynamics relates force and motion.",
+    },
+  ];
+  const first = pure.dockPetStudyReply(
+    "How does force affect motion?",
+    sections,
+    0,
+    0,
+  );
+  const paraphrase = pure.dockPetStudyReply(
+    "Explain motion and force",
+    sections,
+    0,
+    1,
+  );
+  assert.equal(first.key, "explain:dynamics");
+  assert.equal(paraphrase.key, first.key);
+  assert.match(first.text, /Under “Dynamics”/);
+  assert.match(
+    pure.dockPetStudyReply("fun fact", sections, 1, 0).text,
+    /can’t find evidence.*current note/,
+  );
+  assert.match(
+    pure.dockPetStudyReply("quiz me", sections, 1, 2).text,
+    /Quick check from “Dynamics”/,
+  );
+  assert.match(
+    pure.dockPetStudyReply("Explain quantum entanglement", sections, 1, 3).text,
+    /can’t find evidence.*current note/,
+  );
+  assert.equal(pure.dockPetIdlePlan(1).behavior, "scratch-head");
+  assert.equal(pure.dockPetIdlePlan(4).behavior, "scratch-bum");
+  assert.equal(pure.dockPetIdlePlan(5).message, "motivate");
+  assert.equal(pure.dockPetIdlePlan(6).message, "fact");
+  assert.ok(pure.dockPetIdleDelay(100000, 0) >= 45000);
+  assert.ok(pure.dockPetIdleDelay(100000, 0) <= 90000);
+});
+
+test("study replies handle empty notes, greetings, context, and phrasing", () => {
+  assert.deepEqual(
+    JSON.parse(
+      JSON.stringify(
+        pure.dockPetCurrentHeading(
+          [{ id: "later", offsetTop: 400, textContent: "" }],
+          0,
+          "Fallback heading",
+        ),
+      ),
+    ),
+    { heading: "Fallback heading", id: "later" },
+  );
+  assert.deepEqual(
+    JSON.parse(
+      JSON.stringify(
+        pure.dockPetCurrentHeading(
+          [{ id: "", offsetTop: 400, textContent: "" }],
+          0,
+          "",
+        ),
+      ),
+    ),
+    { heading: "this page", id: "" },
+  );
+  assert.equal(pure.dockPetText(null, 10), "");
+  assert.equal(pure.dockPetText("abcdefghijk", 5), "abcde…");
+  assert.equal(pure.dockPetText("four long words here", 14), "four long word…");
+  assert.equal(pure.dockPetText("abcdefghij klmnop", 12), "abcdefghij…");
+  assert.equal(
+    pure.dockPetSummary(""),
+    "This section is mostly notation. Try the heading beside it",
+  );
+  assert.equal(pure.dockPetSummary("Short rule"), "Short rule");
+  assert.deepEqual(JSON.parse(JSON.stringify(pure.dockPetTerms(null))), []);
+
+  const sections = [
+    { heading: "Energy", id: "energy", text: "Work changes stored energy" },
+    { heading: "Dynamics", id: "", text: "Force changes motion" },
+  ];
+  const greeting = pure.dockPetStudyReply("G’day Koa", sections, 0, 0);
+  assert.equal(greeting.key, "greeting");
+  assert.equal(greeting.sectionIndex, 0);
+
+  const contextual = pure.dockPetStudyReply(
+    "why force matters",
+    sections,
+    0,
+    1,
+    1,
+  );
+  assert.equal(contextual.sectionIndex, 1);
+  assert.match(contextual.text, /^The key point in “Dynamics” is:/);
+  assert.equal(contextual.key, "explain:Dynamics");
+  assert.match(
+    pure.dockPetStudyReply("simple force", sections, 1, 2).text,
+    /^Simply:/,
+  );
+  assert.match(
+    pure.dockPetStudyReply("worked force", sections, 1, 3).text,
+    /^The note’s example or rule here is:/,
+  );
+  assert.equal(
+    pure.dockPetStudyReply(
+      "quiz me",
+      [{ heading: "Blank", id: "", text: "" }],
+      0,
+      0,
+    ).text,
+    "I can’t build a grounded quiz until this note section has written evidence",
+  );
+  const absent = pure.dockPetStudyReply(
+    "quantum",
+    [{ heading: "Blank", id: "", text: "" }],
+    0,
+    0,
+  );
+  assert.equal(absent.key, "absent:Blank");
+  assert.equal(
+    absent.text,
+    "I can’t find evidence for that in the current note",
+  );
+  assert.equal(
+    pure.dockPetStudyReply("", [], 0, 0).text,
+    "Under “this page”: This section is mostly notation. Try the heading beside it",
+  );
+  assert.match(
+    pure.dockPetStudyReply("dynamics", sections, 0, 0).text,
+    /Force changes motion/,
+  );
 });
 
 test("pet guidance is useful and selected from page state", () => {
-  assert.match(
-    pure.dockPetGuidance("save", "Dynamics", false),
-    /Arrow keys.*Escape/,
-  );
+  assert.equal(pure.dockPetGuidance("save", "Dynamics", false), "");
   assert.equal(
     pure.dockPetGuidance("half", "Dynamics", false),
     "Current section: “Dynamics”",
@@ -163,7 +270,9 @@ test("the koala is squat, asymmetric, and free of a skeletal rig", () => {
   assert.match(template, /dock-pet__shroud/);
   assert.match(template, /dock-pet__harness-strap/);
   assert.match(template, /dock-pet__harness-buckle/);
-  assert.doesNotMatch(style, /climb|hanging|dock-pet-breathe|dock-pet-step/);
+  assert.match(style, /data-climbing/);
+  assert.match(style, /dock-pet-climb-fore-grip/);
+  assert.match(style, /dock-pet-climb-hind-grip/);
   assert.match(style, /data-behavior="scratch"/);
   assert.match(style, /data-behavior="sit"/);
   assert.match(style, /transform-origin: 36px 88px/);
@@ -211,37 +320,62 @@ test("site chrome exposes progress and authored footer motion safely", () => {
 test("personality is local and event-driven", () => {
   assert.doesNotMatch(
     source,
-    /dummyjson|dockPetQuote|window\.fetch|Math\.random|setInterval/,
+    /dummyjson|dockPetQuote|Math\.random|setInterval/,
   );
-  assert.match(source, /handleAction/);
+  assert.match(source, /dockPetStudyReply/);
+  assert.match(source, /studyCache/);
   assert.match(source, /pendingMilestone/);
   assert.match(source, /now - lastGuidanceAt < 30000/);
-  assert.doesNotMatch(source, /One clear idea|quick sketch|Math\.random/);
+  assert.doesNotMatch(
+    source,
+    /localStorage|One clear idea|quick sketch|Math\.random/,
+  );
+  assert.match(
+    mainTemplate,
+    /placeholder="Explain, quiz, follow up, or ask in any language…"/,
+  );
+  assert.match(mainTemplate, /\.icons\/material\/apps\.svg/);
+  assert.doesNotMatch(mainTemplate, /Save spot|Resume spot/);
+  assert.doesNotMatch(
+    mainTemplate,
+    /data-pet-action="(?:fact|focus|motivate)"/,
+  );
+  assert.match(mainTemplate, /href="https:\/\/uni\.keysi\.dev\/mini\/"/);
 });
 
 function createRuntime({
+  abortController = false,
+  cryptoDigest = null,
   desktop = true,
   emitScrollEvents = false,
+  fetchOk = true,
+  fetchResponse = null,
+  fetchWait = null,
   footerRight = null,
   footerTop = 700,
-  getError = false,
   hasPlot = false,
   moveFooterWithScroll = false,
-  now = 100000,
+  now = 98000,
   page = "/week-2/",
   reduced = false,
   scrollHeight = 1800,
   scrollY = 0,
-  setError = false,
-  storedSpot = null,
   viewportHeight = 800,
   viewportWidth = 1000,
   observed = false,
+  sessionCache = null,
+  sessionReadError = false,
+  sessionWriteError = false,
+  speech = false,
+  speechStartError = false,
   viewTransition = false,
 }: any = {}) {
   const timers = new Map<number, any>();
   const frames = new Map<number, any>();
   const petHandlers: Record<string, any> = {};
+  const documentHandlers: Record<string, any> = {};
+  const formHandlers: Record<string, any> = {};
+  const questionHandlers: Record<string, any> = {};
   const windowHandlers: Record<string, any> = {};
   const scrollCalls: any[] = [];
   const capturedPointers: number[] = [];
@@ -296,6 +430,7 @@ function createRuntime({
     setAttribute(name, value) {
       this.attributes[name] = value;
     },
+    focus() {},
   };
   const cloud: any = {
     attributes: {},
@@ -306,6 +441,65 @@ function createRuntime({
     },
   };
   const status = { textContent: "" };
+  const control = (action): any => ({
+    attributes: {},
+    dataset: { petAction: action },
+    handlers: {},
+    textContent: action,
+    addEventListener(name, handler) {
+      this.handlers[name] = handler;
+    },
+    setAttribute(name, value) {
+      this.attributes[name] = value;
+    },
+  });
+  const actionControls = [control("close")];
+  const help: any = {
+    hidden: true,
+    offsetHeight: 190,
+    offsetWidth: 320,
+    style: {},
+    querySelectorAll: (selector) =>
+      selector === "[data-pet-action]" ? actionControls : [],
+  };
+  const helpForm: any = {
+    addEventListener(name, handler) {
+      formHandlers[name] = handler;
+    },
+  };
+  const question: any = {
+    blurred: false,
+    focused: false,
+    value: "",
+    addEventListener(name, handler) {
+      questionHandlers[name] = handler;
+    },
+    blur() {
+      this.blurred = true;
+      this.focused = false;
+    },
+    focus() {
+      this.focused = true;
+    },
+  };
+  const listenHandlers: Record<string, any> = {};
+  const listenButton: any = {
+    dataset: {},
+    hidden: true,
+    addEventListener(name, handler) {
+      listenHandlers[name] = handler;
+    },
+  };
+  const threadItems: any[] = [];
+  const thread: any = {
+    scrollTop: 0,
+    get scrollHeight() {
+      return threadItems.length * 40;
+    },
+    append(item) {
+      threadItems.push(item);
+    },
+  };
   const paletteHandlers: Record<string, any> = {};
   const palette = {
     addEventListener(name, handler) {
@@ -410,6 +604,7 @@ function createRuntime({
     setAttribute(name, value) {
       this.attributes[name] = value;
     },
+    focus() {},
   };
   const media = (matches) => ({
     handlers: {} as Record<string, any>,
@@ -420,14 +615,28 @@ function createRuntime({
   });
   const reducedMedia = media(reduced);
   const desktopMedia = media(desktop);
-  const headings = [
+  const headings: any[] = [
     { id: "week-2", offsetTop: 0, textContent: "Week 2" },
     { id: "dynamics", offsetTop: 400, textContent: "Dynamics" },
     { id: "energy", offsetTop: 800, textContent: "Energy" },
   ];
+  const sectionText = [
+    "This week introduces the numerical workflow and the assumptions behind it.",
+    "Dynamics relates forces and motion. Draw a free-body diagram before choosing the governing equation.",
+    "Energy methods compare work and stored energy without resolving every point in the motion.",
+  ];
+  headings.forEach((item, index) => {
+    item.matches = (selector) => selector.includes("h1");
+    item.nextElementSibling = {
+      matches: (selector) => selector.includes("p"),
+      nextElementSibling: headings[index + 1] || null,
+      textContent: sectionText[index],
+    };
+  });
   const rootStyle: Record<string, string> = {};
-  const document = {
+  const document: any = {
     body,
+    hidden: false,
     documentElement: {
       classList: {
         add(name) {
@@ -441,6 +650,7 @@ function createRuntime({
       },
       clientWidth: viewportWidth,
       dataset: { mdColorScheme: "default" },
+      lang: "en-AU",
       scrollHeight,
       style: {
         setProperty(name, value) {
@@ -452,6 +662,11 @@ function createRuntime({
     getElementById(id) {
       if (id === "dock-pet") return pet;
       if (id === "dock-pet-status") return status;
+      if (id === "dock-pet-help") return help;
+      if (id === "dock-pet-help-form") return helpForm;
+      if (id === "dock-pet-question") return question;
+      if (id === "dock-pet-listen") return listenButton;
+      if (id === "dock-pet-thread") return thread;
       return null;
     },
     querySelector(selector) {
@@ -463,6 +678,20 @@ function createRuntime({
     },
     querySelectorAll(selector) {
       return selector === ".md-content :is(h1, h2, h3)" ? headings : [];
+    },
+    addEventListener(name, handler) {
+      documentHandlers[name] = handler;
+    },
+    createElement() {
+      const item: any = {
+        dataset: {},
+        textContent: "",
+        remove() {
+          const index = threadItems.indexOf(item);
+          if (index >= 0) threadItems.splice(index, 1);
+        },
+      };
+      return item;
     },
   };
   if (viewTransition) {
@@ -493,24 +722,11 @@ function createRuntime({
       return record.transition;
     };
   }
-  const storage = new Map();
-  if (storedSpot) {
-    storage.set("dock-pet-reading-spot-v1", JSON.stringify(storedSpot));
-  }
   const window: any = {
     innerHeight: viewportHeight,
     innerWidth: viewportWidth,
     location: { pathname: page, search: "" },
-    localStorage: {
-      getItem(key) {
-        if (getError) throw new Error("storage read failed");
-        return storage.get(key) || null;
-      },
-      setItem(key, value) {
-        if (setError) throw new Error("storage write failed");
-        storage.set(key, value);
-      },
-    },
+    navigator: { language: "en-AU" },
     pageYOffset: scrollY,
     scrollY,
     addEventListener(name, handler) {
@@ -529,6 +745,76 @@ function createRuntime({
       if (emitScrollEvents) windowHandlers.scroll?.();
     },
   };
+  const fetchCalls: any[] = [];
+  if (fetchResponse !== null) {
+    window.fetch = async (url, options) => {
+      fetchCalls.push({
+        options,
+        payload: JSON.parse(options.body),
+        url,
+      });
+      if (fetchWait) await fetchWait;
+      return {
+        ok: fetchOk,
+        json: async () =>
+          typeof fetchResponse === "function"
+            ? fetchResponse(fetchCalls.at(-1))
+            : fetchResponse,
+      };
+    };
+  }
+  const sessionWrites: string[] = [];
+  if (sessionCache !== null || sessionReadError || sessionWriteError) {
+    let stored = JSON.stringify(sessionCache || {});
+    window.sessionStorage = {
+      getItem() {
+        if (sessionReadError) throw new Error("session read failed");
+        return stored;
+      },
+      setItem(_key, value) {
+        if (sessionWriteError) throw new Error("session write failed");
+        stored = value;
+        sessionWrites.push(value);
+      },
+    };
+  }
+  const spoken: any[] = [];
+  if (speech) {
+    window.speechSynthesis = {
+      cancel() {
+        spoken.push("cancel");
+      },
+      speak(utterance) {
+        spoken.push(utterance);
+      },
+    };
+    window.SpeechSynthesisUtterance = class {
+      lang = "";
+      text;
+
+      constructor(text) {
+        this.text = text;
+      }
+    };
+    window.SpeechRecognition = class {
+      static instances: any[] = [];
+      aborted = false;
+      onend;
+
+      constructor() {
+        window.SpeechRecognition.instances.push(this);
+      }
+
+      abort() {
+        this.aborted = true;
+        this.onend?.();
+      }
+
+      start() {
+        if (speechStartError) throw new Error("recognition busy");
+      }
+    };
+  }
   let footerIntersection: ((entries: any[]) => void) | undefined;
   if (observed) {
     window.IntersectionObserver = class {
@@ -541,7 +827,33 @@ function createRuntime({
   let clock = now;
   let timerId = 0;
   let frameId = 0;
-  const context = vm.createContext({
+  const aborts: any[] = [];
+  class RuntimeAbortController {
+    signal = {};
+    aborted = false;
+
+    constructor() {
+      aborts.push(this);
+    }
+
+    abort() {
+      this.aborted = true;
+    }
+  }
+  if (cryptoDigest !== null) {
+    window.crypto = {
+      getRandomValues(values) {
+        values[0] = 0;
+        return values;
+      },
+      subtle: {
+        async digest() {
+          return Uint8Array.from(cryptoDigest).buffer;
+        },
+      },
+    };
+  }
+  const contextValues: any = {
     Date: { now: () => clock },
     Event: class {
       bubbles: boolean;
@@ -569,10 +881,15 @@ function createRuntime({
       return timerId;
     },
     window,
-  });
+  };
+  if (abortController) contextValues.AbortController = RuntimeAbortController;
+  if (cryptoDigest !== null) contextValues.TextEncoder = TextEncoder;
+  const context = vm.createContext(contextValues);
   vm.runInContext(source, context, { filename: petPath });
 
   return {
+    actionControls,
+    aborts,
     advance(milliseconds) {
       clock += milliseconds;
     },
@@ -582,16 +899,25 @@ function createRuntime({
     cloudPath,
     capturedPointers,
     desktop: desktopMedia,
+    document,
+    documentHandlers,
     bodyClasses,
     bodyStyle,
     footerClasses,
     footerIntersection: () => footerIntersection,
+    formHandlers,
+    fetchCalls,
     frames,
+    help,
     irises,
+    listenButton,
+    listenHandlers,
     pet,
     petHandlers,
     paletteHandlers,
     reduced: reducedMedia,
+    question,
+    questionHandlers,
     rootStyle,
     rootClasses,
     rootClassChanges,
@@ -609,6 +935,7 @@ function createRuntime({
       timer.handler();
     },
     scrollCalls,
+    sessionWrites,
     setFooterTop(value) {
       currentFooterTop = value;
     },
@@ -622,11 +949,12 @@ function createRuntime({
       reducedMedia.handlers.change({ matches: value });
     },
     status,
-    storage,
+    spoken,
     timers,
     themeChanges,
     themeControl,
     themeScheme: () => document.documentElement.dataset.mdColorScheme,
+    threadItems,
     viewTransitions,
     window,
     windowHandlers,
@@ -639,33 +967,181 @@ function runFrames(runtime, count, step = 16) {
   }
 }
 
-test("click saves the nearest heading and keeps guidance secondary", () => {
-  const runtime = createRuntime({ scrollY: 450 });
-  assert.equal(runtime.pet.dataset.action, "save");
-  runtime.petHandlers.click();
-  const saved = JSON.parse(runtime.storage.get("dock-pet-reading-spot-v1"));
-  assert.deepEqual(saved, {
-    heading: "Dynamics",
-    id: "dynamics",
-    page: "/week-2/",
-    y: 450,
-  });
-  assert.match(
-    runtime.pet.attributes["aria-label"],
-    /Update saved reading spot at Dynamics/,
-  );
-  assert.match(
-    runtime.bubbleText.textContent,
-    /^Saved at “Dynamics” · Drag me to move/,
-  );
-  assert.equal(runtime.pet.dataset.behavior, "scratch");
-  runtime.runTimer(1100);
-  assert.equal(runtime.pet.dataset.behavior, undefined);
+async function flushStudy() {
+  for (let turn = 0; turn < 16; turn += 1) await Promise.resolve();
+}
 
+test("click opens grounded study help and keeps follow-up context", async () => {
+  const runtime = createRuntime({ scrollY: 450 });
   runtime.petHandlers.click();
-  assert.equal(runtime.bubbleText.textContent, "Saved at “Dynamics”");
-  runtime.runTimer(5200);
-  assert.equal(runtime.bubble.hidden, true);
+  assert.equal(runtime.help.hidden, false);
+  assert.equal(runtime.pet.attributes["aria-expanded"], "true");
+  assert.equal(runtime.question.focused, true);
+
+  runtime.question.value = "How does force affect motion?";
+  let prevented = 0;
+  runtime.formHandlers.submit({ preventDefault: () => prevented++ });
+  assert.equal(runtime.threadItems.length, 2);
+  assert.equal(runtime.threadItems[0].dataset.role, "user");
+  assert.match(
+    runtime.threadItems[1].textContent,
+    /^Under “Dynamics”: Dynamics relates forces and motion/,
+  );
+  assert.equal(runtime.help.hidden, false);
+  assert.equal(prevented, 1);
+  await flushStudy();
+  assert.equal(runtime.threadItems[1].dataset.pending, undefined);
+
+  runtime.question.value = "Why does that matter?";
+  runtime.formHandlers.submit({ preventDefault() {} });
+  assert.equal(runtime.threadItems.length, 4);
+  assert.match(runtime.threadItems[3].textContent, /“Dynamics”/);
+  await flushStudy();
+  assert.equal(runtime.threadItems[3].dataset.pending, undefined);
+});
+
+test("hosted study replies enhance immediate fallback with plain-text sources", async () => {
+  const runtime = createRuntime({
+    fetchResponse: {
+      answer: "Force changes motion when the net force is non-zero",
+      citations: [{ label: "Dynamics note" }, "<b>Lecture 2</b>"],
+      grounded: true,
+    },
+    scrollY: 450,
+  });
+  runtime.petHandlers.click();
+  runtime.question.value = "Explain force and motion";
+  runtime.formHandlers.submit({ preventDefault() {} });
+  assert.match(runtime.threadItems[1].textContent, /^Under “Dynamics”/);
+  await flushStudy();
+  assert.equal(runtime.fetchCalls.length, 1);
+  assert.equal(runtime.fetchCalls[0].payload.messages.length, 1);
+  assert.equal(
+    runtime.threadItems[1].textContent,
+    "Force changes motion when the net force is non-zero\nSources: Dynamics note · <b>Lecture 2</b>",
+  );
+  assert.equal(runtime.threadItems[1].dataset.pending, undefined);
+
+  const rejected = createRuntime({
+    fetchResponse: { answer: "Ungrounded claim", grounded: false },
+    scrollY: 450,
+  });
+  rejected.petHandlers.click();
+  rejected.question.value = "Explain force and motion";
+  rejected.formHandlers.submit({ preventDefault() {} });
+  await flushStudy();
+  assert.match(rejected.threadItems[1].textContent, /^Under “Dynamics”/);
+  assert.doesNotMatch(rejected.threadItems[1].textContent, /Ungrounded claim/);
+});
+
+test("hosted study recovers safely and reuses bounded session answers", async () => {
+  const cached = createRuntime({
+    cryptoDigest: [0xab, 0xcd],
+    fetchResponse: { answer: "Should not be fetched", grounded: true },
+    sessionCache: { abcd: "Cached explanation" },
+  });
+  cached.petHandlers.click();
+  cached.question.value = "Explain force";
+  cached.formHandlers.submit({ preventDefault() {} });
+  await flushStudy();
+  assert.equal(cached.threadItems[1].textContent, "Cached explanation");
+  assert.equal(cached.fetchCalls.length, 0);
+
+  const oldEntries = Object.fromEntries(
+    Array.from({ length: 25 }, (_, index) => ["old-" + index, "value"]),
+  );
+  const stored = createRuntime({
+    cryptoDigest: [0xab, 0xcd],
+    fetchResponse: { answer: "Fresh grounded answer", grounded: true },
+    sessionCache: oldEntries,
+  });
+  stored.petHandlers.click();
+  stored.question.value = "Explain force";
+  stored.formHandlers.submit({ preventDefault() {} });
+  await flushStudy();
+  const written = JSON.parse(stored.sessionWrites.at(-1));
+  assert.equal(written.abcd, "Fresh grounded answer");
+  assert.equal(Object.keys(written).length, 24);
+  assert.equal(written["old-0"], undefined);
+
+  for (const options of [
+    { fetchOk: false, fetchResponse: {} },
+    {
+      cryptoDigest: [1],
+      fetchResponse: { answer: "   ", grounded: true },
+      sessionReadError: true,
+    },
+    {
+      cryptoDigest: [2],
+      fetchResponse: { answer: "Storage remains optional", grounded: true },
+      sessionCache: {},
+      sessionWriteError: true,
+    },
+  ]) {
+    const runtime = createRuntime(options);
+    runtime.petHandlers.click();
+    runtime.question.value = "Explain force";
+    runtime.formHandlers.submit({ preventDefault() {} });
+    await flushStudy();
+    assert.equal(runtime.threadItems[1].dataset.pending, undefined);
+  }
+});
+
+test("a replacement study request aborts stale work and keeps the latest answer", async () => {
+  let request = 0;
+  let resolveFirst: any;
+  const runtime = createRuntime({
+    abortController: true,
+    fetchResponse() {
+      request += 1;
+      if (request === 1) {
+        return new Promise((resolve) => {
+          resolveFirst = resolve;
+        });
+      }
+      return { answer: "Latest grounded answer", grounded: true };
+    },
+  });
+  runtime.petHandlers.click();
+  runtime.question.value = "Explain force";
+  runtime.formHandlers.submit({ preventDefault() {} });
+  await flushStudy();
+  assert.equal(runtime.fetchCalls.length, 1);
+
+  runtime.question.value = "Why does it matter?";
+  runtime.formHandlers.submit({ preventDefault() {} });
+  await flushStudy();
+  assert.equal(runtime.aborts[0].aborted, true);
+  assert.equal(runtime.threadItems[3].textContent, "Latest grounded answer");
+  const firstFallback = runtime.threadItems[1].textContent;
+
+  resolveFirst({ answer: "Stale answer", grounded: true });
+  await flushStudy();
+  assert.equal(runtime.threadItems[1].textContent, firstFallback);
+  assert.doesNotMatch(runtime.threadItems[1].textContent, /Stale answer/);
+});
+
+test("a slow hosted study request is aborted at its deadline", async () => {
+  let releaseFetch: any;
+  const fetchWait = new Promise((resolve) => {
+    releaseFetch = resolve;
+  });
+  const runtime = createRuntime({
+    abortController: true,
+    fetchResponse: { answer: "Eventually grounded", grounded: true },
+    fetchWait,
+  });
+  runtime.petHandlers.click();
+  runtime.question.value = "Explain force";
+  runtime.formHandlers.submit({ preventDefault() {} });
+  await flushStudy();
+  assert.equal(runtime.fetchCalls.length, 1);
+  runtime.runTimer(8000);
+  assert.equal(runtime.aborts[0].aborted, true);
+
+  releaseFetch();
+  await flushStudy();
+  assert.equal(runtime.threadItems[1].textContent, "Eventually grounded");
 });
 
 test("pointer pickup keeps the click threshold, capture, and cancellation", () => {
@@ -690,7 +1166,7 @@ test("pointer pickup keeps the click threshold, capture, and cancellation", () =
   assert.equal(tap.pet.dataset.held, undefined);
   assert.equal(tap.pet.style["--dock-pet-drag-tilt"], undefined);
   tap.petHandlers.click();
-  assert.equal(tap.storage.size, 1);
+  assert.equal(tap.help.hidden, false);
 
   const cancelled = createRuntime();
   cancelled.petHandlers.pointerdown({
@@ -761,7 +1237,7 @@ test("normal release falls under gravity and lands on the footer", () => {
   assert.equal(runtime.pet.dataset.dock, "fall");
   assert.equal(runtime.pet.style.left, "800px");
   runtime.petHandlers.click({ preventDefault: () => (prevented += 1) });
-  assert.equal(runtime.storage.size, 0);
+  assert.equal(runtime.help.hidden, true);
   assert.equal(prevented, 2);
 
   runFrames(runtime, 80);
@@ -830,18 +1306,12 @@ test("high release opens a readable parachute and can be re-grabbed", () => {
   assert.equal(regrab.pet.dataset.dropping, undefined);
 });
 
-test("scrollbar-edge parachute scrolls until the footer landing", () => {
+test("an edge drop grips the boundary and climbs to the footer", () => {
   const runtime = createRuntime({
     footerTop: 1400,
     emitScrollEvents: true,
     moveFooterWithScroll: true,
     scrollHeight: 2400,
-    storedSpot: {
-      heading: "Energy",
-      id: "energy",
-      page: "/week-2/",
-      y: 840,
-    },
   });
   runtime.petHandlers.pointerdown({
     button: 0,
@@ -857,14 +1327,80 @@ test("scrollbar-edge parachute scrolls until the footer landing", () => {
   });
   runtime.runAnimationFrames();
   runtime.petHandlers.pointerup({ pointerId: 15 });
-  assert.equal(runtime.pet.dataset.parachute, "true");
-  assert.match(runtime.status.textContent, /scrolling towards the footer/);
+  assert.equal(runtime.pet.dataset.parachute, undefined);
+  assert.equal(runtime.pet.dataset.climbing, "right");
+  assert.equal(runtime.pet.dataset.state, "climbing");
+  assert.equal(runtime.pet.style.left, "920px");
+  assert.match(runtime.status.textContent, /climbing down the right edge/);
   runFrames(runtime, 320);
   assert.ok(runtime.scrollCalls.length > 20);
   assert.ok(runtime.window.scrollY > 0);
   assert.equal(runtime.pet.dataset.paused, undefined);
+  assert.equal(runtime.pet.dataset.climbing, undefined);
   assert.equal(runtime.pet.dataset.dock, "footer");
   assert.equal(runtime.status.textContent, "Koala landed on the footer");
+});
+
+test("edge-band drops use an anchored rope and never grip mid-air", () => {
+  const rope = createRuntime({ footerTop: 1400, scrollHeight: 2400 });
+  rope.petHandlers.pointerdown({
+    button: 0,
+    clientX: 920,
+    clientY: 696,
+    pointerId: 17,
+  });
+  rope.petHandlers.pointermove({
+    clientX: 70,
+    clientY: 430,
+    pointerId: 17,
+    preventDefault() {},
+  });
+  rope.runAnimationFrames();
+  rope.petHandlers.pointerup({ pointerId: 17 });
+  assert.equal(rope.pet.dataset.rope, "left");
+  assert.equal(rope.pet.dataset.climbing, "left");
+  assert.equal(rope.pet.dataset.parachute, undefined);
+  assert.equal(rope.pet.style["--dock-pet-hook-x"], "-69px");
+  assert.notEqual(rope.pet.style["--dock-pet-rope-length"], "0px");
+  assert.match(rope.status.textContent, /Hook set on the left edge/);
+  assert.match(style, /data-rope[\s\S]*dock-pet__harness[\s\S]*opacity: 1/);
+
+  const left = createRuntime({ footerTop: 1400 });
+  left.petHandlers.pointerdown({
+    button: 0,
+    clientX: 920,
+    clientY: 696,
+    pointerId: 19,
+  });
+  left.petHandlers.pointermove({
+    clientX: 0,
+    clientY: 430,
+    pointerId: 19,
+    preventDefault() {},
+  });
+  left.runAnimationFrames();
+  left.petHandlers.pointerup({ pointerId: 19 });
+  assert.equal(left.pet.dataset.climbing, "left");
+  assert.equal(left.pet.style.left, "0px");
+
+  const free = createRuntime({ footerTop: 1400 });
+  free.petHandlers.pointerdown({
+    button: 0,
+    clientX: 920,
+    clientY: 696,
+    pointerId: 18,
+  });
+  free.petHandlers.pointermove({
+    clientX: 300,
+    clientY: 430,
+    pointerId: 18,
+    preventDefault() {},
+  });
+  free.runAnimationFrames();
+  free.petHandlers.pointerup({ pointerId: 18 });
+  assert.equal(free.pet.dataset.climbing, undefined);
+  assert.equal(free.pet.dataset.rope, undefined);
+  assert.equal(free.pet.dataset.state, "falling");
 });
 
 test("focused arrows place the pet and Escape restores automatic docking", () => {
@@ -876,7 +1412,7 @@ test("focused arrows place the pet and Escape restores automatic docking", () =>
   );
   assert.equal(
     runtime.pet.attributes["aria-description"],
-    "Drag and release to drop; arrow keys move when focused and Escape restores automatic docking",
+    "Open the study helper, or drag and release to move; arrow keys fine-tune and Escape restores automatic docking",
   );
   runtime.petHandlers.keydown({
     key: "ArrowLeft",
@@ -903,71 +1439,155 @@ test("focused arrows place the pet and Escape restores automatic docking", () =>
     preventDefault: () => prevented++,
   });
   runtime.petHandlers.click();
-  assert.equal(runtime.storage.size, 1);
+  assert.equal(runtime.help.hidden, false);
   assert.equal(prevented, 3);
 });
 
-test("a valid same-page spot offers one-click resume before the footer", () => {
-  const runtime = createRuntime({
-    footerTop: 900,
-    storedSpot: {
-      heading: "Dynamics",
-      id: "dynamics",
-      page: "/week-2/",
-      y: 640,
-    },
-  });
+test("the study buddy grips the edge while the footer is off-screen", () => {
+  const runtime = createRuntime({ footerTop: 900 });
   assert.equal(runtime.pet.hidden, false);
-  assert.equal(runtime.pet.dataset.dock, "resume");
-  assert.equal(runtime.pet.dataset.action, "resume");
-  assert.equal(
-    runtime.pet.attributes["aria-label"],
-    "Resume reading at Dynamics",
-  );
-  assert.equal(runtime.bubbleText.textContent, "Resume at “Dynamics”");
+  assert.equal(runtime.pet.dataset.dock, "edge");
+  assert.equal(runtime.pet.dataset.state, "clinging");
+  assert.equal(runtime.pet.style.left, "920px");
+  assert.equal(runtime.pet.style.top, "696px");
+});
+
+test("voice input is optional and uses the same grounded answer path", async () => {
+  const runtime = createRuntime({ speech: true });
+  assert.equal(runtime.listenButton.hidden, false);
+  runtime.petHandlers.click();
+  runtime.listenHandlers.click();
+  const recognition = runtime.window.SpeechRecognition.instances[0];
+  assert.equal(runtime.listenButton.dataset.listening, "true");
+  recognition.onresult({
+    results: [[{ transcript: "explain force and motion" }]],
+  });
+  assert.match(runtime.threadItems[1].textContent, /Under “Dynamics”/);
+  await flushStudy();
+  recognition.onend();
+  assert.equal(runtime.listenButton.dataset.listening, undefined);
+  assert.equal(runtime.spoken[0], "cancel");
+  assert.equal(runtime.spoken[1].text, runtime.threadItems[1].textContent);
+  assert.equal(runtime.spoken[1].lang, "en-AU");
+});
+
+test("help and voice controls recover from empty, cancelled, and failed input", () => {
+  const runtime = createRuntime({ speech: true });
+  runtime.petHandlers.click();
+  runtime.question.value = "   ";
+  runtime.question.focused = false;
+  runtime.formHandlers.submit({ preventDefault() {} });
+  assert.equal(runtime.threadItems.length, 0);
+  assert.equal(runtime.question.focused, true);
+
+  runtime.actionControls[0].handlers.click();
+  assert.equal(runtime.help.hidden, true);
+  runtime.petHandlers.click();
+  let prevented = 0;
+  runtime.questionHandlers.keydown({
+    key: "Escape",
+    preventDefault: () => prevented++,
+  });
+  assert.equal(runtime.help.hidden, true);
+  runtime.petHandlers.click();
+  runtime.petHandlers.keydown({
+    key: "Escape",
+    preventDefault: () => prevented++,
+  });
+  assert.equal(runtime.help.hidden, true);
+  assert.equal(prevented, 2);
 
   runtime.petHandlers.click();
-  assert.deepEqual(JSON.parse(JSON.stringify(runtime.scrollCalls)), [
-    { behavior: "smooth", top: 640 },
-  ]);
-  assert.equal(runtime.pet.dataset.action, "save");
-  assert.match(runtime.status.textContent, /^Resuming at “Dynamics”/);
-  runtime.windowHandlers.scroll();
-  runtime.runAnimationFrames();
-  runtime.runTimer(160);
-  assert.equal(runtime.pet.hidden, true);
+  runtime.listenHandlers.click();
+  const cancelled = runtime.window.SpeechRecognition.instances[0];
+  runtime.listenHandlers.click();
+  assert.equal(cancelled.aborted, true);
+  assert.equal(runtime.listenButton.dataset.listening, undefined);
+
+  runtime.listenHandlers.click();
+  const failed = runtime.window.SpeechRecognition.instances[1];
+  failed.onresult({ results: [[{ transcript: "   " }]] });
+  assert.equal(runtime.threadItems.length, 0);
+  failed.onerror();
+  assert.match(runtime.status.textContent, /didn’t come through/);
+  assert.equal(runtime.question.placeholder, runtime.status.textContent);
+  failed.onend();
+
+  const busy = createRuntime({ speech: true, speechStartError: true });
+  busy.listenHandlers.click();
+  assert.equal(busy.listenButton.dataset.listening, undefined);
+  assert.equal(busy.question.placeholder, "Voice is busy. Type it instead");
 });
 
-test("storage failures are safe and cross-page state is overwritten once", () => {
-  const blockedRead = createRuntime({ footerTop: 900, getError: true });
-  assert.equal(blockedRead.pet.hidden, true);
-
-  const blockedWrite = createRuntime({ setError: true });
-  blockedWrite.petHandlers.click();
-  assert.match(blockedWrite.bubbleText.textContent, /couldn’t save/);
-  assert.equal(blockedWrite.pet.dataset.behavior, undefined);
-  assert.equal(blockedWrite.storage.size, 0);
-
-  const current = createRuntime({
-    storedSpot: { heading: "Other", id: "other", page: "/other/", y: 200 },
+test("visibility and media changes cancel work and settle live movement", async () => {
+  const hidden = createRuntime({
+    abortController: true,
+    fetchResponse: { answer: "Late answer", grounded: true },
+    speech: true,
   });
-  assert.equal(current.pet.dataset.action, "save");
-  current.petHandlers.click();
-  assert.equal(current.storage.size, 1);
+  hidden.petHandlers.click();
+  hidden.listenHandlers.click();
+  const recognition = hidden.window.SpeechRecognition.instances[0];
+  recognition.onresult({
+    results: [[{ transcript: "Explain force and motion" }]],
+  });
+  hidden.document.hidden = true;
+  hidden.documentHandlers.visibilitychange();
+  assert.equal(hidden.aborts[0].aborted, true);
+  assert.equal(recognition.aborted, true);
+  assert.equal(hidden.threadItems[1].dataset.pending, undefined);
+  assert.ok(hidden.spoken.filter((item) => item === "cancel").length >= 2);
+  await flushStudy();
+
+  hidden.actionControls[0].handlers.click();
+  hidden.document.hidden = false;
+  hidden.documentHandlers.visibilitychange();
   assert.equal(
-    JSON.parse(current.storage.get("dock-pet-reading-spot-v1")).page,
-    "/week-2/",
+    [...hidden.timers.values()].some((entry) => entry.delay >= 45000),
+    true,
   );
+
+  const falling = createRuntime();
+  falling.petHandlers.pointerdown({
+    button: 0,
+    clientX: 912,
+    clientY: 627,
+    pointerId: 24,
+  });
+  falling.petHandlers.pointermove({
+    clientX: 700,
+    clientY: 200,
+    pointerId: 24,
+    preventDefault() {},
+  });
+  falling.runAnimationFrames();
+  falling.petHandlers.pointerup({ pointerId: 24 });
+  assert.equal(falling.pet.dataset.falling, "true");
+  falling.setReduced(true);
+  assert.equal(falling.pet.dataset.falling, undefined);
+  assert.equal(falling.pet.dataset.dock, "footer");
+
+  const manual = createRuntime();
+  manual.petHandlers.keydown({
+    key: "ArrowLeft",
+    preventDefault() {},
+    shiftKey: false,
+  });
+  manual.setViewport(120, 640);
+  manual.desktop.handlers.change({ matches: false });
+  assert.equal(manual.pet.dataset.dock, "manual");
+  assert.equal(manual.pet.style.left, "32px");
+  assert.ok(Number.parseFloat(manual.pet.style.top) <= 552);
 });
 
-test("scroll entry settles on the footer and exit hides without climbing", () => {
+test("scroll entry steps onto the footer and returns to the edge", () => {
   const runtime = createRuntime({ footerTop: 900 });
-  assert.equal(runtime.pet.hidden, true);
+  assert.equal(runtime.pet.dataset.dock, "edge");
   runtime.setFooterTop(700);
   runtime.windowHandlers.scroll();
   assert.equal(runtime.pet.dataset.paused, "true");
   runtime.runAnimationFrames();
-  assert.equal(runtime.pet.hidden, true);
+  assert.equal(runtime.pet.hidden, false);
   runtime.runTimer(160);
   assert.equal(runtime.pet.hidden, false);
   assert.equal(runtime.pet.dataset.state, "walking");
@@ -978,18 +1598,15 @@ test("scroll entry settles on the footer and exit hides without climbing", () =>
   runtime.setFooterTop(900);
   runtime.windowHandlers.scroll();
   runtime.runAnimationFrames();
-  assert.equal(runtime.pet.hidden, true);
+  runtime.runTimer(160);
+  assert.equal(runtime.pet.dataset.dock, "edge");
+  assert.equal(runtime.pet.dataset.state, "clinging");
 });
 
 test("halfway and completion guidance is gated by real progress", () => {
   const runtime = createRuntime({ footerTop: 900, scrollY: 500 });
   assert.equal(runtime.rootStyle["--reading-progress"], "0.5000");
-  assert.equal(runtime.bubble.hidden, true);
-
-  runtime.setFooterTop(700);
-  runtime.windowHandlers.scroll();
-  runtime.runAnimationFrames();
-  runtime.runTimer(160);
+  assert.equal(runtime.bubble.hidden, false);
   assert.equal(
     runtime.bubbleText.textContent,
     "You’re halfway through · Current section: “Dynamics”",
@@ -1008,23 +1625,14 @@ test("halfway and completion guidance is gated by real progress", () => {
   );
 });
 
-test("reduced motion resumes instantly and suppresses character reactions", () => {
-  const runtime = createRuntime({
-    footerTop: 900,
-    reduced: true,
-    storedSpot: {
-      heading: "Energy",
-      id: "energy",
-      page: "/week-2/",
-      y: 840,
-    },
-  });
-  runtime.petHandlers.click();
-  assert.deepEqual(JSON.parse(JSON.stringify(runtime.scrollCalls)), [
-    { behavior: "auto", top: 840 },
-  ]);
+test("reduced motion suppresses reactions and resolves drops immediately", () => {
+  const runtime = createRuntime({ footerTop: 900, reduced: true });
   assert.equal(runtime.pet.dataset.behavior, undefined);
   assert.equal(runtime.pet.dataset.wink, undefined);
+  assert.equal(
+    [...runtime.timers.values()].some((entry) => entry.delay >= 45000),
+    false,
+  );
 
   const drop = createRuntime({ reduced: true });
   drop.petHandlers.pointerdown({
@@ -1051,7 +1659,75 @@ test("reduced motion resumes instantly and suppresses character reactions", () =
   );
 });
 
-test("pointer gaze settles back to neutral and thought clouds stay in view", () => {
+test("one bounded idle scheduler animates expressions and pauses when hidden", () => {
+  const runtime = createRuntime();
+  const runIdle = () => {
+    const timer = [...runtime.timers.values()].find(
+      (entry) => entry.delay >= 45000 && entry.delay <= 90000,
+    );
+    assert.ok(timer);
+    runtime.runTimer(timer.delay);
+  };
+  runIdle();
+  assert.equal(runtime.pet.dataset.behavior, "blink");
+  runtime.runTimer(220);
+  runIdle();
+  assert.equal(runtime.pet.dataset.behavior, "scratch-head");
+  runtime.runTimer(1400);
+  runIdle();
+  assert.equal(runtime.pet.dataset.behavior, "curious");
+  assert.match(runtime.bubbleText.textContent, /equation|definition|symbol/i);
+  runtime.document.hidden = true;
+  runtime.documentHandlers.visibilitychange();
+  assert.equal(
+    [...runtime.timers.values()].some((entry) => entry.delay >= 45000),
+    false,
+  );
+});
+
+test("idle messages rotate through motivation and current-note facts", () => {
+  const runtime = createRuntime({ now: 103000 });
+  const runIdle = () => {
+    const timer = [...runtime.timers.values()].find(
+      (entry) => entry.delay >= 45000 && entry.delay <= 90000,
+    );
+    assert.ok(timer);
+    runtime.runTimer(timer.delay);
+  };
+
+  runIdle();
+  assert.match(runtime.bubbleText.textContent, /example|units|heading/);
+  runtime.runTimer(6500);
+  runIdle();
+  assert.match(runtime.bubbleText.textContent, /^From “Week 2”:/);
+  runtime.runTimer(6500);
+  assert.equal(runtime.bubble.hidden, true);
+
+  const blocked = createRuntime();
+  const pending = [...blocked.timers.values()].find(
+    (entry) => entry.delay >= 45000 && entry.delay <= 90000,
+  );
+  assert.ok(pending);
+  blocked.document.hidden = true;
+  blocked.runTimer(pending.delay);
+  assert.equal(
+    [...blocked.timers.values()].some((entry) => entry.delay >= 45000),
+    false,
+  );
+
+  const generalFact = createRuntime({ now: 104000 });
+  const factTimer = [...generalFact.timers.values()].find(
+    (entry) => entry.delay >= 45000 && entry.delay <= 90000,
+  );
+  assert.ok(factTimer);
+  generalFact.runTimer(factTimer.delay);
+  assert.match(
+    generalFact.bubbleText.textContent,
+    /fingerprints|eucalyptus|opposable|joey/,
+  );
+});
+
+test("pointer gaze settles back to neutral and idle clouds stay in view", () => {
   const runtime = createRuntime({ viewportWidth: 320 });
   runtime.windowHandlers.pointermove({ clientX: 20, clientY: 100 });
   for (let frame = 0; frame < 12; frame += 1)
@@ -1069,18 +1745,32 @@ test("pointer gaze settles back to neutral and thought clouds stay in view", () 
     "translate(0.000 0.000)",
   );
 
-  runtime.petHandlers.click();
-  runtime.runAnimationFrames();
-  const rect = runtime.bubble.getBoundingClientRect();
+  const cloudRuntime = createRuntime({ viewportWidth: 320 });
+  [220, 1400].forEach((reactionDelay) => {
+    const idle = [...cloudRuntime.timers.values()].find(
+      (entry) => entry.delay >= 45000 && entry.delay <= 90000,
+    );
+    assert.ok(idle);
+    cloudRuntime.runTimer(idle.delay);
+    cloudRuntime.runTimer(reactionDelay);
+  });
+  const idle = [...cloudRuntime.timers.values()].find(
+    (entry) => entry.delay >= 45000 && entry.delay <= 90000,
+  );
+  assert.ok(idle);
+  cloudRuntime.runTimer(idle.delay);
+  cloudRuntime.runAnimationFrames();
+  const rect = cloudRuntime.bubble.getBoundingClientRect();
   assert.ok(rect.left >= 12);
   assert.ok(rect.right <= 308);
   assert.ok(rect.top >= 12);
   assert.ok(rect.bottom <= 788);
-  assert.match(runtime.cloudPath.attributes.d, /^M /);
+  assert.match(cloudRuntime.cloudPath.attributes.d, /^M /);
 });
 
 test("resize work coalesces into one layout frame", () => {
   const runtime = createRuntime({ footerTop: 900 });
+  runtime.runAnimationFrames();
   runtime.windowHandlers.resize();
   runtime.windowHandlers.resize();
   assert.equal(runtime.frames.size, 1);
@@ -1093,7 +1783,8 @@ test("mobile footer docking stays stable and action labels remain explicit", () 
   const runtime = createRuntime({ desktop: false });
   assert.equal(runtime.pet.style.top, "708px");
   assert.equal(runtime.pet.dataset.state, "perched");
-  assert.equal(runtime.pet.attributes.title, "Save current reading spot");
+  assert.equal(runtime.pet.attributes["aria-controls"], "dock-pet-help");
+  assert.equal(runtime.pet.attributes["aria-expanded"], "false");
   assert.equal(runtime.footerClasses.has("has-reveal"), true);
   assert.equal(runtime.footerClasses.has("is-visible"), true);
 });
@@ -1110,6 +1801,20 @@ test("footer reveal follows intersection when the platform supports it", () => {
 
 test("theme changes radiate from the palette control and clean up", async () => {
   const runtime = createRuntime();
+  runtime.paletteHandlers.keydown({ key: "Escape" });
+  runtime.paletteHandlers.keydown({
+    key: " ",
+    target: {
+      closest: () => ({
+        getBoundingClientRect: () => ({
+          height: 40,
+          left: 900,
+          top: 12,
+          width: 40,
+        }),
+      }),
+    },
+  });
   runtime.paletteHandlers.pointerdown({
     target: {
       closest: () => ({
