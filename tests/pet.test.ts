@@ -1579,7 +1579,28 @@ test("hosted study recovers safely and reuses bounded session answers", async ()
     runtime.formHandlers.submit({ preventDefault() {} });
     await flushStudy();
     assert.equal(runtime.threadItems[1].dataset.pending, undefined);
+    if (options.fetchOk === false)
+      assert.equal(
+        runtime.threadItems[1].textContent,
+        "There isn’t enough page context to answer that here",
+      );
   }
+});
+
+test("media reports backend outages because it has no honest local fallback", async () => {
+  const runtime = createRuntime({ fetchOk: false, fetchResponse: {} });
+  runtime.fileInput.files = [
+    {
+      dataUrl: "data:audio/wav;base64,UklGRgAAAABXQVZF",
+      name: "question.wav",
+      size: 12,
+      type: "audio/wav",
+    },
+  ];
+  await runtime.fileHandlers.change();
+  runtime.formHandlers.submit({ preventDefault() {} });
+  await flushStudy();
+  assert.match(runtime.threadItems[1].textContent, /offline right now/);
 });
 
 test("a replacement study request aborts stale work and keeps the latest answer", async () => {
