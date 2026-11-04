@@ -70,6 +70,19 @@ class HookTests(unittest.TestCase):
     def test_callouts(self):
         self.assertEqual(callouts.on_page_markdown("!!! example"), "??? example")
 
+    def test_site_asset_version_tracks_deploys_and_stays_stable_locally(self):
+        with patch.dict(os.environ, {}, clear=True):
+            self.assertIs(site_hook.on_config(self.config), self.config)
+        self.assertEqual(self.config.extra["asset_version"], "dev")
+
+        with patch.dict(os.environ, {"GITHUB_SHA": "release/abc.123!"}, clear=True):
+            site_hook.on_config(self.config)
+        self.assertEqual(self.config.extra["asset_version"], "releaseabc123")
+
+        with patch.dict(os.environ, {"GITHUB_SHA": "!!!"}, clear=True):
+            site_hook.on_config(self.config)
+        self.assertEqual(self.config.extra["asset_version"], "dev")
+
     def test_game_rejects_attempt_overflow(self):
         source = (ROOT / "site/game.toml").read_text(encoding="utf-8")
         with TemporaryDirectory() as directory:

@@ -754,8 +754,7 @@ function dockPetSpeechText(value) {
     var item = document.createElement("li");
     item.dataset.role = role;
     if (pending) item.dataset.pending = "true";
-    if (role === "assistant" && !pending) dockPetRenderMessage(item, message);
-    else item.textContent = message;
+    item.textContent = message;
     thread.append(item);
     thread.scrollTop = thread.scrollHeight;
     return item;
@@ -922,21 +921,16 @@ function dockPetSpeechText(value) {
     positionHelp();
   }
 
-  function cancelStudy(useFallback) {
+  function cancelStudy() {
     if (!activeStudy) return;
     var task = activeStudy;
     studyRequest += 1;
     task.abort?.abort();
-    if (useFallback) {
-      finishStudy(task, task.reply.text);
-    } else {
-      task.pending.remove();
-      activeStudy = null;
-    }
+    finishStudy(task, task.reply.text);
   }
 
   async function answerQuestion(value, useVoice?) {
-    cancelStudy(true);
+    cancelStudy();
     var reply = dockPetStudyReply(
       value,
       sections,
@@ -1756,7 +1750,7 @@ function dockPetSpeechText(value) {
     }
     clearTimeout(idleTimer);
     idleTimer = 0;
-    cancelStudy(true);
+    cancelStudy();
     recognition?.abort();
     (window as any).speechSynthesis?.cancel();
   });
