@@ -523,14 +523,16 @@ function createRuntime({
     },
   };
   const themeControl: any = {
+    dataset: { mdColorScheme: "slate" },
     closest: () => ({
       click: () => themeControl.click(),
       getBoundingClientRect: () => rectangle(12, 52, 900, 940),
     }),
     click() {
+      themeControl.dataset.mdColorScheme =
+        body.dataset.mdColorScheme === "default" ? "slate" : "default";
       paletteHandlers.change({ target: themeControl });
       themeChanges.push(viewUpdateActive);
-      document.documentElement.dataset.mdColorScheme = "slate";
     },
     dispatchEvent() {
       themeControl.click();
@@ -541,12 +543,16 @@ function createRuntime({
   const bodyStyle: Record<string, string> = {};
   const rootClasses = new Set<string>();
   const rootClassChanges: string[] = [];
-  const body = {
+  const body: any = {
     classList: {
       add: (name) => bodyClasses.add(name),
       remove: (name) => bodyClasses.delete(name),
     },
+    dataset: { mdColorScheme: "default" },
     offsetWidth: viewportWidth,
+    setAttribute(name, value) {
+      if (name === "data-md-color-scheme") this.dataset.mdColorScheme = value;
+    },
     style: {
       setProperty(name, value) {
         bodyStyle[name] = value;
@@ -1013,7 +1019,7 @@ function createRuntime({
     timers,
     themeChanges,
     themeControl,
-    themeScheme: () => document.documentElement.dataset.mdColorScheme,
+    themeScheme: () => document.body.dataset.mdColorScheme,
     threadItems,
     viewTransitions,
     window,
@@ -2071,7 +2077,7 @@ test("theme changes radiate from the palette control and clean up", async () => 
       }),
     },
   });
-  runtime.paletteHandlers.change();
+  runtime.paletteHandlers.change({ target: runtime.themeControl });
   assert.equal(runtime.rootStyle["--theme-x"], "920px");
   assert.equal(runtime.rootStyle["--theme-y"], "32px");
   assert.equal(runtime.rootStyle["--theme-radius"], "1199px");
@@ -2080,8 +2086,9 @@ test("theme changes radiate from the palette control and clean up", async () => 
   assert.equal(runtime.bodyClasses.has("theme-fade"), false);
 
   const reduced = createRuntime({ reduced: true });
-  reduced.paletteHandlers.change();
+  reduced.paletteHandlers.change({ target: reduced.themeControl });
   assert.equal(reduced.bodyClasses.has("theme-fade"), false);
+  assert.equal(reduced.themeScheme(), "slate");
 
   const native = createRuntime({ viewTransition: true });
   const change = () => {
@@ -2099,6 +2106,7 @@ test("theme changes radiate from the palette control and clean up", async () => 
   assert.equal(native.viewTransitions[0].skipped, true);
   assert.equal(native.viewTransitions.length, 2);
   assert.deepEqual(native.themeChanges, [true, true]);
+  assert.equal(native.themeScheme(), "default");
   await Promise.all(native.viewTransitions.map((record) => record.updated));
   native.viewTransitions[0].finish();
   assert.equal(native.rootClasses.has("theme-wave"), true);
