@@ -112,9 +112,10 @@ closed; the helper links to `/mini/`, whose separate authenticated gateway owns
 its sessions, roles and private student data. The pet Worker never receives a
 Minis cookie, credential, plan or marks record
 
-Analytics Engine receives only outcome, selected model, prompt version,
-latency and cache-hit state. Questions, note text, answers, IP addresses and
-user identifiers are excluded from telemetry
+Workers Logs receives only outcome, selected model, prompt version, latency
+and cache-hit state. Invocation logs are disabled and query strings are
+redacted. Questions, note text, answers, IP addresses and user identifiers are
+excluded from application telemetry
 
 Interactive note plots load the pinned Plotly browser bundle only on a page
 that contains a validated `plot` fence. Generated JavaScript in `assets/js/`
