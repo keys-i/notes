@@ -248,6 +248,10 @@ test("media helpers accept browser-decodable formats and explain failures", () =
   );
   assert.match(pure.dockPetStudyError("rate_limited"), /breather/);
   assert.match(pure.dockPetStudyError("grounding_failed"), /verify/);
+  assert.match(pure.dockPetStudyError("no_evidence"), /this note/);
+  assert.match(pure.dockPetStudyError("invalid_audio"), /clearer clip/);
+  assert.match(pure.dockPetStudyError("analysis_failed"), /clearer frame/);
+  assert.match(pure.dockPetStudyError("unsafe_input"), /safely/);
   assert.match(pure.dockPetStudyError("", true), /longer than expected/);
 });
 
