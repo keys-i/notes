@@ -400,6 +400,7 @@ function createRuntime({
   speech = false,
   speechStartError = false,
   viewTransition = false,
+  viewTransitionThrows = false,
 }: any = {}) {
   const timers = new Map<number, any>();
   const frames = new Map<number, any>();
@@ -524,19 +525,33 @@ function createRuntime({
   };
   const themeControl: any = {
     dataset: { mdColorScheme: "slate" },
-    closest: () => ({
-      click: () => themeControl.click(),
-      getBoundingClientRect: () => rectangle(12, 52, 900, 940),
-    }),
     click() {
       themeControl.dataset.mdColorScheme =
         body.dataset.mdColorScheme === "default" ? "slate" : "default";
-      paletteHandlers.change({ target: themeControl });
+      body.setAttribute(
+        "data-md-color-scheme",
+        themeControl.dataset.mdColorScheme,
+      );
       themeChanges.push(viewUpdateActive);
     },
     dispatchEvent() {
       themeControl.click();
       return true;
+    },
+  };
+  const themeLabel: any = {
+    control: themeControl,
+    closest: () => themeLabel,
+    getBoundingClientRect: () => rectangle(12, 52, 900, 940),
+    click() {
+      let prevented = false;
+      paletteHandlers.click({
+        preventDefault: () => {
+          prevented = true;
+        },
+        target: themeLabel,
+      });
+      if (!prevented) themeControl.click();
     },
   };
   const bodyClasses = new Set<string>();
@@ -761,7 +776,11 @@ function createRuntime({
       return { ownerDocument: document, textContent: String(value) };
     },
   };
-  if (viewTransition) {
+  if (viewTransitionThrows) {
+    (document as any).startViewTransition = () => {
+      throw new Error("view transition unavailable");
+    };
+  } else if (viewTransition) {
     (document as any).startViewTransition = (update) => {
       viewUpdateActive = true;
       const updated = Promise.resolve(update()).finally(() => {
@@ -776,7 +795,7 @@ function createRuntime({
         updated,
         transition: {
           finished: {
-            finally(callback) {
+            then(callback) {
               finish = callback;
             },
           },
@@ -1019,6 +1038,7 @@ function createRuntime({
     timers,
     themeChanges,
     themeControl,
+    themeLabel,
     themeScheme: () => document.body.dataset.mdColorScheme,
     threadItems,
     viewTransitions,
@@ -2051,52 +2071,29 @@ test("footer reveal follows intersection when the platform supports it", () => {
 
 test("theme changes radiate from the palette control and clean up", async () => {
   const runtime = createRuntime();
-  runtime.paletteHandlers.keydown({ key: "Escape" });
-  runtime.paletteHandlers.keydown({
-    key: " ",
-    target: {
-      closest: () => ({
-        getBoundingClientRect: () => ({
-          height: 40,
-          left: 900,
-          top: 12,
-          width: 40,
-        }),
-      }),
-    },
-  });
-  runtime.paletteHandlers.pointerdown({
-    target: {
-      closest: () => ({
-        getBoundingClientRect: () => ({
-          height: 40,
-          left: 900,
-          top: 12,
-          width: 40,
-        }),
-      }),
-    },
-  });
-  runtime.paletteHandlers.change({ target: runtime.themeControl });
+  runtime.themeLabel.click();
   assert.equal(runtime.rootStyle["--theme-x"], "920px");
   assert.equal(runtime.rootStyle["--theme-y"], "32px");
   assert.equal(runtime.rootStyle["--theme-radius"], "1199px");
   assert.equal(runtime.bodyClasses.has("theme-fade"), true);
+  assert.equal(runtime.themeScheme(), "slate");
+  assert.deepEqual(runtime.themeChanges, [false]);
   runtime.runTimer(220);
   assert.equal(runtime.bodyClasses.has("theme-fade"), false);
 
   const reduced = createRuntime({ reduced: true });
-  reduced.paletteHandlers.change({ target: reduced.themeControl });
+  reduced.themeLabel.click();
   assert.equal(reduced.bodyClasses.has("theme-fade"), false);
   assert.equal(reduced.themeScheme(), "slate");
 
+  const partial = createRuntime({ viewTransitionThrows: true });
+  partial.themeLabel.click();
+  assert.equal(partial.themeScheme(), "slate");
+  assert.equal(partial.rootClasses.has("theme-wave"), false);
+  assert.equal(partial.bodyClasses.has("theme-fade"), true);
+
   const native = createRuntime({ viewTransition: true });
-  const change = () => {
-    native.paletteHandlers.pointerdown({
-      target: native.themeControl,
-    });
-    native.themeControl.click();
-  };
+  const change = () => native.themeLabel.click();
   change();
   assert.equal(native.rootClasses.has("theme-wave"), true);
   assert.equal(native.viewTransitions.length, 1);
