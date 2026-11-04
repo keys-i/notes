@@ -443,10 +443,18 @@ function dockPetStudyError(code, timedOut?) {
   if (timedOut) return "That answer took longer than expected. Try again";
   if (code === "grounding_failed")
     return "I couldn’t verify that answer well enough. Try rephrasing the question";
+  if (code === "no_evidence")
+    return "I couldn’t find enough in this note to answer that. Try naming the topic";
   if (code === "rate_limited")
     return "Koa needs a short breather. Try again in a minute";
   if (code === "invalid_attachment")
     return "That attachment couldn’t be read safely. Try a smaller file";
+  if (code === "invalid_audio")
+    return "I couldn’t hear usable speech in that recording. Try a clearer clip";
+  if (code === "analysis_failed")
+    return "I couldn’t verify what was in that image. Try a clearer frame";
+  if (code === "unsafe_input")
+    return "I can’t use that request safely. Rephrase it as a study question";
   return "The study service is offline right now. Try again shortly";
 }
 
