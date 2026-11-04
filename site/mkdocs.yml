@@ -62,6 +62,9 @@ extra:
     - icon: fontawesome/solid/globe
       link: https://keysi.dev
       name: Radhesh Goel's website
+    - icon: material/apps
+      link: https://uni.keysi.dev/mini/
+      name: Minis
     - icon: fontawesome/brands/linkedin
       link: https://linkedin.com/in/radhesh-g
       name: Radhesh Goel on LinkedIn
