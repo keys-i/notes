@@ -590,6 +590,10 @@ test("404 chrome keeps the game primary and the terminal optional", () => {
   assert.match(template, /scene-ready__impact/);
   assert.match(template, /scene-ready__pickup/);
   assert.match(template, /scene-ready__sign-back">MAZE&nbsp; →/);
+  assert.doesNotMatch(
+    styles,
+    /scene-ready__sign-(?:front|back)[^;]*steps\(1,\s*jump-none\)/,
+  );
   assert.doesNotMatch(template, /scene-ready__moves/);
   assert.match(template, /aria-describedby="game-objective status"/);
   assert.match(template, />\s*Play\s*<\/button>/);
