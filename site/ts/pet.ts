@@ -169,7 +169,7 @@ function dockPetStudyReply(query, sections, currentIndex, turn, contextIndex?) {
       behavior: "curious",
       key: "greeting",
       sectionIndex: startingIndex,
-      text: "G’day. Ask about a heading, or say ‘explain this bit’",
+      text: "G’day. Ask about this page, or anything else you’re curious about",
     };
   }
   if (intent === "quiz") {
@@ -180,8 +180,8 @@ function dockPetStudyReply(query, sections, currentIndex, turn, contextIndex?) {
       text: current.text
         ? "Quick check from “" +
           current.heading +
-          "”: what main relationship, rule or assumption does this section establish?"
-        : "I can’t build a grounded quiz until this note section has written evidence",
+          "”: what’s the main idea here?"
+        : "There isn’t enough written here for a fair quiz yet",
     };
   }
   var terms = dockPetTerms(cleanQuery);
@@ -200,27 +200,28 @@ function dockPetStudyReply(query, sections, currentIndex, turn, contextIndex?) {
       bestScore = score;
     }
   });
-  if (terms.length && bestScore === 0) {
+  var contextualFollowup =
+    typeof contextIndex === "number" &&
+    sections[contextIndex] &&
+    /\b(this|that|it|these|those)\b/u.test(lower);
+  if (terms.length && bestScore === 0 && !contextualFollowup) {
     return {
       behavior: "curious",
       key: "absent:" + (current.id || current.heading),
       sectionIndex: startingIndex,
       text: current.text
-        ? "I can’t find evidence for that in the current note — the nearest grounded context is “" +
-          current.heading +
-          "”: " +
-          dockPetSummary(current.text)
-        : "I can’t find evidence for that in the current note",
+        ? "That isn’t covered on this page. I’ll answer it generally if I can"
+        : "That isn’t covered here, so I won’t pretend it is",
     };
   }
   var summary = dockPetSummary(best.text);
   var prefix = /\b(simple|simply|simpler|plain)\b/u.test(lower)
     ? "Simply: "
     : /\b(why|mean|meaning)\b/u.test(lower)
-      ? "The key point in “" + best.heading + "” is: "
+      ? "In “" + best.heading + "”, the main idea is: "
       : /\b(example|worked)\b/u.test(lower)
-        ? "The note’s example or rule here is: "
-        : "Under “" + best.heading + "”: ";
+        ? "Here’s the useful example from the page: "
+        : "From “" + best.heading + "”: ";
   return {
     behavior: "curious",
     key: "explain:" + (best.id || best.heading),
@@ -777,7 +778,7 @@ function dockPetIdleDelay(now, index) {
     var task = { abort, pending, reply, requestId, useVoice };
     activeStudy = task;
     question.value = "";
-    announce("Koa is reading the current note");
+    announce("Koa is thinking");
     positionHelp();
 
     var context = nearbySections(studyContextIndex);
@@ -818,7 +819,7 @@ function dockPetIdleDelay(now, index) {
       }
       if (!response.ok) throw new Error("study model unavailable");
       var body = await response.json();
-      if (body?.grounded === false) {
+      if (body?.grounded === false && body?.kind !== "general") {
         finishStudy(task, reply.text);
         return;
       }
@@ -1172,9 +1173,9 @@ function dockPetIdleDelay(now, index) {
       scroll: Boolean(climbing) || parachute,
       velocity: climbing ? 0.06 : parachute ? 0.08 : 0.12,
       x:
-        edge === "left"
+        edge === "left" || rope === "left"
           ? 0
-          : edge === "right"
+          : edge === "right" || rope === "right"
             ? Math.max(
                 0,
                 document.documentElement.clientWidth - pet.offsetWidth,
@@ -1193,8 +1194,8 @@ function dockPetIdleDelay(now, index) {
     if (climbing) {
       pet.dataset.climbing = climbing;
       pet.dataset.direction = climbing;
+      pet.dataset.grip = climbing;
     }
-    if (edge) pet.dataset.grip = edge;
     if (rope) pet.dataset.rope = rope;
     if (parachute) pet.dataset.parachute = "true";
     setPosition({ x: fall.x, y: target.y });
@@ -1202,7 +1203,7 @@ function dockPetIdleDelay(now, index) {
       edge
         ? "Koala gripping and climbing down the " + edge + " edge"
         : rope
-          ? "Hook set on the " + rope + " edge; koala climbing down the rope"
+          ? "Hook set on the " + rope + " edge; koala braced against the wall"
           : parachute
             ? "Parachute open; scrolling towards the footer"
             : "Koala falling towards the footer",

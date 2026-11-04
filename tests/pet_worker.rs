@@ -1,8 +1,8 @@
 use notes_pet::{
-    InputClass, Message, ModelRoute, PetReply, PetRequest, Role, Scope, Section, authorize_scope,
-    cache_key, cited_headings, classify_input, clean_answer, grounded_answer, guard_allows,
-    model_prompt, retrieve, select_model, semantic_cache_keys, semantic_match, semantic_record,
-    shared_cacheable, validate, verification_allows,
+    InputClass, Message, ModelRoute, PetReply, PetRequest, ReplyKind, Role, Scope, Section,
+    answer_kind, authorize_scope, cache_key, cited_headings, classify_input, clean_answer,
+    grounded_answer, guard_allows, model_prompt, retrieve, select_model, semantic_cache_keys,
+    semantic_match, semantic_record, shared_cacheable, validate, verification_allows,
 };
 
 fn request() -> PetRequest {
@@ -155,6 +155,40 @@ fn model_router_reserves_the_deep_model_for_reasoning_or_long_threads() {
 }
 
 #[test]
+fn note_questions_stay_grounded_while_general_questions_remain_conversational() {
+    let mut input = request();
+    assert_eq!(answer_kind(&input), ReplyKind::Note);
+    input.messages[0].content = "What makes a useful study break?".into();
+    assert_eq!(answer_kind(&input), ReplyKind::General);
+    input.messages[0].content = "Explain this section".into();
+    assert_eq!(answer_kind(&input), ReplyKind::Note);
+    input.messages = vec![
+        Message {
+            role: Role::User,
+            content: "Why does momentum change?".into(),
+        },
+        Message {
+            role: Role::Assistant,
+            content: "Force changes momentum.".into(),
+        },
+        Message {
+            role: Role::User,
+            content: "Can you put that more simply?".into(),
+        },
+    ];
+    assert_eq!(answer_kind(&input), ReplyKind::Note);
+    input.messages.push(Message {
+        role: Role::Assistant,
+        content: "Force changes momentum.\n\nSources: Newton's second law".into(),
+    });
+    input.messages.push(Message {
+        role: Role::User,
+        content: "What makes a useful study break?".into(),
+    });
+    assert_eq!(answer_kind(&input), ReplyKind::General);
+}
+
+#[test]
 fn semantic_cache_is_versioned_scoped_and_similarity_checked() {
     let input = request();
     let embedding = vec![0.8, 0.2, 0.1, -0.1];
@@ -162,6 +196,7 @@ fn semantic_cache_is_versioned_scoped_and_similarity_checked() {
         answer: "Force changes momentum [1]".into(),
         citations: vec!["Newton's second law".into()],
         grounded: true,
+        kind: ReplyKind::Note,
         mini: "/mini/".into(),
     };
     let record = semantic_record(&input, "public", embedding.clone(), reply);
@@ -193,6 +228,12 @@ fn semantic_cache_is_versioned_scoped_and_similarity_checked() {
     assert_ne!(
         semantic_cache_keys(&input, "public", &embedding),
         semantic_cache_keys(&deep_route, "public", &embedding)
+    );
+    let mut general = input.clone();
+    general.messages[0].content = "What makes a useful study break?".into();
+    assert_ne!(
+        semantic_cache_keys(&input, "public", &embedding),
+        semantic_cache_keys(&general, "public", &embedding)
     );
     assert!(!semantic_cache_keys(&input, "public", &embedding)[0].contains("momentum"));
 }
