@@ -3506,11 +3506,19 @@ body.routing-snap {
   --scene-bg: rgb(8 11 38 / 0.9);
 
   background:
-    radial-gradient(circle at 25% 52%, rgb(105 232 255 / 0.18), transparent 28%),
+    radial-gradient(
+      circle at 25% 52%,
+      rgb(105 232 255 / 0.18),
+      transparent 28%
+    ),
     linear-gradient(rgb(105 232 255 / 0.08) 1px, transparent 1px),
     linear-gradient(90deg, rgb(105 232 255 / 0.08) 1px, transparent 1px),
     var(--scene-bg);
-  background-size: auto, 2.4rem 2.4rem, 2.4rem 2.4rem, auto;
+  background-size:
+    auto,
+    2.4rem 2.4rem,
+    2.4rem 2.4rem,
+    auto;
 }
 
 .scene-dragon__ground {
@@ -3713,13 +3721,11 @@ body.routing-snap {
   }
 
   .game-scene[data-kind="attract"] .scene-attract__hunters {
-    animation: scene-attract-peek 5.2s cubic-bezier(0.2, 0.75, 0.2, 1)
-      infinite;
+    animation: scene-attract-peek 5.2s cubic-bezier(0.2, 0.75, 0.2, 1) infinite;
   }
 
   .game-scene[data-kind="attract"] .scene-attract__sign {
-    animation: scene-attract-sign 5.2s cubic-bezier(0.2, 0.75, 0.2, 1)
-      infinite;
+    animation: scene-attract-sign 5.2s cubic-bezier(0.2, 0.75, 0.2, 1) infinite;
   }
 
   .game-scene[data-kind="ready"] .scene-stage--ready {
@@ -4051,14 +4057,12 @@ body.routing-snap {
     }
 
     38% {
-      transform: translateX(calc(-50% - 25cqw)) translateY(18cqw)
-        rotate(-28deg);
+      transform: translateX(calc(-50% - 25cqw)) translateY(18cqw) rotate(-28deg);
     }
 
     44%,
     67% {
-      transform: translateX(calc(-50% - 25cqw)) translateY(15cqw)
-        rotate(-17deg);
+      transform: translateX(calc(-50% - 25cqw)) translateY(15cqw) rotate(-17deg);
     }
 
     72% {
@@ -4067,14 +4071,13 @@ body.routing-snap {
     }
 
     76% {
-      transform: translateX(calc(-50% - 25cqw)) translateY(15cqw)
-        rotate(8deg) scaleX(1.08);
+      transform: translateX(calc(-50% - 25cqw)) translateY(15cqw) rotate(8deg)
+        scaleX(1.08);
     }
 
     82%,
     100% {
-      transform: translateX(calc(-50% - 25cqw)) translateY(15cqw)
-        rotate(4deg);
+      transform: translateX(calc(-50% - 25cqw)) translateY(15cqw) rotate(4deg);
     }
   }
 
