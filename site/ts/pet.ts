@@ -1040,9 +1040,7 @@ function dockPetStudyError(code, timedOut?) {
   async function videoAttachment(file) {
     if (file.size > 64_000_000) throw new Error("attachment is too large");
     var video = document.createElement("video");
-    var createUrl = (window.URL || URL).createObjectURL;
-    var revokeUrl = (window.URL || URL).revokeObjectURL;
-    var url = createUrl(file);
+    var url = window.URL.createObjectURL(file);
     video.muted = true;
     video.preload = "metadata";
     video.playsInline = true;
@@ -1062,7 +1060,7 @@ function dockPetStudyError(code, timedOut?) {
         video.videoHeight,
       );
     } finally {
-      revokeUrl(url);
+      window.URL.revokeObjectURL(url);
     }
   }
 
