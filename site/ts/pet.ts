@@ -598,6 +598,21 @@ function dockPetIdleDelay(now, index) {
     };
   }
 
+  function clampDropPosition(point) {
+    return {
+      x: clamp(
+        point.x,
+        0,
+        Math.max(0, document.documentElement.clientWidth - pet.offsetWidth),
+      ),
+      y: clamp(
+        point.y,
+        8,
+        Math.max(8, window.innerHeight - pet.offsetHeight - 8),
+      ),
+    };
+  }
+
   function readScroll() {
     return window.scrollY || window.pageYOffset || 0;
   }
@@ -953,6 +968,7 @@ function dockPetIdleDelay(now, index) {
     if (drag?.active || fall) return;
     var previousDock = pet.dataset.dock;
     pet.hidden = false;
+    delete pet.dataset.grip;
     if (manualPosition) {
       manualPosition = clampPosition(manualPosition);
       pet.dataset.dock = "manual";
@@ -981,7 +997,8 @@ function dockPetIdleDelay(now, index) {
     }
     pet.dataset.dock = "edge";
     pet.dataset.state = "clinging";
-    pet.dataset.direction = "left";
+    pet.dataset.direction = "right";
+    pet.dataset.grip = "right";
     setPosition({
       x: Math.max(0, document.documentElement.clientWidth - pet.offsetWidth),
       y: Math.max(64, window.innerHeight - pet.offsetHeight - 24),
@@ -1008,6 +1025,7 @@ function dockPetIdleDelay(now, index) {
     delete pet.dataset.falling;
     delete pet.dataset.parachute;
     delete pet.dataset.climbing;
+    delete pet.dataset.grip;
     delete pet.dataset.rope;
     pet.style.removeProperty("--dock-pet-fall-speed");
     pet.style.removeProperty("--dock-pet-fall-tilt");
@@ -1023,7 +1041,7 @@ function dockPetIdleDelay(now, index) {
     if (!fall?.rope) return;
     var startX = pet.offsetWidth * 0.5;
     var startY = pet.offsetHeight * 0.77;
-    var hookX = fall.rope === "left" ? 1 : window.innerWidth - 1;
+    var hookX = fall.rope === "left" ? 0 : document.documentElement.clientWidth;
     var hookY = fall.hookY;
     var deltaX = hookX - (point.x + startX);
     var deltaY = hookY - (point.y + startY);
@@ -1128,11 +1146,12 @@ function dockPetIdleDelay(now, index) {
   }
 
   function startFall(point) {
-    var target = clampPosition(point);
+    var target = clampDropPosition(point);
     var viewportFloor = Math.max(8, window.innerHeight - pet.offsetHeight - 8);
     var viewportWidth = document.documentElement.clientWidth;
-    var rightEdge = viewportWidth - pet.offsetWidth - 16;
-    var edge = target.x <= 16 ? "left" : target.x >= rightEdge ? "right" : "";
+    var maximumX = Math.max(0, viewportWidth - pet.offsetWidth);
+    var edge =
+      target.x <= 0.5 ? "left" : target.x >= maximumX - 0.5 ? "right" : "";
     var leftGap = target.x;
     var rightGap = viewportWidth - target.x - pet.offsetWidth;
     var rope =
@@ -1173,8 +1192,9 @@ function dockPetIdleDelay(now, index) {
     pet.dataset.falling = "true";
     if (climbing) {
       pet.dataset.climbing = climbing;
-      pet.dataset.direction = climbing === "left" ? "right" : "left";
+      pet.dataset.direction = climbing;
     }
+    if (edge) pet.dataset.grip = edge;
     if (rope) pet.dataset.rope = rope;
     if (parachute) pet.dataset.parachute = "true";
     setPosition({ x: fall.x, y: target.y });
@@ -1198,6 +1218,7 @@ function dockPetIdleDelay(now, index) {
     if (drag || (event.button !== undefined && event.button !== 0)) return;
     if (helpOpen) setHelp(false);
     noteActivity();
+    var previousGrip = fall ? "" : pet.dataset.grip;
     if (fall) {
       stopFall();
       manualPosition = clampPosition(position);
@@ -1207,6 +1228,7 @@ function dockPetIdleDelay(now, index) {
     clearTimeout(settleTimer);
     settleTimer = 0;
     delete pet.dataset.dropping;
+    delete pet.dataset.grip;
     suppressClick = false;
     pet.dataset.held = "true";
     pet.style.setProperty("--dock-pet-drag-tilt", "0deg");
@@ -1216,6 +1238,7 @@ function dockPetIdleDelay(now, index) {
       pointerId: event.pointerId,
       start: { x: event.clientX, y: event.clientY },
       last: { x: event.clientX, y: event.clientY },
+      grip: previousGrip,
       target: { x: position.x, y: position.y },
     };
     pet.setPointerCapture?.(event.pointerId);
@@ -1245,7 +1268,7 @@ function dockPetIdleDelay(now, index) {
       bubble.hidden = true;
       announce("Koala picked up; release to place it");
     }
-    drag.target = clampPosition({
+    drag.target = clampDropPosition({
       x: drag.origin.x + dx,
       y: drag.origin.y + dy,
     });
@@ -1279,7 +1302,10 @@ function dockPetIdleDelay(now, index) {
       suppressClick = true;
       startFall(ended.target);
     } else if (moved) {
+      if (ended.grip) pet.dataset.grip = ended.grip;
       announce("Koala returned to its previous spot");
+    } else if (ended.grip) {
+      pet.dataset.grip = ended.grip;
     }
   }
 

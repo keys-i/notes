@@ -476,6 +476,15 @@
   transform-origin: center;
 }
 
+.dock-pet__wall-paw {
+  display: none;
+  fill: var(--dock-pet-fur-light);
+  stroke: var(--dock-pet-fur-dark);
+  stroke-linejoin: round;
+  stroke-width: 2.5;
+  transform-box: view-box;
+}
+
 .dock-pet__ear,
 .dock-pet__eye,
 .dock-pet__paw {
@@ -654,46 +663,20 @@
   transform: scaleY(0.55);
 }
 
-.dock-pet[data-climbing="left"] .dock-pet__body {
-  --dock-pet-edge-shift: -26px;
-
-  transform: rotate(8deg);
-}
-
-.dock-pet[data-climbing="right"] .dock-pet__body {
-  --dock-pet-edge-shift: 26px;
-
-  transform: rotate(-8deg);
-}
-
 .dock-pet[data-rope] .dock-pet__body {
-  --dock-pet-edge-shift: 0px;
-
   transform: rotate(var(--dock-pet-rope-body-angle, 0deg));
 }
 
-.dock-pet[data-state="clinging"] .dock-pet__body {
-  transform: rotate(-12deg);
+.dock-pet[data-grip] .dock-pet__body {
+  transform: none;
 }
 
-.dock-pet[data-state="clinging"] .dock-pet__character {
-  transform: translateX(26px);
+.dock-pet[data-grip] .dock-pet__paw {
+  display: none;
 }
 
-.dock-pet[data-state="clinging"] .dock-pet__paw--front-near {
-  transform: rotate(-82deg);
-}
-
-.dock-pet[data-state="clinging"] .dock-pet__paw--back-near {
-  transform: rotate(-68deg);
-}
-
-.dock-pet[data-state="clinging"] .dock-pet__paw--front-far {
-  transform: rotate(10deg);
-}
-
-.dock-pet[data-state="clinging"] .dock-pet__paw--back-far {
-  transform: rotate(-10deg);
+.dock-pet[data-grip] .dock-pet__wall-paw {
+  display: block;
 }
 
 .dock-pet[data-held]
@@ -807,24 +790,32 @@ html.freebsd-shutting-down .dock-pet__status {
     animation: dock-pet-curious 1.2s ease-in-out both;
   }
 
-  .dock-pet[data-climbing] .dock-pet__character {
-    animation: dock-pet-cling 620ms ease-in-out infinite;
+  .dock-pet[data-grip] .dock-pet__character {
+    animation: dock-pet-wall-weight 620ms ease-in-out infinite;
   }
 
-  .dock-pet[data-climbing] .dock-pet__paw--front-near {
-    animation: dock-pet-climb-fore-grip 620ms ease-in-out infinite;
+  .dock-pet[data-grip]
+    :is(.dock-pet__wall-paw--front-far, .dock-pet__wall-paw--back-near) {
+    animation: dock-pet-wall-step-a 620ms ease-in-out infinite;
   }
 
-  .dock-pet[data-climbing] .dock-pet__paw--back-near {
-    animation: dock-pet-climb-hind-grip 620ms ease-in-out infinite;
+  .dock-pet[data-grip]
+    :is(.dock-pet__wall-paw--front-near, .dock-pet__wall-paw--back-far) {
+    animation: dock-pet-wall-step-b 620ms ease-in-out infinite;
   }
 
-  .dock-pet[data-climbing] .dock-pet__paw--front-far {
-    animation: dock-pet-climb-fore-brace 620ms ease-in-out infinite;
+  .dock-pet[data-rope] .dock-pet__character {
+    animation: dock-pet-rope-hang 740ms ease-in-out infinite;
   }
 
-  .dock-pet[data-climbing] .dock-pet__paw--back-far {
-    animation: dock-pet-climb-hind-brace 620ms ease-in-out infinite;
+  .dock-pet[data-rope]
+    :is(.dock-pet__paw--front-far, .dock-pet__paw--back-near) {
+    animation: dock-pet-rope-search-a 740ms ease-in-out infinite;
+  }
+
+  .dock-pet[data-rope]
+    :is(.dock-pet__paw--front-near, .dock-pet__paw--back-far) {
+    animation: dock-pet-rope-search-b 740ms ease-in-out infinite;
   }
 
   .dock-pet[data-rope] .dock-pet__rope {
@@ -1074,58 +1065,69 @@ html.freebsd-shutting-down .dock-pet__status {
   }
 }
 
-@keyframes dock-pet-cling {
+@keyframes dock-pet-wall-weight {
   0%,
   100% {
-    transform: translateX(var(--dock-pet-edge-shift)) translateY(-1px);
+    transform: translateY(-1px);
   }
 
   50% {
-    transform: translateX(var(--dock-pet-edge-shift)) translateY(1px);
+    transform: translateY(1px);
   }
 }
 
-@keyframes dock-pet-climb-fore-grip {
+@keyframes dock-pet-wall-step-a {
   0%,
   100% {
-    transform: rotate(-82deg);
+    transform: translateY(-2px);
   }
 
   50% {
-    transform: rotate(-56deg);
+    transform: translateY(2px);
   }
 }
 
-@keyframes dock-pet-climb-hind-grip {
+@keyframes dock-pet-wall-step-b {
   0%,
   100% {
-    transform: rotate(-42deg);
+    transform: translateY(2px);
   }
 
   50% {
-    transform: rotate(-68deg);
+    transform: translateY(-2px);
   }
 }
 
-@keyframes dock-pet-climb-fore-brace {
+@keyframes dock-pet-rope-hang {
   0%,
   100% {
-    transform: rotate(12deg);
+    transform: translateY(-1px) rotate(-1deg);
   }
 
   50% {
-    transform: rotate(-8deg);
+    transform: translateY(1px) rotate(1deg);
   }
 }
 
-@keyframes dock-pet-climb-hind-brace {
+@keyframes dock-pet-rope-search-a {
   0%,
   100% {
-    transform: rotate(-10deg);
+    transform: rotate(-9deg);
   }
 
   50% {
-    transform: rotate(10deg);
+    transform: rotate(7deg);
+  }
+}
+
+@keyframes dock-pet-rope-search-b {
+  0%,
+  100% {
+    transform: rotate(8deg);
+  }
+
+  50% {
+    transform: rotate(-7deg);
   }
 }
 
@@ -1241,6 +1243,7 @@ html.freebsd-shutting-down .dock-pet__status {
   .dock-pet__rump,
   .dock-pet__belly,
   .dock-pet__paw,
+  .dock-pet__wall-paw,
   .dock-pet__eye,
   .dock-pet__gumleaf {
     animation: none !important;

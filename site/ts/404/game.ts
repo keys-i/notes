@@ -177,6 +177,15 @@ var SCENE_DURATIONS = {
 };
 
 var AUSSIE_SLANG = ["Too easy", "Beauty", "No worries"];
+var SAIYAN_WEAK_POWERUPS = new Set(["avocado", "banana"]);
+var AURA_FORMS = {
+  vegemite: "super-saiyan-god",
+  dragon: "super-saiyan-2",
+  combined: "combined",
+  weak: "oozaru",
+  ultra: "ultra-instinct",
+  hakai: "hakai",
+};
 
 function flashGameReaction(kind, callout?) {
   clearTimeout(gameReactionTimer);
@@ -248,9 +257,14 @@ function boostSceneKind(selectedPower, weakCount) {
   return weakCount >= 2 ? "hakai" : selectedPower;
 }
 
-function bonusSceneKind(activePower, weakCount) {
-  if (!activePower) return "weak";
-  if (weakCount >= 2 || activePower === "hakai") return "hakai";
+function isSaiyanWeakPowerup(id) {
+  return SAIYAN_WEAK_POWERUPS.has(id);
+}
+
+function bonusSceneKind(activePower, weakCount, weakPickup) {
+  if (activePower === "hakai" || (activePower && weakCount >= 2))
+    return "hakai";
+  if (!activePower) return weakPickup ? "weak" : "";
   return ["dragon", "combined", "ultra"].includes(activePower) ? "ultra" : "";
 }
 
@@ -2984,15 +2998,19 @@ function setPlayerAura(kind) {
     delete osElement.dataset.power;
     clearFruitAuraVars();
     delete playerElement.dataset.aura;
+    delete playerElement.dataset.form;
     return;
   }
   playerElement.dataset.aura = kind;
+  playerElement.dataset.form = AURA_FORMS[kind] || kind;
+  clearFruitAuraVars();
   if (isPowerAura(kind)) {
     powerAuraKind = kind;
     osElement.dataset.power = kind;
-    clearFruitAuraVars();
     return;
   }
+  powerAuraKind = "";
+  delete osElement.dataset.power;
 }
 
 function setFruitAura(item) {
@@ -3001,6 +3019,7 @@ function setFruitAura(item) {
   auraTimer = 0;
   delete playerElement.dataset.auraSurge;
   playerElement.dataset.aura = "fruit";
+  delete playerElement.dataset.form;
   playerElement.dataset.fruit = item.id;
   playerElement.style.setProperty("--aura-h", tint.h);
   playerElement.style.setProperty("--aura-s", tint.s + "%");
@@ -3133,11 +3152,15 @@ function movePlayer(dx, dy) {
       setPlayerAura(transformationScene);
       triggerPowerScene(transformationScene);
     } else if (bonus) {
-      weakPowerups.add(bonus.id);
-      transformationScene = bonusSceneKind(powerAuraKind, weakPowerups.size);
+      var weakPickup = isSaiyanWeakPowerup(bonus.id);
+      if (weakPickup) weakPowerups.add(bonus.id);
+      transformationScene = bonusSceneKind(
+        powerAuraKind,
+        weakPowerups.size,
+        weakPickup,
+      );
       if (transformationScene) {
-        if (transformationScene === "weak") setFruitAura(bonus);
-        else setPlayerAura(transformationScene);
+        setPlayerAura(transformationScene);
         triggerPowerScene(transformationScene);
       } else if (!surgeSaiyan()) {
         setFruitAura(bonus);
