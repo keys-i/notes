@@ -589,12 +589,22 @@ test("404 chrome keeps the game primary and the terminal optional", () => {
   assert.match(template, /scene-attract__home/);
   assert.match(template, /scene-ready__impact/);
   assert.match(template, /scene-ready__pickup/);
+  assert.match(template, /scene-ready__sign-back">MAZE&nbsp; →/);
+  assert.doesNotMatch(
+    styles,
+    /scene-ready__sign-(?:front|back)[^;]*steps\(1,\s*jump-none\)/,
+  );
   assert.doesNotMatch(template, /scene-ready__moves/);
   assert.match(template, /aria-describedby="game-objective status"/);
   assert.match(template, />\s*Play\s*<\/button>/);
   assert.match(template, /Right\. Long way home\./);
   assert.doesNotMatch(template, /SHORTCUT\?|STOLEN\.|Collect\. Escape/);
   assert.match(styles, /\.game-scene\[hidden\]\s*{\s*display:\s*none;/);
+  assert.match(
+    styles,
+    /\.scene-dragon__aura\s*{[\s\S]*?clip-path:\s*polygon\(/,
+  );
+  assert.doesNotMatch(styles, /\.scene-dragon__aura\s*{[^}]*border-radius/);
   assert.match(
     panicStyles,
     /\.os\[data-game="playing"\] \.trace\s*{\s*display:\s*flex;/,
@@ -1282,6 +1292,7 @@ test("authored scenes run once while repeat powers stay on the board", () => {
     SCENE_DURATIONS: JSON.parse(JSON.stringify(game.SCENE_DURATIONS)),
     AUSSIE_SLANG: [...game.AUSSIE_SLANG],
     gameScene: "",
+    gameSceneExitTimer: 0,
     gameSceneTimer: 0,
     gameReactionTimer: 0,
     gameStarted: false,
@@ -1362,6 +1373,15 @@ test("authored scenes run once while repeat powers stay on the board", () => {
   assert.equal([...timers.values()][0].ms, 4300);
   context.finishGameScene();
   assert.equal(context.board.dataset.scene, undefined);
+  assert.equal(context.board.dataset.entering, "true");
+  assert.equal(scene.dataset.exit, "ready");
+  assert.equal(context.gameScene, "ready");
+  const introExit = [...timers.values()][0];
+  assert.equal(introExit.ms, 360);
+  introExit.fn();
+  assert.equal(context.gameScene, "");
+  assert.equal(context.board.dataset.entering, undefined);
+  assert.equal(scene.dataset.exit, undefined);
 
   context.matchMedia = () => ({ matches: true });
   context.startGameScene("ready");
@@ -1456,6 +1476,15 @@ test("authored scenes run once while repeat powers stay on the board", () => {
   assert.equal(context.gameScene, "attract");
   assert.equal(context.board.dataset.scene, undefined);
 
+  context.startGameScene("ready");
+  context.finishGameScene();
+  const staleExit = [...timers.values()][0].fn;
+  context.clearGameScene();
+  context.showGameAttract();
+  staleExit();
+  assert.equal(context.gameScene, "attract");
+  assert.equal(context.board.dataset.entering, undefined);
+
   let focusReturned = false;
   scene.contains = () => true;
   context.board.focus = () => {
@@ -1463,6 +1492,7 @@ test("authored scenes run once while repeat powers stay on the board", () => {
   };
   context.startGameScene("ready");
   context.finishGameScene();
+  [...timers.values()][0].fn();
   assert.equal(
     focusReturned,
     true,
