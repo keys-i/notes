@@ -408,6 +408,7 @@ function createRuntime({
   footerTop = 700,
   hasPlot = false,
   moveFooterWithScroll = false,
+  mediaFiles = null,
   now = 98000,
   page = "/week-2/",
   reduced = false,
@@ -789,6 +790,45 @@ function createRuntime({
       documentHandlers[name] = handler;
     },
     createElement(tag = "div") {
+      if (tag === "canvas" && mediaFiles?.blob) {
+        return {
+          getContext: () => ({ drawImage() {} }),
+          height: 0,
+          toBlob: (resolve) => resolve(mediaFiles.blob),
+          width: 0,
+        };
+      }
+      if (tag === "video" && mediaFiles?.video) {
+        const handlers: Record<string, any> = {};
+        let currentTime = 0;
+        return {
+          duration: mediaFiles.video.duration,
+          get currentTime() {
+            return currentTime;
+          },
+          set currentTime(value) {
+            currentTime = value;
+            Promise.resolve().then(() => handlers.seeked?.());
+          },
+          load() {
+            if (mediaFiles.video.fail) {
+              handlers.error?.();
+              return;
+            }
+            this.readyState = 2;
+            handlers.loadedmetadata?.();
+          },
+          addEventListener(name, handler) {
+            handlers[name] = handler;
+          },
+          removeEventListener(name, handler) {
+            if (handlers[name] === handler) delete handlers[name];
+          },
+          readyState: 0,
+          videoHeight: mediaFiles.video.height,
+          videoWidth: mediaFiles.video.width,
+        };
+      }
       let ownText = "";
       const item: any = {
         children: [],
@@ -893,6 +933,15 @@ function createRuntime({
       if (emitScrollEvents) windowHandlers.scroll?.();
     },
   };
+  if (mediaFiles?.bitmap) {
+    window.createImageBitmap = async () => mediaFiles.bitmap;
+  }
+  if (mediaFiles?.video) {
+    window.URL = {
+      createObjectURL: () => "blob:attachment",
+      revokeObjectURL() {},
+    };
+  }
   const fetchCalls: any[] = [];
   if (fetchResponse !== null) {
     window.fetch = async (url, options) => {
@@ -1229,6 +1278,53 @@ test("one ephemeral media attachment is sent without entering chat caches", asyn
   assert.deepEqual(runtime.sessionWrites, []);
 });
 
+test("image and video attachments are reduced to bounded WebP frames", async () => {
+  let bitmapClosed = false;
+  const image = createRuntime({
+    mediaFiles: {
+      bitmap: {
+        close: () => {
+          bitmapClosed = true;
+        },
+        height: 1200,
+        width: 2400,
+      },
+      blob: {
+        dataUrl: "data:image/webp;base64,UklGRg==",
+        size: 24,
+      },
+    },
+  });
+  image.fileInput.files = [
+    { name: "diagram.avif", size: 900_000, type: "image/avif" },
+  ];
+  await image.fileHandlers.change();
+  assert.match(image.attachmentName.textContent, /diagram\.avif/);
+  assert.equal(bitmapClosed, true);
+
+  const video = createRuntime({
+    fetchResponse: { answer: "The frame shows a free-body diagram" },
+    mediaFiles: {
+      blob: {
+        dataUrl: "data:image/webp;base64,UklGRg==",
+        size: 24,
+      },
+      video: { duration: 8, height: 720, width: 1280 },
+    },
+  });
+  video.fileInput.files = [
+    { name: "worked-example.mp4", size: 1_000_000, type: "video/mp4" },
+  ];
+  await video.fileHandlers.change();
+  assert.match(video.attachmentName.textContent, /worked-example\.mp4/);
+  video.formHandlers.submit({ preventDefault() {} });
+  await flushStudy();
+  assert.deepEqual(video.fetchCalls[0].payload.attachment, {
+    data_url: "data:image/webp;base64,UklGRg==",
+    kind: "image",
+  });
+});
+
 test("attachment removal and unsafe file types recover in place", async () => {
   const runtime = createRuntime({ fetchResponse: { answer: "unused" } });
   runtime.petHandlers.click();
@@ -1262,6 +1358,60 @@ test("attachment removal and unsafe file types recover in place", async () => {
     /image, audio file or video/,
   );
   assert.equal(runtime.attachButton.disabled, false);
+});
+
+test("media attachment failures remain recoverable", async () => {
+  const runtime = createRuntime();
+  const failures = [
+    {
+      file: {
+        name: "broken.wav",
+        readError: true,
+        size: 12,
+        type: "audio/wav",
+      },
+      message: /read failed/,
+    },
+    {
+      file: {
+        dataUrl: "not-a-data-url",
+        name: "empty.wav",
+        size: 12,
+        type: "audio/wav",
+      },
+      message: /read failed/,
+    },
+    {
+      file: { name: "huge.wav", size: 2_000_001, type: "audio/wav" },
+      message: /under 2 MB/,
+    },
+    {
+      file: { name: "huge.mp4", size: 64_000_001, type: "video/mp4" },
+      message: /too large/,
+    },
+    {
+      file: { name: "scan.avif", size: 700_001, type: "image/avif" },
+      message: /too large/,
+    },
+  ];
+  for (const failure of failures) {
+    runtime.fileInput.files = [failure.file];
+    await runtime.fileHandlers.change();
+    assert.match(runtime.attachmentName.textContent, failure.message);
+    assert.equal(runtime.attachButton.disabled, false);
+  }
+
+  const video = createRuntime({
+    mediaFiles: {
+      blob: { dataUrl: "data:image/webp;base64,UklGRg==", size: 24 },
+      video: { duration: 8, fail: true, height: 720, width: 1280 },
+    },
+  });
+  video.fileInput.files = [
+    { name: "broken.mp4", size: 1_000_000, type: "video/mp4" },
+  ];
+  await video.fileHandlers.change();
+  assert.match(video.attachmentName.textContent, /decode failed/);
 });
 
 test("hosted study replies enhance immediate fallback with safe rich sources", async () => {
@@ -1540,6 +1690,17 @@ test("pointer pickup keeps the click threshold, capture, and cancellation", () =
   lost.petHandlers.lostpointercapture({ pointerId: 10 });
   assert.equal(lost.pet.dataset.held, undefined);
   assert.equal(lost.pet.dataset.dock, "footer");
+
+  const gripped = createRuntime();
+  gripped.pet.dataset.grip = "left";
+  gripped.petHandlers.pointerdown({
+    button: 0,
+    clientX: 0,
+    clientY: 640,
+    pointerId: 11,
+  });
+  gripped.petHandlers.pointerup({ pointerId: 11 });
+  assert.equal(gripped.pet.dataset.grip, "left");
 });
 
 test("normal release falls under gravity and lands on the footer", () => {
@@ -2258,6 +2419,16 @@ test("theme changes radiate from the palette control and clean up", async () => 
   assert.deepEqual(runtime.themeChanges, [false]);
   runtime.runTimer(220);
   assert.equal(runtime.bodyClasses.has("theme-fade"), false);
+
+  const labelWithoutGeometry: any = {
+    control: runtime.themeControl,
+    closest: () => labelWithoutGeometry,
+  };
+  runtime.paletteHandlers.click({
+    preventDefault() {},
+    target: labelWithoutGeometry,
+  });
+  assert.equal(runtime.themeScheme(), "default");
 
   const reduced = createRuntime({ reduced: true });
   reduced.themeLabel.click();
