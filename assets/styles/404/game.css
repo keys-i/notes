@@ -836,6 +836,36 @@
     drop-shadow(0 0 0.9rem rgb(80 190 255 / 0.9));
 }
 
+.player[data-aura="ultra"] {
+  filter: drop-shadow(0 0 0.4rem rgb(255 255 255 / 1))
+    drop-shadow(0 0 0.95rem rgb(160 220 255 / 0.9));
+}
+
+.player[data-aura="ultra"]::before {
+  background: radial-gradient(
+    ellipse 52% 68% at 50% 74%,
+    #fff 0 22%,
+    #d9f4ff 22% 46%,
+    #8dbbff 46% 72%,
+    #243a80 72% 100%
+  );
+}
+
+.player[data-aura="hakai"] {
+  filter: drop-shadow(0 0 0.4rem rgb(255 160 255 / 1))
+    drop-shadow(0 0 1rem rgb(116 34 190 / 0.95));
+}
+
+.player[data-aura="hakai"]::before {
+  background: radial-gradient(
+    ellipse 52% 68% at 50% 74%,
+    #fff 0 16%,
+    #ff9df2 16% 38%,
+    #9b43d4 38% 68%,
+    #241038 68% 100%
+  );
+}
+
 .player[data-aura="combined"]::before {
   background: radial-gradient(
     ellipse 52% 68% at 50% 74%,
@@ -890,6 +920,8 @@
 .player[data-aura="dragon"] img,
 .player[data-aura="vegemite"] img,
 .player[data-aura="combined"] img,
+.player[data-aura="ultra"] img,
+.player[data-aura="hakai"] img,
 .player[data-aura="fruit"] img {
   filter: brightness(1.15) drop-shadow(0 0 0.16rem rgb(255 236 150 / 0.85));
 }
@@ -1070,6 +1102,24 @@
   border-color: #fff3a0;
   color: #fff3a0;
   background: #07165a;
+}
+
+.board[data-reaction="power-weak"]::before {
+  border-color: #ddba8d;
+  color: #fff3dc;
+  background: #38271e;
+}
+
+.board[data-reaction="power-ultra"]::before {
+  border-color: #fff;
+  color: #effaff;
+  background: #162449;
+}
+
+.board[data-reaction="power-hakai"]::before {
+  border-color: #ff9df2;
+  color: #fff;
+  background: #32104d;
 }
 
 .ghost {
@@ -2716,6 +2766,14 @@ body.routing-snap {
   --power-color: #fff3a0;
 }
 
+.os[data-power="ultra"] {
+  --power-color: #e7f8ff;
+}
+
+.os[data-power="hakai"] {
+  --power-color: #d77cff;
+}
+
 .os[data-power] .board {
   border-color: var(--power-color);
   box-shadow: 0 0 1.6rem var(--power-color);
@@ -2804,6 +2862,9 @@ body.routing-snap {
 .game-scene[data-kind="ready"] .scene-stage--ready,
 .game-scene[data-kind="vegemite"] .scene-stage--vegemite,
 .game-scene[data-kind="dragon"] .scene-stage--dragon,
+.game-scene[data-kind="weak"] .scene-stage--dragon,
+.game-scene[data-kind="ultra"] .scene-stage--dragon,
+.game-scene[data-kind="hakai"] .scene-stage--dragon,
 .game-scene[data-kind="combined"] .scene-stage--combined {
   display: block;
 }
@@ -3501,24 +3562,59 @@ body.routing-snap {
   opacity: 0.94;
 }
 
-/* -- Earnest single-ball sputter -- */
+/* -- Drop-bear transformation reel -- */
 .scene-stage--dragon {
-  --scene-bg: rgb(8 11 38 / 0.9);
+  --scene-energy: #69e8ff;
+  --scene-ink: #d7ffff;
+  --scene-bg: rgb(8 11 38 / 0.94);
 
   background:
     radial-gradient(
-      circle at 25% 52%,
-      rgb(105 232 255 / 0.18),
-      transparent 28%
+      ellipse at 24% 58%,
+      color-mix(in srgb, var(--scene-energy) 22%, transparent),
+      transparent 34%
     ),
-    linear-gradient(rgb(105 232 255 / 0.08) 1px, transparent 1px),
-    linear-gradient(90deg, rgb(105 232 255 / 0.08) 1px, transparent 1px),
     var(--scene-bg);
-  background-size:
-    auto,
-    2.4rem 2.4rem,
-    2.4rem 2.4rem,
-    auto;
+}
+
+.game-scene[data-kind="weak"] .scene-stage--dragon {
+  --scene-energy: #c99663;
+  --scene-ink: #ffe2bd;
+  --scene-bg: rgb(28 19 17 / 0.96);
+}
+
+.game-scene[data-kind="ultra"] .scene-stage--dragon {
+  --scene-energy: #e7f8ff;
+  --scene-ink: #fff;
+  --scene-bg: rgb(11 17 42 / 0.96);
+}
+
+.game-scene[data-kind="hakai"] .scene-stage--dragon {
+  --scene-energy: #d77cff;
+  --scene-ink: #ffe8ff;
+  --scene-bg: rgb(29 8 48 / 0.97);
+}
+
+.scene-saiyan__moon {
+  position: absolute;
+  top: 10%;
+  left: 12%;
+  width: 15%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #e8efff;
+  box-shadow:
+    0.12rem 0.16rem 0.35rem rgb(8 11 38 / 0.65),
+    0 0 1.2rem rgb(215 255 255 / 0.48);
+}
+
+.scene-saiyan__moon::after {
+  position: absolute;
+  inset: 18% 14% 42% 45%;
+  border-radius: 50%;
+  background: rgb(91 112 150 / 0.42);
+  box-shadow: -0.8cqw 1.1cqw 0 rgb(91 112 150 / 0.3);
+  content: "";
 }
 
 .scene-dragon__ground {
@@ -3528,10 +3624,11 @@ body.routing-snap {
   bottom: 34%;
   left: 5%;
   height: 0.16rem;
-  background: #174fff;
+  background: var(--scene-energy);
   box-shadow:
-    0 0 0.55rem #69e8ff,
-    0 0.75rem 0 -0.07rem rgb(105 232 255 / 0.32);
+    0 0 0.55rem var(--scene-energy),
+    0 0.75rem 0 -0.07rem
+      color-mix(in srgb, var(--scene-energy) 32%, transparent);
   transform-origin: 25% 50%;
 }
 
@@ -3542,11 +3639,24 @@ body.routing-snap {
   left: 7%;
   width: 33%;
   aspect-ratio: 1;
-  border: 0.16rem solid rgb(105 232 255 / 0.72);
-  border-radius: 45% 55% 48% 52%;
+  border: 0.16rem solid var(--scene-energy);
+  border-radius: 46% 54% 42% 58%;
   box-shadow:
-    0 0 1.4rem rgb(105 232 255 / 0.78),
-    inset 0 0 1rem rgb(242 255 61 / 0.24);
+    0.08rem 0.12rem 1.4rem var(--scene-energy),
+    inset -0.06rem -0.1rem 1rem
+      color-mix(in srgb, var(--scene-ink) 32%, transparent);
+  opacity: 0;
+}
+
+.scene-saiyan__shock {
+  position: absolute;
+  z-index: 6;
+  top: 25%;
+  left: 9%;
+  width: 30%;
+  aspect-ratio: 1;
+  border: 0.13rem solid var(--scene-ink);
+  border-radius: 50%;
   opacity: 0;
 }
 
@@ -3569,7 +3679,7 @@ body.routing-snap {
   left: 18%;
   width: 0.45rem;
   aspect-ratio: 1;
-  background: #69e8ff;
+  background: var(--scene-energy);
   clip-path: polygon(50% 0, 100% 65%, 30% 100%, 0 38%);
   opacity: 0;
 }
@@ -3605,10 +3715,14 @@ body.routing-snap {
 }
 
 .scene-dragon__orb {
-  top: 42%;
-  left: 39%;
-  width: 8%;
+  top: 40%;
+  left: 36%;
+  width: 11%;
   aspect-ratio: 1;
+  background: var(--scene-ink);
+  box-shadow:
+    0 0 0.45rem #fff,
+    0 0 1.2rem var(--scene-energy);
 }
 
 .scene-dragon__beam,
@@ -3625,18 +3739,152 @@ body.routing-snap {
 }
 
 .scene-dragon__beam {
-  top: 47%;
-  height: 2.5%;
+  top: 42%;
+  left: 41%;
+  width: 64%;
+  height: 17%;
+  border-block: 0.12rem solid #fff;
+  background: var(--scene-ink);
+  box-shadow:
+    0 0 0.5rem #fff,
+    0 0 1.2rem var(--scene-energy),
+    0 0 2rem var(--scene-energy);
+  opacity: 0;
 }
 
-.scene-dragon__puff {
+.scene-dragon__beam::before {
   position: absolute;
-  z-index: 6;
-  top: 44%;
+  inset: 31% 0;
+  background: #fff;
+  box-shadow: 0 0 0.35rem #fff;
+  content: "";
+}
+
+.scene-dragon__beam::after {
+  position: absolute;
+  top: 50%;
+  right: -4cqw;
+  width: 9cqw;
+  aspect-ratio: 1;
+  border: 0.18rem solid #fff;
+  border-radius: 50%;
+  background: var(--scene-energy);
+  box-shadow:
+    0 0 0.8rem #fff,
+    0 0 1.8rem var(--scene-energy);
+  content: "";
+  transform: translateY(-50%);
+}
+
+.scene-saiyan__forms,
+.scene-vegemite__forms {
+  position: absolute;
+  z-index: 7;
+  top: 7%;
   left: 50%;
-  color: #cbd0df;
-  font: italic 750 clamp(0.55rem, 2.8cqw, 1.1rem) / 1 monospace;
+  width: min(82%, 25rem);
+  color: var(--scene-ink, #fff3a0);
+  font: italic 900 clamp(0.62rem, 3.2cqw, 1.35rem) / 1 monospace;
+  text-align: center;
+  text-shadow: 0.06em 0.08em #000;
+  transform: translateX(-50%);
+}
+
+.scene-saiyan__forms span,
+.scene-vegemite__forms span {
+  position: absolute;
+  inset-inline: 0;
+  display: none;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.55em;
   opacity: 0;
+}
+
+.scene-saiyan__forms b,
+.scene-vegemite__forms b {
+  color: #fff;
+  font-size: 0.62em;
+}
+
+.game-scene[data-kind="dragon"]
+  .scene-saiyan__forms
+  :is(
+    [data-form="base"],
+    [data-form="oozaru"],
+    [data-form="wrathful"],
+    [data-form="super"],
+    [data-form="grade-two"]
+  ),
+.game-scene[data-kind="weak"]
+  .scene-saiyan__forms
+  :is([data-form="super"], [data-form="wrathful"], [data-form="oozaru"]),
+.game-scene[data-kind="ultra"]
+  .scene-saiyan__forms
+  :is([data-form="super"], [data-form="omen"], [data-form="ultra"]),
+.game-scene[data-kind="hakai"]
+  .scene-saiyan__forms
+  :is([data-form="mix"], [data-form="hakai"]) {
+  display: flex;
+}
+
+.scene-dragon__chant {
+  position: absolute;
+  z-index: 8;
+  top: 10%;
+  left: 50%;
+  display: flex;
+  width: 92%;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.12em;
+  color: #fff;
+  font: italic 950 clamp(0.72rem, 4.6cqw, 1.9rem) / 1 monospace;
+  text-align: center;
+  text-shadow:
+    0.06em 0.08em #0719aa,
+    0 0 0.55rem var(--scene-energy);
+  transform: translateX(-50%);
+}
+
+.scene-dragon__chant span {
+  opacity: 0;
+}
+
+.scene-saiyan__fizzle,
+.scene-saiyan__hakai {
+  position: absolute;
+  z-index: 8;
+  top: 39%;
+  left: 42%;
+  color: var(--scene-ink);
+  font: italic 950 clamp(0.75rem, 4.4cqw, 1.8rem) / 1 monospace;
+  text-shadow: 0.06em 0.08em #000;
+  opacity: 0;
+}
+
+.scene-saiyan__hakai {
+  top: 35%;
+  left: 50%;
+  font-size: clamp(1rem, 7cqw, 2.8rem);
+  transform: translateX(-50%);
+}
+
+.scene-saiyan__afterimage {
+  position: absolute;
+  z-index: 3;
+  top: 31%;
+  left: 12%;
+  width: 23%;
+  aspect-ratio: 1;
+  background: url("../../images/game/koala/neutral.webp") center / contain
+    no-repeat;
+  filter: grayscale(1) brightness(1.8) drop-shadow(0 0 0.5rem #fff);
+  opacity: 0;
+}
+
+.scene-saiyan__afterimage--b {
+  filter: grayscale(1) brightness(1.45) drop-shadow(0 0 0.45rem #9edfff);
 }
 
 .scene-dragon__hunters {
@@ -3645,10 +3893,44 @@ body.routing-snap {
   width: 18%;
 }
 
-.game-scene[data-kind="dragon"] .game-scene__koala {
+.game-scene:is(
+    [data-kind="dragon"],
+    [data-kind="weak"],
+    [data-kind="ultra"],
+    [data-kind="hakai"]
+  )
+  .game-scene__koala {
   top: 31%;
   left: 12%;
   width: 23%;
+}
+
+.game-scene__crest {
+  position: absolute;
+  z-index: 5;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.game-scene__crest path {
+  fill: #ffd84a;
+  stroke: #7d4b00;
+  stroke-linejoin: round;
+  stroke-width: 2.2;
+}
+
+.scene-vegemite__forms {
+  --scene-ink: #ffec73;
+
+  top: 8%;
+}
+
+.scene-vegemite__forms span {
+  display: flex;
 }
 
 /* -- Combined charge and full beam -- */
@@ -3851,23 +4133,113 @@ body.routing-snap {
     animation: scene-vegemite-slang var(--scene-duration) ease-out both;
   }
 
+  .game-scene[data-kind="vegemite"] .scene-vegemite__forms span:first-child {
+    animation: scene-form-first var(--scene-duration) ease-out both;
+  }
+
+  .game-scene[data-kind="vegemite"] .scene-vegemite__forms span:last-child {
+    animation: scene-form-final var(--scene-duration) ease-out both;
+  }
+
+  .game-scene[data-kind="vegemite"] .game-scene__crest {
+    animation: scene-god-crest var(--scene-duration) ease-out both;
+  }
+
+  .game-scene[data-kind="vegemite"] .dock-pet__character {
+    animation: scene-god-fur var(--scene-duration) ease-out both;
+  }
+
   .game-scene[data-kind="dragon"] .game-scene__koala {
-    animation: scene-dragon-charge var(--scene-duration) ease-in-out both;
+    animation: scene-saiyan-climb var(--scene-duration) ease-in-out both;
   }
 
-  .game-scene[data-kind="dragon"] .scene-stage--dragon {
-    animation: scene-dragon-camera var(--scene-duration) ease-in-out both;
+  .game-scene[data-kind="weak"] .game-scene__koala {
+    animation: scene-saiyan-fizzle var(--scene-duration) ease-in-out both;
   }
 
-  .game-scene[data-kind="dragon"] .scene-dragon__ground {
+  .game-scene[data-kind="ultra"] .game-scene__koala {
+    animation: scene-ultra-dodge var(--scene-duration) ease-in-out both;
+  }
+
+  .game-scene[data-kind="hakai"] .game-scene__koala {
+    animation: scene-hakai-cast var(--scene-duration) ease-out both;
+  }
+
+  .game-scene[data-kind="dragon"] .dock-pet__character {
+    animation: scene-saiyan-fur var(--scene-duration) ease-out both;
+  }
+
+  .game-scene[data-kind="weak"] .dock-pet__character {
+    animation: scene-weak-fur var(--scene-duration) ease-out both;
+  }
+
+  .game-scene[data-kind="ultra"] .dock-pet__character {
+    animation: scene-ultra-fur var(--scene-duration) ease-out both;
+  }
+
+  .game-scene[data-kind="hakai"] .dock-pet__character {
+    animation: scene-hakai-fur var(--scene-duration) ease-out both;
+  }
+
+  .game-scene[data-kind="dragon"] .game-scene__crest {
+    animation: scene-saiyan-crest var(--scene-duration) ease-out both;
+  }
+
+  .game-scene[data-kind="weak"] .game-scene__crest {
+    animation: scene-weak-crest var(--scene-duration) ease-out both;
+  }
+
+  .game-scene[data-kind="ultra"] .game-scene__crest {
+    animation: scene-ultra-crest var(--scene-duration) ease-out both;
+  }
+
+  .game-scene[data-kind="hakai"] .game-scene__crest {
+    animation: scene-hakai-crest var(--scene-duration) ease-out both;
+  }
+
+  .game-scene:is(
+      [data-kind="dragon"],
+      [data-kind="weak"],
+      [data-kind="ultra"],
+      [data-kind="hakai"]
+    )
+    .scene-stage--dragon {
+    animation: scene-saiyan-camera var(--scene-duration) ease-in-out both;
+  }
+
+  .game-scene:is(
+      [data-kind="dragon"],
+      [data-kind="weak"],
+      [data-kind="ultra"],
+      [data-kind="hakai"]
+    )
+    .scene-dragon__ground {
     animation: scene-dragon-ground var(--scene-duration) ease-in-out both;
   }
 
-  .game-scene[data-kind="dragon"] .scene-dragon__aura {
-    animation: scene-dragon-aura var(--scene-duration) ease-in-out both;
+  .game-scene:is(
+      [data-kind="dragon"],
+      [data-kind="weak"],
+      [data-kind="ultra"],
+      [data-kind="hakai"]
+    )
+    .scene-dragon__aura {
+    animation: scene-saiyan-aura var(--scene-duration) ease-in-out both;
   }
 
-  .game-scene[data-kind="dragon"] .scene-dragon__debris span {
+  .game-scene:is([data-kind="dragon"], [data-kind="ultra"], [data-kind="hakai"])
+    .scene-saiyan__shock {
+    animation: scene-saiyan-shock var(--scene-duration) ease-out both;
+  }
+
+  .game-scene:is(
+      [data-kind="dragon"],
+      [data-kind="weak"],
+      [data-kind="ultra"],
+      [data-kind="hakai"]
+    )
+    .scene-dragon__debris
+    span {
     animation: scene-dragon-debris var(--scene-duration) ease-in-out both;
   }
 
@@ -3876,24 +4248,113 @@ body.routing-snap {
   }
 
   .game-scene[data-kind="dragon"] .scene-dragon__beam {
-    animation: scene-dragon-sputter var(--scene-duration) steps(3, jump-none)
-      both;
+    animation: scene-dragon-beam var(--scene-duration)
+      cubic-bezier(0.16, 1, 0.3, 1) both;
   }
 
-  .game-scene[data-kind="dragon"] .scene-dragon__puff {
-    animation: scene-dragon-puff var(--scene-duration) ease-out both;
+  .game-scene[data-kind="dragon"] .scene-dragon__chant span {
+    animation: scene-dragon-syllable calc(var(--scene-duration) * 0.18)
+      cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .game-scene[data-kind="dragon"] .scene-dragon__chant span:nth-child(1) {
+    animation-delay: calc(var(--scene-duration) * 0.16);
+  }
+
+  .game-scene[data-kind="dragon"] .scene-dragon__chant span:nth-child(2) {
+    animation-delay: calc(var(--scene-duration) * 0.25);
+  }
+
+  .game-scene[data-kind="dragon"] .scene-dragon__chant span:nth-child(3) {
+    animation-delay: calc(var(--scene-duration) * 0.34);
+  }
+
+  .game-scene[data-kind="dragon"] .scene-dragon__chant span:nth-child(4) {
+    animation-delay: calc(var(--scene-duration) * 0.43);
+  }
+
+  .game-scene[data-kind="dragon"] .scene-dragon__chant span:nth-child(5) {
+    animation-delay: calc(var(--scene-duration) * 0.54);
+  }
+
+  .game-scene[data-kind="weak"] .scene-saiyan__fizzle {
+    animation: scene-weak-fizzle var(--scene-duration) ease-out both;
+  }
+
+  .game-scene[data-kind="ultra"] .scene-saiyan__afterimage--a {
+    animation: scene-ultra-afterimage-a var(--scene-duration) ease-out both;
+  }
+
+  .game-scene[data-kind="ultra"] .scene-saiyan__afterimage--b {
+    animation: scene-ultra-afterimage-b var(--scene-duration) ease-out both;
+  }
+
+  .game-scene[data-kind="hakai"] .scene-dragon__orb {
+    animation: scene-hakai-orb var(--scene-duration) ease-out both;
+  }
+
+  .game-scene[data-kind="hakai"] .scene-saiyan__hakai {
+    animation: scene-hakai-word var(--scene-duration) ease-out both;
   }
 
   .game-scene[data-kind="dragon"] .scene-dragon__hunters {
-    animation: scene-dragon-unimpressed var(--scene-duration) ease-out both;
+    animation: scene-dragon-hunters var(--scene-duration) ease-out both;
   }
 
-  .game-scene[data-kind="dragon"] .scene-dragon__hunters svg:first-child {
-    animation: scene-dragon-dingo var(--scene-duration) ease-out both;
+  .game-scene[data-kind="weak"] .scene-dragon__hunters {
+    animation: scene-weak-hunters var(--scene-duration) ease-out both;
   }
 
-  .game-scene[data-kind="dragon"] .scene-dragon__hunters svg:last-child {
-    animation: scene-dragon-eagle var(--scene-duration) ease-out both;
+  .game-scene[data-kind="ultra"] .scene-dragon__hunters {
+    animation: scene-ultra-hunters var(--scene-duration) ease-out both;
+  }
+
+  .game-scene[data-kind="hakai"] .scene-dragon__hunters {
+    animation: scene-hakai-hunters var(--scene-duration) ease-out both;
+  }
+
+  .game-scene[data-kind="dragon"] .scene-saiyan__forms [data-form="base"] {
+    animation: scene-form-1 var(--scene-duration) ease-out both;
+  }
+
+  .game-scene[data-kind="dragon"] .scene-saiyan__forms [data-form="oozaru"] {
+    animation: scene-form-2 var(--scene-duration) ease-out both;
+  }
+
+  .game-scene[data-kind="dragon"] .scene-saiyan__forms [data-form="wrathful"] {
+    animation: scene-form-3 var(--scene-duration) ease-out both;
+  }
+
+  .game-scene[data-kind="dragon"] .scene-saiyan__forms [data-form="super"] {
+    animation: scene-form-4 var(--scene-duration) ease-out both;
+  }
+
+  .game-scene[data-kind="dragon"] .scene-saiyan__forms [data-form="grade-two"] {
+    animation: scene-form-5 var(--scene-duration) ease-out both;
+  }
+
+  .game-scene:is([data-kind="weak"], [data-kind="ultra"])
+    .scene-saiyan__forms
+    span:nth-of-type(4) {
+    animation: scene-form-first var(--scene-duration) ease-out both;
+  }
+
+  .game-scene[data-kind="weak"] .scene-saiyan__forms [data-form="wrathful"],
+  .game-scene[data-kind="ultra"] .scene-saiyan__forms [data-form="omen"] {
+    animation: scene-form-middle var(--scene-duration) ease-out both;
+  }
+
+  .game-scene[data-kind="weak"] .scene-saiyan__forms [data-form="oozaru"],
+  .game-scene[data-kind="ultra"] .scene-saiyan__forms [data-form="ultra"] {
+    animation: scene-form-final var(--scene-duration) ease-out both;
+  }
+
+  .game-scene[data-kind="hakai"] .scene-saiyan__forms [data-form="mix"] {
+    animation: scene-form-first var(--scene-duration) ease-out both;
+  }
+
+  .game-scene[data-kind="hakai"] .scene-saiyan__forms [data-form="hakai"] {
+    animation: scene-form-final var(--scene-duration) ease-out both;
   }
 
   .game-scene[data-kind="combined"] .scene-combined__pie--a {
@@ -4531,82 +4992,6 @@ body.routing-snap {
     }
   }
 
-  @keyframes scene-dragon-charge {
-    0%,
-    12% {
-      transform: translate(0, 0) scale(0.82);
-    }
-
-    22% {
-      transform: translate(-1cqw, 1.2cqw) rotate(-5deg) scale(0.92, 0.76);
-    }
-
-    30% {
-      transform: translate(0.45cqw, -0.4cqw) rotate(3deg) scale(0.86, 1.02);
-    }
-
-    37% {
-      transform: translate(-0.55cqw, -0.8cqw) rotate(-4deg) scale(0.9, 1.08);
-    }
-
-    44% {
-      transform: translate(0.6cqw, -1.1cqw) rotate(4deg) scale(0.92, 1.12);
-    }
-
-    52% {
-      transform: translate(-0.7cqw, -1.4cqw) rotate(-5deg) scale(0.95, 1.16);
-    }
-
-    60% {
-      transform: translate(0, -1.8cqw) rotate(1deg) scale(1, 1.2);
-    }
-
-    67% {
-      transform: translate(-1.1cqw, 0.8cqw) rotate(-7deg) scale(1.08, 0.7);
-    }
-
-    76%,
-    100% {
-      transform: translate(0.4cqw, 1.2cqw) rotate(3deg) scale(0.82, 0.86);
-    }
-  }
-
-  @keyframes scene-dragon-camera {
-    0%,
-    20% {
-      transform: scale(1);
-    }
-
-    30% {
-      transform: scale(1.025) translateX(0.25%);
-    }
-
-    37% {
-      transform: scale(1.035) translateX(-0.3%);
-    }
-
-    44% {
-      transform: scale(1.045) translateX(0.35%);
-    }
-
-    52% {
-      transform: scale(1.055) translateX(-0.4%);
-    }
-
-    60% {
-      transform: scale(1.07);
-    }
-
-    66% {
-      transform: scale(1.01) translateX(-0.7%);
-    }
-
-    72%,
-    100% {
-      transform: scale(1);
-    }
-  }
-
   @keyframes scene-dragon-ground {
     0%,
     22% {
@@ -4632,40 +5017,6 @@ body.routing-snap {
     67%,
     100% {
       transform: scaleX(1) translateY(0);
-    }
-  }
-
-  @keyframes scene-dragon-aura {
-    0%,
-    20% {
-      opacity: 0;
-      transform: scale(0.6, 0.8) rotate(-5deg);
-    }
-
-    34% {
-      opacity: 0.45;
-      transform: scale(0.85, 1.02) rotate(4deg);
-    }
-
-    48% {
-      opacity: 0.76;
-      transform: scale(1.05, 1.16) rotate(-3deg);
-    }
-
-    60% {
-      opacity: 1;
-      transform: scale(1.2, 1.35) rotate(2deg);
-    }
-
-    66% {
-      opacity: 0.16;
-      transform: scale(0.34, 1.5) rotate(0);
-    }
-
-    70%,
-    100% {
-      opacity: 0;
-      transform: scale(0.12, 0.5);
     }
   }
 
@@ -4722,90 +5073,602 @@ body.routing-snap {
     }
   }
 
-  @keyframes scene-dragon-sputter {
+  @keyframes scene-form-1 {
     0%,
-    63%,
-    73%,
+    9% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    14%,
     100% {
       opacity: 0;
-      transform: scaleX(0);
-    }
-
-    66% {
-      opacity: 0.85;
-      transform: scaleX(0.14) scaleY(0.55);
-    }
-
-    69% {
-      opacity: 0.28;
-      transform: scaleX(0.08) scaleY(0.35) rotate(6deg);
+      transform: scale(1.08);
     }
   }
 
-  @keyframes scene-dragon-puff {
+  @keyframes scene-form-2 {
     0%,
+    10% {
+      opacity: 0;
+      transform: scale(0.82);
+    }
+    15%,
+    23% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    28%,
+    100% {
+      opacity: 0;
+      transform: scale(1.08);
+    }
+  }
+
+  @keyframes scene-form-3 {
+    0%,
+    24% {
+      opacity: 0;
+      transform: scale(0.82);
+    }
+    29%,
+    37% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    42%,
+    100% {
+      opacity: 0;
+      transform: scale(1.08);
+    }
+  }
+
+  @keyframes scene-form-4 {
+    0%,
+    38% {
+      opacity: 0;
+      transform: scale(0.82);
+    }
+    43%,
+    51% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    56%,
+    100% {
+      opacity: 0;
+      transform: scale(1.08);
+    }
+  }
+
+  @keyframes scene-form-5 {
+    0%,
+    52% {
+      opacity: 0;
+      transform: scale(0.82);
+    }
+    57%,
     67% {
-      opacity: 0;
-      transform: translateX(-20%) scale(0.3);
+      opacity: 1;
+      transform: scale(1);
     }
-
-    73%,
-    84% {
-      opacity: 0.8;
-      transform: translateX(0) scale(1);
-    }
-
+    72%,
     100% {
       opacity: 0;
-      transform: translate(40%, -40%) scale(1.4);
+      transform: scale(1.08);
     }
   }
 
-  @keyframes scene-dragon-unimpressed {
+  @keyframes scene-form-first {
     0%,
-    64% {
+    8% {
+      opacity: 0;
+      transform: scale(0.82);
+    }
+    14%,
+    29% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    36%,
+    100% {
+      opacity: 0;
+      transform: scale(1.08);
+    }
+  }
+
+  @keyframes scene-form-middle {
+    0%,
+    32% {
+      opacity: 0;
+      transform: scale(0.82);
+    }
+    39%,
+    54% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    61%,
+    100% {
+      opacity: 0;
+      transform: scale(1.08);
+    }
+  }
+
+  @keyframes scene-form-final {
+    0%,
+    57% {
+      opacity: 0;
+      transform: scale(0.82);
+    }
+    65%,
+    86% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    94%,
+    100% {
+      opacity: 0;
+      transform: scale(1.08);
+    }
+  }
+
+  @keyframes scene-saiyan-climb {
+    0%,
+    8% {
+      transform: translate(0, 0) scale(0.84);
+    }
+    17% {
+      transform: translate(-1cqw, -1.4cqw) scale(1.42);
+    }
+    31% {
+      transform: translate(0.3cqw, -0.7cqw) scale(1.16, 1.22);
+    }
+    47% {
+      transform: translate(-0.2cqw, -0.2cqw) scale(0.96, 1.04);
+    }
+    61% {
+      transform: translate(0.2cqw, -0.45cqw) scale(1.06, 1.12);
+    }
+    72% {
+      transform: translate(-0.8cqw, 0.6cqw) rotate(-7deg) scale(1.02, 0.82);
+    }
+    88%,
+    100% {
+      transform: translate(0.35cqw, 0.45cqw) rotate(2deg) scale(0.92);
+    }
+  }
+
+  @keyframes scene-saiyan-fizzle {
+    0%,
+    8% {
+      transform: scale(0.86);
+    }
+    23% {
+      transform: translateY(-0.5cqw) scale(1.02, 1.1);
+    }
+    39% {
+      transform: translateY(0.8cqw) rotate(-5deg) scale(0.78, 0.7);
+    }
+    59% {
+      transform: translateY(-0.3cqw) scale(1.15, 1.22);
+    }
+    78%,
+    100% {
+      transform: translate(-0.7cqw, -1cqw) scale(1.48);
+    }
+  }
+
+  @keyframes scene-ultra-dodge {
+    0%,
+    30% {
+      transform: scale(0.94);
+    }
+    42% {
+      transform: translateX(15cqw) scale(0.82);
+    }
+    48% {
+      opacity: 0;
+      transform: translateX(34cqw) scale(0.72);
+    }
+    60% {
+      opacity: 0;
+      transform: translateX(-8cqw) scale(0.72);
+    }
+    68%,
+    100% {
+      opacity: 1;
+      transform: translateX(0) scale(1.02);
+    }
+  }
+
+  @keyframes scene-hakai-cast {
+    0%,
+    28% {
+      transform: scale(0.9);
+    }
+    45% {
+      transform: translateY(-0.7cqw) scale(1.08);
+    }
+    58%,
+    100% {
+      transform: translateX(1.2cqw) rotate(4deg) scale(0.98);
+    }
+  }
+
+  @keyframes scene-saiyan-fur {
+    0%,
+    34% {
+      filter: brightness(0.7) sepia(0.55) saturate(0.8);
+    }
+    48%,
+    100% {
+      filter: brightness(1.2) sepia(1) saturate(2.4) hue-rotate(350deg);
+    }
+  }
+
+  @keyframes scene-weak-fur {
+    0%,
+    24% {
+      filter: brightness(1.25) sepia(1) saturate(2.3) hue-rotate(350deg);
+    }
+    43% {
+      filter: grayscale(0.5) brightness(0.82);
+    }
+    68%,
+    100% {
+      filter: sepia(0.7) saturate(0.75) brightness(0.65);
+    }
+  }
+
+  @keyframes scene-ultra-fur {
+    0%,
+    32% {
+      filter: brightness(1.2) sepia(1) saturate(2.2) hue-rotate(350deg);
+    }
+    48%,
+    100% {
+      filter: grayscale(1) brightness(1.65) contrast(1.08)
+        drop-shadow(0 0 0.3rem #fff);
+    }
+  }
+
+  @keyframes scene-hakai-fur {
+    0%,
+    32% {
+      filter: grayscale(1) brightness(1.15);
+    }
+    48%,
+    100% {
+      filter: sepia(0.4) saturate(2.2) hue-rotate(230deg) brightness(1.2)
+        drop-shadow(0 0 0.35rem #d77cff);
+    }
+  }
+
+  @keyframes scene-god-fur {
+    0%,
+    32% {
+      filter: sepia(0.7) brightness(0.72);
+    }
+    48%,
+    100% {
+      filter: sepia(1) saturate(3.2) hue-rotate(318deg) brightness(1.12);
+    }
+  }
+
+  @keyframes scene-saiyan-crest {
+    0%,
+    39% {
+      opacity: 0;
+      transform: translateY(0.5cqw) scale(0.8);
+    }
+    48%,
+    100% {
+      opacity: 1;
       transform: none;
     }
+  }
 
-    68% {
-      transform: translateX(-0.35cqw) scale(0.98);
+  @keyframes scene-weak-crest {
+    0%,
+    8% {
+      opacity: 0;
     }
+    15%,
+    29% {
+      opacity: 1;
+    }
+    39%,
+    100% {
+      opacity: 0;
+    }
+  }
 
+  @keyframes scene-ultra-crest {
+    0%,
+    30% {
+      opacity: 1;
+      filter: sepia(1) saturate(2.2);
+    }
+    46%,
+    100% {
+      opacity: 1;
+      filter: grayscale(1) brightness(1.8) drop-shadow(0 0 0.3rem #fff);
+    }
+  }
+
+  @keyframes scene-hakai-crest {
+    0%,
+    34% {
+      opacity: 0;
+    }
+    46%,
+    100% {
+      opacity: 1;
+      filter: hue-rotate(238deg) saturate(1.8) drop-shadow(0 0 0.3rem #d77cff);
+    }
+  }
+
+  @keyframes scene-god-crest {
+    0%,
+    35% {
+      opacity: 0;
+    }
+    46%,
+    100% {
+      opacity: 1;
+      filter: hue-rotate(315deg) saturate(2.5) drop-shadow(0 0 0.3rem #ff564f);
+    }
+  }
+
+  @keyframes scene-saiyan-camera {
+    0%,
+    22%,
+    100% {
+      transform: translateX(0);
+    }
+    27% {
+      transform: translateX(0.35%);
+    }
+    31% {
+      transform: translateX(-0.35%);
+    }
+    49% {
+      transform: translateX(0.45%);
+    }
+    53% {
+      transform: translateX(-0.45%);
+    }
+  }
+
+  @keyframes scene-saiyan-aura {
+    0%,
+    12% {
+      opacity: 0;
+      transform: scale(0.55, 0.72);
+    }
+    28% {
+      opacity: 0.52;
+      transform: scale(1.05, 1.2) rotate(-3deg);
+    }
+    52% {
+      opacity: 1;
+      transform: scale(1.28, 1.5) rotate(2deg);
+    }
+    82%,
+    100% {
+      opacity: 0.74;
+      transform: scale(1.18, 1.38);
+    }
+  }
+
+  @keyframes scene-saiyan-shock {
+    0%,
+    48% {
+      opacity: 0;
+      transform: scale(0.2);
+    }
+    58% {
+      opacity: 0.82;
+    }
+    72%,
+    100% {
+      opacity: 0;
+      transform: scale(3.4);
+    }
+  }
+
+  @keyframes scene-dragon-beam {
+    0%,
+    63% {
+      opacity: 0;
+      transform: scaleX(0) scaleY(0.22);
+    }
+    68% {
+      opacity: 1;
+      transform: scaleX(1) scaleY(0.42);
+    }
+    73%,
+    87% {
+      opacity: 1;
+      transform: scaleX(1) scaleY(1);
+    }
+    94%,
+    100% {
+      opacity: 0;
+      transform: scaleX(1.08) scaleY(1.18);
+    }
+  }
+
+  @keyframes scene-dragon-syllable {
+    0% {
+      opacity: 0;
+      transform: translateY(0.35em) scale(0.72);
+    }
+    34%,
+    78% {
+      opacity: 1;
+      transform: none;
+    }
+    100% {
+      opacity: 0;
+      transform: translateY(-0.15em) scale(1.12);
+    }
+  }
+
+  @keyframes scene-weak-fizzle {
+    0%,
+    12% {
+      opacity: 0;
+      transform: scale(0.6);
+    }
+    20%,
+    31% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    40%,
+    100% {
+      opacity: 0;
+      transform: translateY(0.6cqw) rotate(-7deg) scale(0.78);
+    }
+  }
+
+  @keyframes scene-ultra-afterimage-a {
+    0%,
+    36% {
+      opacity: 0;
+      transform: translateX(0);
+    }
+    44% {
+      opacity: 0.62;
+      transform: translateX(30cqw);
+    }
+    55%,
+    100% {
+      opacity: 0;
+      transform: translateX(48cqw);
+    }
+  }
+
+  @keyframes scene-ultra-afterimage-b {
+    0%,
+    45% {
+      opacity: 0;
+      transform: translateX(0);
+    }
+    53% {
+      opacity: 0.54;
+      transform: translateX(44cqw);
+    }
+    65%,
+    100% {
+      opacity: 0;
+      transform: translateX(22cqw);
+    }
+  }
+
+  @keyframes scene-hakai-orb {
+    0%,
+    36% {
+      opacity: 0;
+      transform: scale(0.08);
+    }
+    48%,
+    62% {
+      opacity: 1;
+      background: #d77cff;
+      transform: scale(1.25);
+    }
+    82%,
+    100% {
+      opacity: 0;
+      background: #160622;
+      transform: translateX(44cqw) scale(2.8);
+    }
+  }
+
+  @keyframes scene-hakai-word {
+    0%,
+    43% {
+      opacity: 0;
+      transform: translateX(-50%) scale(0.72);
+    }
+    50%,
+    68% {
+      opacity: 1;
+      transform: translateX(-50%) scale(1);
+    }
+    78%,
+    100% {
+      opacity: 0;
+      transform: translateX(-50%) scale(1.2);
+    }
+  }
+
+  @keyframes scene-dragon-hunters {
+    0%,
+    67% {
+      opacity: 1;
+      transform: none;
+    }
+    74% {
+      transform: translateX(-2cqw) rotate(-12deg) scale(1.12);
+    }
+    86%,
+    100% {
+      opacity: 0;
+      transform: translateX(62cqw) rotate(110deg) scale(0.68);
+    }
+  }
+
+  @keyframes scene-weak-hunters {
+    0%,
+    29% {
+      transform: none;
+    }
+    43% {
+      transform: translateY(0.6cqw) rotate(5deg);
+    }
+    72%,
+    100% {
+      transform: translateY(-0.3cqw) rotate(-4deg) scale(1.04);
+    }
+  }
+
+  @keyframes scene-ultra-hunters {
+    0%,
+    38% {
+      transform: none;
+    }
+    48% {
+      transform: translateX(-28cqw) rotate(-16deg);
+    }
+    58% {
+      transform: translateX(4cqw) rotate(12deg);
+    }
     76%,
     100% {
-      transform: translateY(0.4cqw);
+      transform: translateX(-1cqw) rotate(-5deg);
     }
   }
 
-  @keyframes scene-dragon-dingo {
+  @keyframes scene-hakai-hunters {
     0%,
-    59% {
-      transform: rotate(0);
+    58% {
+      opacity: 1;
+      filter: none;
+      transform: none;
     }
-
-    65% {
-      transform: rotate(-8deg) scale(1.04);
+    72% {
+      opacity: 0.48;
+      filter: saturate(0) blur(0.08rem);
+      transform: scale(0.94);
     }
-
-    80%,
+    86%,
     100% {
-      transform: rotate(5deg) translateY(0.25cqw);
-    }
-  }
-
-  @keyframes scene-dragon-eagle {
-    0%,
-    59% {
-      transform: rotate(0);
-    }
-
-    65% {
-      transform: rotate(7deg) scale(1.04);
-    }
-
-    80%,
-    100% {
-      transform: rotate(-3deg) translateX(0.35cqw);
+      opacity: 0;
+      filter: saturate(0) blur(0.22rem);
+      transform: scale(0.72) rotate(8deg);
     }
   }
 
@@ -4955,10 +5818,25 @@ body.routing-snap {
   .scene-ready__line,
   .scene-vegemite__pie,
   .scene-vegemite__slang,
+  .scene-vegemite__forms span:last-child,
   .scene-combined__pie,
   .scene-combined__charge,
   .scene-combined__chant,
-  .scene-dragon__puff {
+  .game-scene[data-kind="dragon"] .scene-saiyan__forms [data-form="grade-two"],
+  .game-scene[data-kind="weak"] .scene-saiyan__forms [data-form="oozaru"],
+  .game-scene[data-kind="ultra"] .scene-saiyan__forms [data-form="ultra"],
+  .game-scene[data-kind="hakai"] .scene-saiyan__forms [data-form="hakai"],
+  .game-scene:is(
+      [data-kind="dragon"],
+      [data-kind="ultra"],
+      [data-kind="hakai"],
+      [data-kind="vegemite"]
+    )
+    .game-scene__crest {
+    opacity: 1;
+  }
+
+  .scene-dragon__chant span {
     opacity: 1;
   }
 
@@ -4975,8 +5853,18 @@ body.routing-snap {
   }
 
   .scene-dragon__beam {
-    opacity: 0.45;
-    transform: scaleX(0.14) scaleY(0.55);
+    opacity: 0.8;
+    transform: scaleX(1) scaleY(0.68);
+  }
+
+  .game-scene:not([data-kind="dragon"]) .scene-dragon__beam,
+  .game-scene:not([data-kind="dragon"]) .scene-dragon__chant {
+    opacity: 0;
+  }
+
+  .game-scene[data-kind="hakai"] .scene-dragon__orb,
+  .game-scene[data-kind="hakai"] .scene-saiyan__hakai {
+    opacity: 1;
   }
 
   .scene-combined__beam {

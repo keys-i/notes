@@ -122,6 +122,7 @@ var nextMoveAt = 0;
 var grayStacks = 0;
 var auraTimer;
 var powerAuraKind = "";
+var weakPowerups = new Set<string>();
 var eyeQueues = [];
 var devoured = new Set<number>();
 var ghostsStarted;
@@ -167,9 +168,12 @@ ghostPen.add(
 
 var SCENE_DURATIONS = {
   ready: 4300,
-  vegemite: 1350,
-  dragon: 1150,
-  combined: 1850,
+  vegemite: 2200,
+  dragon: 3000,
+  combined: 2200,
+  weak: 2300,
+  ultra: 2500,
+  hakai: 2200,
 };
 
 var AUSSIE_SLANG = ["Too easy", "Beauty", "No worries"];
@@ -221,8 +225,45 @@ function triggerTunnelReaction(missed) {
 }
 
 function nextPowerKind(active, incoming, remaining) {
+  if (remaining > 0 && active === "hakai") return "hakai";
   if (remaining > 0 && active === "combined") return "combined";
   return remaining > 0 && active && active !== incoming ? "combined" : incoming;
+}
+
+function isPowerScene(kind) {
+  return ["vegemite", "dragon", "combined", "weak", "ultra", "hakai"].includes(
+    kind,
+  );
+}
+
+function isPowerAura(kind) {
+  return ["vegemite", "dragon", "combined", "ultra", "hakai"].includes(kind);
+}
+
+function sceneStageKind(kind) {
+  return ["weak", "ultra", "hakai"].includes(kind) ? "dragon" : kind;
+}
+
+function boostSceneKind(selectedPower, weakCount) {
+  return weakCount >= 2 ? "hakai" : selectedPower;
+}
+
+function bonusSceneKind(activePower, weakCount) {
+  if (!activePower) return "weak";
+  if (weakCount >= 2 || activePower === "hakai") return "hakai";
+  return ["dragon", "combined", "ultra"].includes(activePower) ? "ultra" : "";
+}
+
+function powerSceneCallout(kind) {
+  return kind === "vegemite"
+    ? takeFromBag("aussie-slang", AUSSIE_SLANG, effectsRandom)
+    : kind === "weak"
+      ? "50× … 15× … 10×"
+      : kind === "ultra"
+        ? "ULTRA INSTINCT · 100×"
+        : kind === "hakai"
+          ? "HAKAI · 100×"
+          : "KAME · HAME · HAAAAA!";
 }
 
 function captureReaction(power) {
@@ -485,7 +526,7 @@ function clearGameScene() {
 
 function populateSceneHunters(kind) {
   var hunters = sceneElement.querySelector(
-    ".scene-stage--" + kind + " [data-scene-hunters]",
+    ".scene-stage--" + sceneStageKind(kind) + " [data-scene-hunters]",
   );
   if (!hunters) return;
   hunters.replaceChildren();
@@ -525,12 +566,12 @@ function finishGameScene() {
   if (restoreFocus && !document.hidden && !shuttingDown)
     board.focus({ preventScroll: true });
   if (!running || shuttingDown) return;
-  if (kind === "vegemite" || kind === "dragon" || kind === "combined") {
+  if (isPowerScene(kind)) {
     flashRandomWalls();
     triggerPowerBurst();
   }
   gameAudio.start();
-  if (kind === "vegemite" || kind === "dragon" || kind === "combined") {
+  if (isPowerScene(kind)) {
     resolveCollision();
   }
 }
@@ -541,7 +582,7 @@ function startGameScene(kind) {
   gameScene = kind;
   gameStarted = true;
   osElement.dataset.game = "playing";
-  var power = kind === "vegemite" || kind === "dragon" || kind === "combined";
+  var power = isPowerScene(kind);
   var duration = SCENE_DURATIONS[kind] || 1000;
   if (
     typeof matchMedia === "function" &&
@@ -581,12 +622,7 @@ function triggerPowerScene(kind) {
     startGameScene(kind);
     return true;
   }
-  var callout =
-    kind === "vegemite"
-      ? takeFromBag("aussie-slang", AUSSIE_SLANG, effectsRandom)
-      : kind === "dragon"
-        ? "pfft"
-        : "KAME · HAME · HAAAAA";
+  var callout = powerSceneCallout(kind);
   flashGameReaction("power-" + kind, callout);
   gameAudio.play("power");
   return false;
@@ -2951,7 +2987,7 @@ function setPlayerAura(kind) {
     return;
   }
   playerElement.dataset.aura = kind;
-  if (kind === "vegemite" || kind === "dragon" || kind === "combined") {
+  if (isPowerAura(kind)) {
     powerAuraKind = kind;
     osElement.dataset.power = kind;
     clearFruitAuraVars();
@@ -3074,6 +3110,7 @@ function movePlayer(dx, dy) {
   var bonus = item && item.power_ticks === 0 ? item : false;
   var collected = pellets.delete(pellet);
   var restoredLife = false;
+  var transformationScene = "";
   if (collected) {
     restoredLife = addScore(
       item ? item.points : settings.pickups.pellet_points,
@@ -3085,6 +3122,7 @@ function movePlayer(dx, dy) {
         incomingPower,
         panicTicks,
       );
+      transformationScene = boostSceneKind(selectedPower, weakPowerups.size);
       powerCombo = 0;
       ghostElements.forEach(function (element) {
         element.classList.remove("recovered");
@@ -3092,12 +3130,20 @@ function movePlayer(dx, dy) {
       panicTicks = Math.max(panicTicks, boost.power_ticks);
       board.classList.add("powered");
       board.classList.remove("power-warning");
-      setPlayerAura(selectedPower);
-      triggerPowerScene(selectedPower);
+      setPlayerAura(transformationScene);
+      triggerPowerScene(transformationScene);
     } else if (bonus) {
-      if (!surgeSaiyan()) setFruitAura(bonus);
+      weakPowerups.add(bonus.id);
+      transformationScene = bonusSceneKind(powerAuraKind, weakPowerups.size);
+      if (transformationScene) {
+        if (transformationScene === "weak") setFruitAura(bonus);
+        else setPlayerAura(transformationScene);
+        triggerPowerScene(transformationScene);
+      } else if (!surgeSaiyan()) {
+        setFruitAura(bonus);
+      }
     }
-    if (!boost)
+    if (!boost && !transformationScene)
       gameAudio.play(restoredLife ? "life" : bonus ? "bonus" : "pellet");
     grid.children[player.y * columns + player.x].classList.add("eaten");
     updateScore();
@@ -3126,21 +3172,23 @@ function movePlayer(dx, dy) {
       " power event; 404 wall bank lit; predators quarantined.";
   } else if (collected && bonus) {
     var flame = FRUIT_FLAME[bonus.id];
-    statusElement.textContent = playerElement.dataset.auraSurge
-      ? "kradkrnl: recovered " +
-        bonus.id +
-        " block; +" +
-        bonus.points +
-        "; saiyan OVERCLOCK 2s."
-      : "kradkrnl: recovered " +
-        bonus.id +
-        " block; +" +
-        bonus.points +
-        "; " +
-        bonus.id +
-        " flame " +
-        ((flame && flame.ms) || 1300) / 1000 +
-        "s.";
+    statusElement.textContent = transformationScene
+      ? "Power path: " + powerSceneCallout(transformationScene) + "."
+      : playerElement.dataset.auraSurge
+        ? "kradkrnl: recovered " +
+          bonus.id +
+          " block; +" +
+          bonus.points +
+          "; saiyan OVERCLOCK 2s."
+        : "kradkrnl: recovered " +
+          bonus.id +
+          " block; +" +
+          bonus.points +
+          "; " +
+          bonus.id +
+          " flame " +
+          ((flame && flame.ms) || 1300) / 1000 +
+          "s.";
   } else if (randomised) {
     statusElement.textContent =
       "kradkrnl: gray warp → " +
@@ -3180,6 +3228,7 @@ function resetGame(regenerate?) {
   delete board.dataset.callout;
   sceneTakes.clear();
   sceneBags.clear();
+  weakPowerups.clear();
   gameStarted = false;
   stopGhosts();
   clearWallFlashes();
