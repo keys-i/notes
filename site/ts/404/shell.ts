@@ -78,7 +78,8 @@ async function refreshLogin() {
     if (!response.ok) return;
     var match = (await response.text()).match(/(?:^|\n)ip=([^\n]+)/);
     var address = match && match[1].trim();
-    if (!address || address.length > 45 || !/^[0-9a-f:.]+$/i.test(address)) return;
+    if (!address || address.length > 45 || !/^[0-9a-f:.]+$/i.test(address))
+      return;
     renderLogin(address);
   } catch (_error) {
     return;
