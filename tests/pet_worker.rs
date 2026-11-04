@@ -385,6 +385,8 @@ fn prompt_keeps_evidence_and_conversation_as_untrusted_data() {
     assert!(messages[1].1.contains("CONVERSATION_JSON"));
     assert_eq!(messages[2].0, "user");
     assert!(messages[2].1.contains("EVIDENCE_JSON only"));
+    assert!(messages[2].1.contains("no uncited introduction"));
+    assert!(messages[2].1.contains("Use close paraphrases"));
     assert!(messages[2].1.contains("every factual sentence"));
 
     let mut another_note = input.clone();
@@ -473,7 +475,7 @@ fn transcribed_questions_route_by_their_content_not_the_media_wrapper() {
 }
 
 #[test]
-fn verifier_router_reserves_the_deep_model_for_note_entailment() {
+fn verifier_router_uses_the_deep_model_for_grounded_verdicts() {
     assert_eq!(select_verifier(ReplyKind::Note), ModelRoute::Deep);
     assert_eq!(select_verifier(ReplyKind::General), ModelRoute::Fast);
 }
