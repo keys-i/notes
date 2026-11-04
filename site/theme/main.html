@@ -152,9 +152,10 @@ page.meta.comments == false %}
   id="dock-pet"
   type="button"
   hidden
-  aria-label="Save current reading spot"
+  aria-label="Ask the koala study buddy"
   data-state="idle"
   data-direction="left"
+  data-endpoint="/api/pet"
 >
   <span class="dock-pet__bubble" hidden aria-hidden="true">
     <svg class="dock-pet__cloud" aria-hidden="true" focusable="false">
@@ -166,7 +167,68 @@ page.meta.comments == false %}
   <span class="dock-pet__body" aria-hidden="true">
     {% include "partials/koala.html" %}
   </span>
+  <span class="dock-pet__rope" aria-hidden="true"></span>
+  <span class="dock-pet__hook" aria-hidden="true"></span>
 </button>
+<aside
+  class="dock-pet__help"
+  id="dock-pet-help"
+  hidden
+  aria-label="Koala study helper"
+>
+  <form id="dock-pet-help-form">
+    <button
+      class="dock-pet__help-close"
+      type="button"
+      data-pet-action="close"
+      aria-label="Close study helper"
+      title="Close study helper"
+    >
+      {% include ".icons/material/close.svg" %}
+    </button>
+    <a
+      class="dock-pet__help-minis"
+      href="https://uni.keysi.dev/mini/"
+      aria-label="Open Minis"
+      title="Open Minis"
+    >
+      {% include ".icons/material/apps.svg" %}
+    </a>
+    <label class="dock-pet__help-label" for="dock-pet-question"
+      >Ask about this note</label
+    >
+    <ol
+      class="dock-pet__thread"
+      id="dock-pet-thread"
+      aria-live="polite"
+      aria-label="Conversation"
+    ></ol>
+    <div class="dock-pet__help-question">
+      <input
+        id="dock-pet-question"
+        name="question"
+        type="text"
+        maxlength="240"
+        autocomplete="off"
+        dir="auto"
+        placeholder="Explain, quiz, follow up, or ask in any language…"
+        required
+      />
+      <button
+        id="dock-pet-listen"
+        type="button"
+        hidden
+        aria-label="Ask by voice"
+        title="Ask by voice"
+      >
+        {% include ".icons/material/microphone-outline.svg" %}
+      </button>
+      <button id="dock-pet-send" type="submit" aria-label="Ask" title="Ask">
+        {% include ".icons/material/send-variant-outline.svg" %}
+      </button>
+    </div>
+  </form>
+</aside>
 <span
   class="dock-pet__status"
   id="dock-pet-status"
