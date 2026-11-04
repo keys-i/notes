@@ -35,10 +35,11 @@ cargo check --locked --manifest-path api/Cargo.toml --target wasm32-unknown-unkn
 wrangler deploy --config api/wrangler.toml
 ```
 
-The Cloudflare account must provide the configured Workers AI, rate limiter and
-Analytics Engine bindings. No Gemini key or other model secret is stored in the
-repository. `workers_dev` is disabled and the route is limited to
-`uni.keysi.dev/api/pet`
+The Cloudflare account must provide the configured Workers AI and rate-limiter
+bindings. Privacy-safe structured metrics use Workers Logs with invocation logs
+disabled and query strings redacted. No Gemini key or other model secret is
+stored in the repository. `workers_dev` is disabled and the route is limited
+to `uni.keysi.dev/api/pet`
 
 Deployment does not grant the Worker access to Minis. Private scope returns
 `403` until the separate Minis service supplies a cryptographically verifiable

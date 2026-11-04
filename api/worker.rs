@@ -3,10 +3,7 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::cmp::Ordering;
 use std::collections::HashSet;
-use worker::{
-    AnalyticsEngineDataPointBuilder, Cache, Context, Date, Env, Headers, Method, Request, Response,
-    Result, event,
-};
+use worker::{Cache, Context, Date, Env, Headers, Method, Request, Response, Result, event};
 
 const FAST_MODEL: &str = "@cf/meta/llama-3.1-8b-instruct-fp8";
 const DEEP_MODEL: &str = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
@@ -967,18 +964,28 @@ fn cache_response<T: Serialize>(body: &T) -> Result<Response> {
     json_response(body, 200, None, &format!("public, max-age={CACHE_TTL}"))
 }
 
-fn metric(env: &Env, outcome: &str, model: &str, cached: bool, started: u64) {
-    let Ok(dataset) = env.analytics_engine("PET_METRICS") else {
-        return;
-    };
-    let _ = AnalyticsEngineDataPointBuilder::new()
-        .indexes(["pet"])
-        .blobs([outcome, model, PROMPT_VERSION])
-        .doubles([
-            Date::now().as_millis().saturating_sub(started) as f64,
-            if cached { 1.0 } else { 0.0 },
-        ])
-        .write_to(&dataset);
+fn metric(_env: &Env, outcome: &str, model: &str, cached: bool, started: u64) {
+    worker::console_log!(
+        "{}",
+        metric_line(
+            outcome,
+            model,
+            cached,
+            Date::now().as_millis().saturating_sub(started),
+        )
+    );
+}
+
+fn metric_line(outcome: &str, model: &str, cached: bool, latency_ms: u64) -> String {
+    serde_json::json!({
+        "cached": cached,
+        "event": "pet_request",
+        "latency_ms": latency_ms,
+        "model": model,
+        "outcome": outcome,
+        "version": PROMPT_VERSION,
+    })
+    .to_string()
 }
 
 fn preflight(origin: Option<&str>) -> Result<Response> {
@@ -1033,12 +1040,26 @@ fn secure_response(
 
 #[cfg(test)]
 mod tests {
-    use super::append_bounded;
+    use super::{append_bounded, metric_line};
 
     #[test]
     fn body_limit_rejects_the_chunk_before_allocating_it() {
         let mut body = b"1234".to_vec();
         assert_eq!(append_bounded(&mut body, b"56", 5), Err(()));
         assert_eq!(body, b"1234");
+    }
+
+    #[test]
+    fn telemetry_contains_only_bounded_operational_fields() {
+        let value: serde_json::Value =
+            serde_json::from_str(&metric_line("ok", "fast", true, 42)).unwrap();
+        let object = value.as_object().unwrap();
+        assert_eq!(object.len(), 6);
+        assert_eq!(value["event"], "pet_request");
+        assert_eq!(value["outcome"], "ok");
+        assert_eq!(value["model"], "fast");
+        assert_eq!(value["cached"], true);
+        assert_eq!(value["latency_ms"], 42);
+        assert_eq!(value["version"], "pet-v2");
     }
 }
