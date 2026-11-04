@@ -196,7 +196,7 @@ page.meta.comments == false %}
 >
   <form id="dock-pet-help-form">
     <label class="dock-pet__help-label" for="dock-pet-question"
-      >Ask about this note</label
+      >Ask Koa a question</label
     >
     <ol
       class="dock-pet__thread"
@@ -204,7 +204,24 @@ page.meta.comments == false %}
       aria-live="polite"
       aria-label="Conversation"
     ></ol>
+    <div class="dock-pet__attachment" id="dock-pet-attachment" hidden>
+      <span id="dock-pet-attachment-name"></span>
+      <button
+        id="dock-pet-attachment-remove"
+        type="button"
+        aria-label="Remove attachment"
+        title="Remove attachment"
+      >
+        {% include ".icons/material/close.svg" %}
+      </button>
+    </div>
     <div class="dock-pet__help-question">
+      <input
+        id="dock-pet-file"
+        type="file"
+        accept="image/avif,image/bmp,image/gif,image/heic,image/heif,image/jpeg,image/png,image/webp,audio/aac,audio/flac,audio/mpeg,audio/mp4,audio/ogg,audio/wav,audio/webm,audio/x-m4a,audio/x-wav,video/mp4,video/webm,video/quicktime"
+        hidden
+      />
       <input
         id="dock-pet-question"
         name="question"
@@ -212,9 +229,16 @@ page.meta.comments == false %}
         maxlength="240"
         autocomplete="off"
         dir="auto"
-        placeholder="Explain, quiz, follow up, or ask in any language…"
-        required
+        placeholder="Explain, quiz, attach media, or ask in any language…"
       />
+      <button
+        id="dock-pet-attach"
+        type="button"
+        aria-label="Attach image, audio or video"
+        title="Attach image, audio or video"
+      >
+        {% include ".icons/material/paperclip.svg" %}
+      </button>
       <button
         id="dock-pet-listen"
         type="button"

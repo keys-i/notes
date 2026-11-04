@@ -208,22 +208,42 @@
 
 .dock-pet__help {
   position: fixed;
-  right: auto;
-  bottom: 0.75rem;
-  left: 50%;
-  z-index: 6;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 7;
   box-sizing: border-box;
-  width: min(32rem, calc(100vw - 1.5rem));
+  width: min(26rem, calc(100vw - 1.5rem));
   max-height: min(70dvh, 36rem);
   padding: 1rem;
-  overflow: hidden;
+  overflow: visible;
   color: var(--md-default-fg-color);
   font: 0.72rem/1.4 var(--md-text-font-family);
   background: var(--site-panel, var(--md-default-bg-color));
   border: 1px solid var(--site-panel-border, var(--md-default-fg-color--light));
-  border-radius: 0.8rem;
+  border-radius: 0.95rem;
   box-shadow: 0 0.8rem 2.4rem rgb(0 0 0 / 0.24);
-  transform: translateX(-50%);
+  transform: none;
+}
+
+.dock-pet__help::after {
+  position: absolute;
+  left: var(--dock-pet-help-tail-x, 50%);
+  width: 0.72rem;
+  height: 0.72rem;
+  content: "";
+  background: var(--site-panel, var(--md-default-bg-color));
+  border: solid var(--site-panel-border, var(--md-default-fg-color--light));
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.dock-pet__help[data-placement="above"]::after {
+  bottom: -0.42rem;
+  border-width: 0 1px 1px 0;
+}
+
+.dock-pet__help[data-placement="below"]::after {
+  top: -0.42rem;
+  border-width: 1px 0 0 1px;
 }
 
 .dock-pet__help[hidden] {
@@ -248,8 +268,46 @@
 
 .dock-pet__help-question {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) repeat(3, auto);
   gap: 0.35rem;
+}
+
+.dock-pet__attachment {
+  display: flex;
+  min-width: 0;
+  width: fit-content;
+  max-width: 100%;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.28rem 0.35rem 0.28rem 0.55rem;
+  color: var(--md-default-fg-color--light);
+  background: var(--md-code-bg-color);
+  border: 1px solid
+    var(--site-panel-border, var(--md-default-fg-color--lighter));
+  border-radius: 999px;
+}
+
+.dock-pet__attachment[hidden] {
+  display: none;
+}
+
+.dock-pet__attachment > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dock-pet__attachment button {
+  min-width: 1.65rem;
+  min-height: 1.65rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+}
+
+.dock-pet__attachment[data-error] {
+  color: var(--md-accent-fg-color);
+  border-color: currentcolor;
 }
 
 .dock-pet__help input,
@@ -280,11 +338,27 @@
   cursor: pointer;
 }
 
+.dock-pet__help button:disabled {
+  cursor: progress;
+  opacity: 0.55;
+}
+
 .dock-pet__help button:is(:hover, :focus-visible),
 .dock-pet__help input:focus-visible {
   color: var(--md-accent-fg-color);
   border-color: currentcolor;
   outline: none;
+}
+
+@media (pointer: coarse) {
+  .dock-pet__help input,
+  .dock-pet__help button {
+    min-height: 2.75rem;
+  }
+
+  .dock-pet__attachment button {
+    min-width: 2.75rem;
+  }
 }
 
 .dock-pet__thread {
@@ -403,26 +477,6 @@
   text-align: center;
   background: var(--site-paper, transparent);
   border-radius: 0.4rem;
-}
-
-@media (min-width: 90em) {
-  html.pet-help-open .md-main__inner {
-    padding-right: 23rem;
-  }
-
-  .dock-pet__help {
-    top: 5.25rem;
-    right: 0.8rem;
-    bottom: auto;
-    left: auto;
-    width: 22rem;
-    max-height: calc(100dvh - 6.1rem);
-    transform: none;
-  }
-
-  .dock-pet__thread {
-    max-height: calc(100dvh - 12rem);
-  }
 }
 
 #dock-pet-listen[data-listening] {
@@ -589,6 +643,27 @@
   stroke-linejoin: round;
   stroke-width: 2.5;
   transform-box: view-box;
+}
+
+.dock-pet__wall-shoulder {
+  fill: var(--dock-pet-fur);
+  stroke-width: 2.8;
+}
+
+.dock-pet__wall-paw--front-far {
+  transform-origin: 42px 70px;
+}
+
+.dock-pet__wall-paw--front-near {
+  transform-origin: 58px 74px;
+}
+
+.dock-pet__wall-paw--back-far {
+  transform-origin: 34px 88px;
+}
+
+.dock-pet__wall-paw--back-near {
+  transform-origin: 54px 92px;
 }
 
 .dock-pet__ear,
@@ -778,7 +853,23 @@
 }
 
 .dock-pet[data-grip] .dock-pet__character {
-  transform: translateX(-18px);
+  transform: translateX(-12px) rotate(-6deg);
+  transform-origin: 40% 82%;
+}
+
+.dock-pet[data-grip] .dock-pet__face {
+  transform: translate(-5px, 1px) rotate(-10deg);
+  transform-origin: 48% 72%;
+}
+
+.dock-pet[data-grip] .dock-pet__rump {
+  transform: translateX(-2px) rotate(-4deg);
+  transform-origin: 42% 82%;
+}
+
+.dock-pet[data-grip] .dock-pet__belly {
+  transform: translate(-2px, 1px) rotate(-3deg);
+  transform-origin: 42% 82%;
 }
 
 .dock-pet[data-rope][data-direction="left"] .dock-pet__body {
@@ -1186,33 +1277,33 @@ html.freebsd-shutting-down .dock-pet__status {
 @keyframes dock-pet-wall-weight {
   0%,
   100% {
-    transform: translate(-18px, -1px);
+    transform: translate(-12px, -1px) rotate(-6deg);
   }
 
   50% {
-    transform: translate(-18px, 1px);
+    transform: translate(-12px, 1px) rotate(-5deg);
   }
 }
 
 @keyframes dock-pet-wall-step-a {
   0%,
   100% {
-    transform: translateY(-2px);
+    transform: translateY(-2px) rotate(-3deg);
   }
 
   50% {
-    transform: translateY(2px);
+    transform: translateY(2px) rotate(2deg);
   }
 }
 
 @keyframes dock-pet-wall-step-b {
   0%,
   100% {
-    transform: translateY(2px);
+    transform: translateY(2px) rotate(2deg);
   }
 
   50% {
-    transform: translateY(-2px);
+    transform: translateY(-2px) rotate(-3deg);
   }
 }
 
@@ -1375,7 +1466,19 @@ html.freebsd-shutting-down .dock-pet__status {
   }
 
   .dock-pet[data-grip] .dock-pet__character {
-    transform: translateX(-18px) !important;
+    transform: translateX(-12px) rotate(-6deg) !important;
+  }
+
+  .dock-pet[data-grip] .dock-pet__face {
+    transform: translate(-5px, 1px) rotate(-10deg) !important;
+  }
+
+  .dock-pet[data-grip] .dock-pet__rump {
+    transform: translateX(-2px) rotate(-4deg) !important;
+  }
+
+  .dock-pet[data-grip] .dock-pet__belly {
+    transform: translate(-2px, 1px) rotate(-3deg) !important;
   }
 
   .dock-pet__parachute,
