@@ -938,7 +938,7 @@ function createRuntime({
   }
   if (mediaFiles?.video) {
     window.URL = {
-      createObjectURL: () => "blob:attachment",
+      createObjectURL: () => mediaFiles.video.url || "blob:attachment",
       revokeObjectURL() {},
     };
   }
@@ -1412,6 +1412,22 @@ test("media attachment failures remain recoverable", async () => {
   ];
   await video.fileHandlers.change();
   assert.match(video.attachmentName.textContent, /decode failed/);
+
+  const unsafeUrl = createRuntime({
+    mediaFiles: {
+      video: {
+        duration: 8,
+        height: 720,
+        url: "javascript:alert(1)",
+        width: 1280,
+      },
+    },
+  });
+  unsafeUrl.fileInput.files = [
+    { name: "unsafe.mp4", size: 1_000_000, type: "video/mp4" },
+  ];
+  await unsafeUrl.fileHandlers.change();
+  assert.match(unsafeUrl.attachmentName.textContent, /decode failed/);
 });
 
 test("hosted study replies enhance immediate fallback with safe rich sources", async () => {
