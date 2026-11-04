@@ -365,6 +365,10 @@ fn output_is_bounded_and_cited_to_available_evidence() {
         grounded_answer("Force changes momentum", &evidence[..1]).as_deref(),
         Some("Force changes momentum [1]")
     );
+    assert_eq!(
+        grounded_answer("Force changes momentum.", &evidence[..1]).as_deref(),
+        Some("Force changes momentum [1].")
+    );
     assert!(grounded_answer("Force changes momentum", &[]).is_none());
     let long_grounded = format!("[1] {}", "x".repeat(5_000));
     assert_eq!(
