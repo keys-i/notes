@@ -326,16 +326,16 @@ body {
     filter: drop-shadow(0 0 7px rgb(105 232 255 / 0.18));
     mask-image: radial-gradient(
       circle at var(--theme-x) var(--theme-y),
-      #000 0 max(0px, calc(var(--theme-reveal) - 29px)),
-      rgb(0 0 0 / 0.96) max(0px, calc(var(--theme-reveal) - 28px))
-        max(0px, calc(var(--theme-reveal) - 22px)),
-      rgb(0 0 0 / 0.68) max(0px, calc(var(--theme-reveal) - 21px))
-        max(0px, calc(var(--theme-reveal) - 16px)),
-      rgb(0 0 0 / 0.94) max(0px, calc(var(--theme-reveal) - 15px))
-        max(0px, calc(var(--theme-reveal) - 9px)),
-      rgb(0 0 0 / 0.52) max(0px, calc(var(--theme-reveal) - 8px))
-        max(0px, calc(var(--theme-reveal) - 3px)),
-      rgb(0 0 0 / 0.88) max(0px, calc(var(--theme-reveal) - 2px))
+      #000 0 calc(var(--theme-reveal) - 29px),
+      rgb(0 0 0 / 0.96) calc(var(--theme-reveal) - 28px)
+        calc(var(--theme-reveal) - 22px),
+      rgb(0 0 0 / 0.68) calc(var(--theme-reveal) - 21px)
+        calc(var(--theme-reveal) - 16px),
+      rgb(0 0 0 / 0.94) calc(var(--theme-reveal) - 15px)
+        calc(var(--theme-reveal) - 9px),
+      rgb(0 0 0 / 0.52) calc(var(--theme-reveal) - 8px)
+        calc(var(--theme-reveal) - 3px),
+      rgb(0 0 0 / 0.88) calc(var(--theme-reveal) - 2px)
         calc(var(--theme-reveal) + 4px),
       rgb(0 0 0 / 0.28) calc(var(--theme-reveal) + 5px)
         calc(var(--theme-reveal) + 11px),
