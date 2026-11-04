@@ -334,7 +334,11 @@ test("panic telemetry cycles modules, recovery text, and logo state", () => {
   assert.equal(runtime.get("404-title").style.properties.size, 0);
 });
 
-function shellRuntime({ fetchOk = true } = {}) {
+function shellRuntime({
+  fetchOk = true,
+  hostname = "localhost",
+  trace = "ip=203.0.113.7",
+} = {}) {
   const clock = timers();
   const nodes = new Map<string, any>();
   const get = (id: string) => {
@@ -387,16 +391,23 @@ function shellRuntime({ fetchOk = true } = {}) {
       currentScript: { src: "https://example.test/assets/js/404/shell.js" },
       getElementById: get,
     },
-    fetch: async () => ({
-      json: async () => manual,
-      ok: fetchOk,
-      status: 503,
-    }),
+    fetch: async (url: string) =>
+      url === "/cdn-cgi/trace"
+        ? {
+            ok: fetchOk,
+            status: 503,
+            text: async () => trace,
+          }
+        : {
+            json: async () => manual,
+            ok: fetchOk,
+            status: 503,
+          },
     gameAudio: { pause() {}, start() {} },
     ghostTick: 2,
     hex32: (seed: number) => seed.toString(16).padStart(8, "0"),
     hex64: (seed: number) => seed.toString(16).padStart(16, "0"),
-    location: { hostname: "localhost" },
+    location: { hostname },
     moduleBase: (base: number, seed: number) => (base + seed).toString(16),
     moveIndexes: { e: 2, n: 0, s: 1, w: 3 },
     movePlayer: (x: number, y: number) => {
@@ -436,9 +447,45 @@ async function command(runtime: any, source: string) {
 
 test("recovery shell exposes FreeBSD, manual, file, and game behaviour", async () => {
   const runtime = shellRuntime();
-  assert.deepEqual(Array.from(runtime.base.shell.lines), [
-    "KoalaBSD rescue shell ready · type help",
-  ]);
+  assert.equal(
+    runtime.base.loginTime(new Date(2026, 10, 2, 21, 2, 11)),
+    "Mon Nov  2 21:02:11 2026",
+  );
+  assert.equal(
+    runtime.base.loginLines(new Date(2026, 10, 2, 21, 2, 11), "203.0.113.7")[0],
+    "Last login: Mon Nov  2 21:02:11 2026 from 203.0.113.7",
+  );
+  runtime.base.location.hostname = "192.0.2.8";
+  assert.equal(runtime.base.loginAddress(), "192.0.2.8");
+  runtime.base.location.hostname = "uni.keysi.dev";
+  assert.equal(runtime.base.loginAddress(), "198.51.100.42");
+  assert.match(
+    runtime.base.shell.lines[0],
+    /^Last login: .+ from 127\.0\.0\.1$/,
+  );
+  assert.equal(
+    runtime.base.shell.lines.at(-1),
+    "= Welcome to Koala's server =",
+  );
+  assert.match(runtime.base.shell.lines.join("\n"), /o o/);
+  assert.doesNotMatch(runtime.base.shell.lines.join("\n"), /EAIT/);
+  runtime.get("terminal").handlers.get("pointerenter")?.();
+  assert.equal(await runtime.base.shell.manuals, runtime.manual);
+  const remote = shellRuntime({ hostname: "uni.keysi.dev" });
+  await remote.base.refreshLogin();
+  assert.match(remote.base.shell.lines[0], /from 203\.0\.113\.7$/);
+  const invalidTrace = shellRuntime({
+    hostname: "uni.keysi.dev",
+    trace: "ip=not-an-address",
+  });
+  await invalidTrace.base.refreshLogin();
+  assert.match(invalidTrace.base.shell.lines[0], /from 198\.51\.100\.42$/);
+  const unavailableTrace = shellRuntime({
+    fetchOk: false,
+    hostname: "uni.keysi.dev",
+  });
+  await unavailableTrace.base.refreshLogin();
+  assert.match(unavailableTrace.base.shell.lines[0], /from 198\.51\.100\.42$/);
   const cases = [
     "",
     "echo hello | cat",

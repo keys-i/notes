@@ -197,18 +197,16 @@ html:has(.os[data-route]) body {
   display: grid;
   align-items: center;
   width: 100%;
-  max-width: 104rem;
+  max-width: 48rem;
   margin: auto;
   padding: clamp(1rem, 3vw, 3rem);
-  grid-template-columns: minmax(13rem, 0.82fr) minmax(30rem, 46rem) minmax(
-      13rem,
-      0.9fr
-    );
+  grid-template-columns: minmax(0, 46rem);
+  justify-content: center;
   gap: clamp(1rem, 3vw, 3.5rem);
 }
 
 .trace {
-  display: flex;
+  display: none;
   min-width: 0;
   min-height: 0;
   align-self: stretch;
@@ -284,6 +282,18 @@ html:has(.os[data-route]) body {
   .trace {
     padding-block: 0.35rem;
     line-height: 1.42;
+  }
+
+  .os[data-game="playing"] .os__grid {
+    max-width: 104rem;
+    grid-template-columns: minmax(13rem, 0.82fr) minmax(30rem, 46rem) minmax(
+        13rem,
+        0.9fr
+      );
+  }
+
+  .os[data-game="playing"] .trace {
+    display: flex;
   }
 }
 
