@@ -241,7 +241,10 @@ fn local_bm25_retrieval_is_deterministic_without_a_term_match() {
     let second = retrieve(&input);
     assert_eq!(first, second);
     assert_eq!(
-        first.iter().map(|item| item.heading.as_str()).collect::<Vec<_>>(),
+        first
+            .iter()
+            .map(|item| item.heading.as_str())
+            .collect::<Vec<_>>(),
         ["Energy", "Newton's second law", "Impulse"]
     );
 }
