@@ -1,32 +1,20 @@
 "use strict";
 
-var DOCK_PET_MOTIVATION = Object.freeze([
-  "One clear idea at a time",
-  "A quick sketch can make this stick",
-  "Pause here and explain it in your own words",
-  "Good notes turn revision into recognition",
-  "You’re building the map, not memorising the route",
-  "A small break now can save a reread later",
-]);
-
 var DOCK_PET_SPOT_KEY = "dock-pet-reading-spot-v1";
 
-function dockPetSeed(value) {
-  var hash = 2166136261;
-  for (var index = 0; index < value.length; index += 1) {
-    hash ^= value.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
+function dockPetGuidance(event, section, hasPlot) {
+  if (event === "save") {
+    return "Drag me to move; Arrow keys fine-tune and Escape returns me to the footer";
   }
-  return hash >>> 0;
-}
-
-function dockPetMotivationDeck(seed, previous) {
-  var start = dockPetSeed(seed) % DOCK_PET_MOTIVATION.length;
-  var deck = Array.from(DOCK_PET_MOTIVATION, function (_, index) {
-    return DOCK_PET_MOTIVATION[(start + index) % DOCK_PET_MOTIVATION.length];
-  });
-  if (deck[0] === previous) deck.push(deck.shift());
-  return deck;
+  if (event === "resume" || event === "half") {
+    return "Current section: “" + section + "”";
+  }
+  if (event === "complete") {
+    return hasPlot
+      ? "Graphs on this page can be panned, zoomed and reset"
+      : "Use the page navigation to choose the next topic";
+  }
+  return "";
 }
 
 function dockPetPageKey(location) {
@@ -157,6 +145,7 @@ function dockPetThemeRadius(point, width, height) {
   var cloudFrame = 0;
   var progressFrame = 0;
   var dragFrame = 0;
+  var fallFrame = 0;
   var pointer = null;
   var pointerUpdatedAt = 0;
   var eyeTime = 0;
@@ -164,26 +153,31 @@ function dockPetThemeRadius(point, width, height) {
   var position = { x: 0, y: 0 };
   var manualPosition = null;
   var drag = null;
+  var fall = null;
   var suppressClick = false;
+  var hasPlot = Boolean(document.querySelector(".note-plot"));
   var savedSpot = loadSpot();
   var resumeAvailable = Boolean(
     savedSpot && Math.abs(readScroll() - savedSpot.y) > 80,
   );
   var resumeOffered = false;
-  var motivationDeck = [];
-  var motivationCycle = 0;
-  var previousMotivation = "";
-  var lastMotivationAt = -Infinity;
+  var lastGuidanceAt = -Infinity;
   var pendingMilestone = "";
   var seenMilestones = new Set();
   var themeTimer = 0;
+  var themeInputTimer = 0;
   var themeView;
+  var themeResolve;
   var themeOrigin = { x: window.innerWidth - 32, y: 32 };
   var themeOriginCaptured = false;
 
   pet.setAttribute(
     "aria-keyshortcuts",
     "ArrowUp ArrowDown ArrowLeft ArrowRight Escape",
+  );
+  pet.setAttribute(
+    "aria-description",
+    "Drag and release to drop; arrow keys move when focused and Escape restores automatic docking",
   );
 
   footer.classList.add("has-reveal");
@@ -201,43 +195,30 @@ function dockPetThemeRadius(point, width, height) {
   if (palette) {
     palette.addEventListener("pointerdown", function (event) {
       themeOriginCaptured = captureThemeOrigin(event);
+      beginThemeWave();
     });
+    palette.addEventListener(
+      "keydown",
+      function (event) {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        themeOriginCaptured = captureThemeOrigin(event);
+        beginThemeWave();
+      },
+      true,
+    );
     palette.addEventListener(
       "change",
       function (event) {
+        if (themeView) {
+          finishThemeUpdate();
+          themeOriginCaptured = false;
+          return;
+        }
         if (!themeOriginCaptured) captureThemeOrigin(event);
         themeOriginCaptured = false;
         clearThemeEffect();
         if (reducedMotion.matches) return;
-        document.documentElement.style.setProperty(
-          "--theme-x",
-          themeOrigin.x + "px",
-        );
-        document.documentElement.style.setProperty(
-          "--theme-y",
-          themeOrigin.y + "px",
-        );
-        document.documentElement.style.setProperty(
-          "--theme-radius",
-          dockPetThemeRadius(
-            themeOrigin,
-            window.innerWidth,
-            window.innerHeight,
-          ) + "px",
-        );
-        if ((document as any).startViewTransition) {
-          document.documentElement.classList.add("theme-wave");
-          var transition = (document as any).startViewTransition(
-            function () {},
-          );
-          themeView = transition;
-          transition.finished.finally(function () {
-            if (themeView !== transition) return;
-            themeView = null;
-            document.documentElement.classList.remove("theme-wave");
-          });
-          return;
-        }
+        setThemeGeometry();
         document.body.classList.remove("theme-fade");
         void document.body.offsetWidth;
         document.body.classList.add("theme-fade");
@@ -247,6 +228,52 @@ function dockPetThemeRadius(point, width, height) {
         }, 220);
       },
       true,
+    );
+  }
+
+  function beginThemeWave() {
+    if (reducedMotion.matches || !(document as any).startViewTransition) {
+      return;
+    }
+    clearThemeEffect();
+    setThemeGeometry();
+    document.documentElement.classList.add("theme-wave");
+    var update = new Promise<void>(function (resolve) {
+      themeResolve = resolve;
+    });
+    themeInputTimer = setTimeout(finishThemeUpdate, 240);
+    var transition = (document as any).startViewTransition(function () {
+      return update;
+    });
+    themeView = transition;
+    transition.finished.finally(function () {
+      if (themeView !== transition) return;
+      themeView = null;
+      document.documentElement.classList.remove("theme-wave");
+    });
+  }
+
+  function finishThemeUpdate() {
+    clearTimeout(themeInputTimer);
+    themeInputTimer = 0;
+    var resolve = themeResolve;
+    themeResolve = null;
+    resolve?.();
+  }
+
+  function setThemeGeometry() {
+    document.documentElement.style.setProperty(
+      "--theme-x",
+      themeOrigin.x + "px",
+    );
+    document.documentElement.style.setProperty(
+      "--theme-y",
+      themeOrigin.y + "px",
+    );
+    document.documentElement.style.setProperty(
+      "--theme-radius",
+      dockPetThemeRadius(themeOrigin, window.innerWidth, window.innerHeight) +
+        "px",
     );
   }
 
@@ -266,6 +293,7 @@ function dockPetThemeRadius(point, width, height) {
   }
 
   function clearThemeEffect() {
+    finishThemeUpdate();
     clearTimeout(themeTimer);
     themeTimer = 0;
     document.body.classList.remove("theme-fade");
@@ -369,24 +397,17 @@ function dockPetThemeRadius(point, width, height) {
     pet.setAttribute("title", text);
   }
 
-  function nextMotivation(event) {
+  function nextGuidance(event, section) {
     var now = Date.now();
-    if (now - lastMotivationAt < 30000) return "";
-    if (!motivationDeck.length) {
-      motivationDeck = dockPetMotivationDeck(
-        pageKey + ":" + event + ":" + motivationCycle,
-        previousMotivation,
-      );
-      motivationCycle += 1;
-    }
-    previousMotivation = motivationDeck.shift();
-    lastMotivationAt = now;
-    return previousMotivation;
+    if (now - lastGuidanceAt < 30000) return "";
+    var guidance = dockPetGuidance(event, section, hasPlot);
+    if (guidance) lastGuidanceAt = now;
+    return guidance;
   }
 
-  function withMotivation(message, event) {
-    var motivation = nextMotivation(event);
-    return motivation ? message + " · " + motivation : message;
+  function withGuidance(message, event, section?) {
+    var guidance = nextGuidance(event, section || currentHeading().heading);
+    return guidance ? message + " · " + guidance : message;
   }
 
   function showBubble(message, duration) {
@@ -435,12 +456,12 @@ function dockPetThemeRadius(point, width, height) {
     pendingMilestone = "";
     var message =
       event === "complete" ? "Page complete" : "You’re halfway through";
-    showBubble(withMotivation(message, event), 5200);
+    showBubble(withGuidance(message, event), 5200);
     react(event === "complete" ? "sit" : "peek", 1100);
   }
 
   function configure(settling?) {
-    if (drag?.active) return;
+    if (drag?.active || fall) return;
     var wasHidden = pet.hidden;
     pet.hidden = false;
     if (manualPosition) {
@@ -491,9 +512,10 @@ function dockPetThemeRadius(point, width, height) {
       var resumed = savedSpot;
       resumeAvailable = false;
       setAction("save", resumed.heading);
-      var message = withMotivation(
+      var message = withGuidance(
         "Resuming at “" + resumed.heading + "”",
         "resume",
+        resumed.heading,
       );
       showBubble(message, 5200);
       announce(message);
@@ -520,7 +542,7 @@ function dockPetThemeRadius(point, width, height) {
     }
     savedSpot = spot;
     setAction("save", spot.heading);
-    var saved = withMotivation("Saved at “" + spot.heading + "”", "save");
+    var saved = withGuidance("Saved at “" + spot.heading + "”", "save");
     showBubble(saved, 5200);
     announce(saved);
     react("scratch", 1100);
@@ -538,14 +560,137 @@ function dockPetThemeRadius(point, width, height) {
     });
   }
 
+  function stopFall() {
+    fall = null;
+    fallFrame = 0;
+    delete pet.dataset.falling;
+    delete pet.dataset.parachute;
+    pet.style.removeProperty("--dock-pet-fall-speed");
+    pet.style.removeProperty("--dock-pet-fall-tilt");
+  }
+
+  function landFall() {
+    if (!fall) return;
+    var ground = footerGeometry();
+    var viewportFloor = Math.max(8, window.innerHeight - pet.offsetHeight - 8);
+    var onFooter = ground.visible && ground.y <= viewportFloor + 1;
+    var point = clampPosition({
+      x: onFooter ? clamp(fall.x, ground.minimum, ground.maximum) : fall.x,
+      y: onFooter ? ground.y : viewportFloor,
+    });
+    stopFall();
+    pet.dataset.state = "perched";
+    pet.dataset.dock = onFooter ? "footer" : "manual";
+    manualPosition = onFooter ? null : point;
+    setPosition(point);
+    dropFeedback();
+    announce(onFooter ? "Koala landed on the footer" : "Koala landed");
+  }
+
+  function scheduleFall() {
+    if (fallFrame || !fall) return;
+    var current = fall;
+    fallFrame = requestAnimationFrame(function (now) {
+      fallFrame = 0;
+      if (fall !== current) return;
+      stepFall(now);
+    });
+  }
+
+  function stepFall(now) {
+    if (!fall) return;
+    var elapsed = fall.last ? clamp(now - fall.last, 8, 34) : 16;
+    fall.last = now;
+    fall.velocity = Math.min(
+      fall.parachute ? 0.22 : 1.5,
+      fall.velocity + elapsed * (fall.parachute ? 0.0004 : 0.003),
+    );
+    fall.y += fall.velocity * elapsed;
+    pet.style.setProperty("--dock-pet-fall-speed", fall.velocity.toFixed(3));
+    pet.style.setProperty(
+      "--dock-pet-fall-tilt",
+      ((fall.velocity - 0.1) * 2).toFixed(2) + "deg",
+    );
+
+    var maximumScroll = Math.max(
+      0,
+      document.documentElement.scrollHeight - window.innerHeight,
+    );
+    if (fall.scroll && readScroll() < maximumScroll) {
+      var scrollStep = Math.min(8, Math.max(3, fall.velocity * elapsed));
+      window.scrollTo({
+        behavior: "auto",
+        top: Math.min(maximumScroll, readScroll() + scrollStep),
+      });
+    }
+
+    var ground = footerGeometry();
+    var viewportFloor = Math.max(8, window.innerHeight - pet.offsetHeight - 8);
+    var footerReady = ground.visible && ground.y <= viewportFloor + 1;
+    var floor = footerReady ? ground.y : viewportFloor;
+    fall.y = Math.min(fall.y, floor);
+    setPosition({ x: fall.x, y: fall.y });
+    var pageBottom = readScroll() >= maximumScroll - 1;
+    if (fall.y >= floor && (footerReady || !fall.scroll || pageBottom)) {
+      landFall();
+      return;
+    }
+    scheduleFall();
+  }
+
+  function startFall(point) {
+    var target = clampPosition(point);
+    var viewportFloor = Math.max(8, window.innerHeight - pet.offsetHeight - 8);
+    var edge =
+      target.x >= document.documentElement.clientWidth - pet.offsetWidth - 32;
+    var parachute = edge || target.y <= Math.min(280, viewportFloor - 160);
+    manualPosition = null;
+    fall = {
+      last: 0,
+      parachute: parachute,
+      scroll: parachute,
+      velocity: parachute ? 0.08 : 0.12,
+      x: target.x,
+      y: target.y,
+    };
+    pet.hidden = false;
+    pet.dataset.dock = "fall";
+    pet.dataset.state = parachute ? "parachuting" : "falling";
+    pet.dataset.falling = "true";
+    if (parachute) pet.dataset.parachute = "true";
+    setPosition(target);
+    announce(
+      parachute
+        ? "Parachute open; scrolling towards the footer"
+        : "Koala falling towards the footer",
+    );
+    if (reducedMotion.matches) {
+      landFall();
+      return;
+    }
+    scheduleFall();
+  }
+
   function beginDrag(event) {
-    if (event.button !== undefined && event.button !== 0) return;
+    if (drag || (event.button !== undefined && event.button !== 0)) return;
+    if (fall) {
+      stopFall();
+      manualPosition = clampPosition(position);
+      pet.dataset.dock = "manual";
+      pet.dataset.state = "perched";
+    }
+    clearTimeout(settleTimer);
+    settleTimer = 0;
+    delete pet.dataset.dropping;
     suppressClick = false;
+    pet.dataset.held = "true";
+    pet.style.setProperty("--dock-pet-drag-tilt", "0deg");
     drag = {
       active: false,
       origin: { x: position.x, y: position.y },
       pointerId: event.pointerId,
       start: { x: event.clientX, y: event.clientY },
+      last: { x: event.clientX, y: event.clientY },
       target: { x: position.x, y: position.y },
     };
     pet.setPointerCapture?.(event.pointerId);
@@ -555,11 +700,25 @@ function dockPetThemeRadius(point, width, height) {
     if (!drag || event.pointerId !== drag.pointerId) return;
     var dx = event.clientX - drag.start.x;
     var dy = event.clientY - drag.start.y;
+    var velocityX = clamp(event.clientX - drag.last.x, -18, 18);
+    var velocityY = clamp(event.clientY - drag.last.y, -18, 18);
+    drag.last = { x: event.clientX, y: event.clientY };
+    pet.style.setProperty(
+      "--dock-pet-drag-tilt",
+      clamp(dx * 0.08 + velocityX * 0.35, -10, 10) + "deg",
+    );
+    pet.style.setProperty("--dock-pet-drag-vx", velocityX.toFixed(2));
+    pet.style.setProperty("--dock-pet-drag-vy", velocityY.toFixed(2));
+    pet.style.setProperty(
+      "--dock-pet-dangle",
+      Math.min(5, Math.abs(velocityY) * 0.28).toFixed(2) + "px",
+    );
     if (!drag.active && Math.hypot(dx, dy) < 6) return;
     if (!drag.active) {
       drag.active = true;
       pet.dataset.dragging = "true";
       bubble.hidden = true;
+      announce("Koala picked up; release to place it");
     }
     drag.target = clampPosition({
       x: drag.origin.x + dx,
@@ -580,20 +739,23 @@ function dockPetThemeRadius(point, width, height) {
 
   function endDrag(event, cancelled) {
     if (!drag || event.pointerId !== drag.pointerId) return;
-    var moved = drag.active;
-    pet.releasePointerCapture?.(drag.pointerId);
+    var ended = drag;
+    var moved = ended.active;
+    pet.releasePointerCapture?.(ended.pointerId);
+    drag = null;
+    delete pet.dataset.held;
     delete pet.dataset.dragging;
+    pet.style.removeProperty("--dock-pet-drag-tilt");
+    pet.style.removeProperty("--dock-pet-drag-vx");
+    pet.style.removeProperty("--dock-pet-drag-vy");
+    pet.style.removeProperty("--dock-pet-dangle");
     pet.style.transform = "";
     if (moved && !cancelled) {
-      manualPosition = clampPosition(drag.target);
-      pet.hidden = false;
-      pet.dataset.dock = "manual";
-      pet.dataset.state = "perched";
-      setPosition(manualPosition);
       suppressClick = true;
-      dropFeedback();
+      startFall(ended.target);
+    } else if (moved) {
+      announce("Koala returned to its previous spot");
     }
-    drag = null;
   }
 
   function moveWithKeyboard(event) {
@@ -742,6 +904,10 @@ function dockPetThemeRadius(point, width, height) {
   }
 
   function scheduleScroll() {
+    if (fall) {
+      scheduleProgress();
+      return;
+    }
     pet.dataset.paused = "true";
     scheduleProgress();
     clearTimeout(scrollTimer);
@@ -755,7 +921,7 @@ function dockPetThemeRadius(point, width, height) {
       scrollFrame = 0;
       scheduleLook();
       if (!bubble.hidden) scheduleCloud();
-      if (drag?.active) return;
+      if (drag?.active || fall) return;
       if (!pet.hidden && pet.dataset.dock === "footer") {
         var ground = footerGeometry();
         if (!ground.visible) pet.hidden = true;
@@ -796,6 +962,7 @@ function dockPetThemeRadius(point, width, height) {
     clearTimeout(behaviorTimer);
     delete pet.dataset.behavior;
     delete pet.dataset.wink;
+    if (fall) landFall();
     configure();
     scheduleLook();
   });
