@@ -1,12 +1,26 @@
 "use strict";
 
-var DOCK_PET_SPOT_KEY = "dock-pet-reading-spot-v1";
+var DOCK_PET_FACTS = [
+  "Koala fingerprints are close enough to ours to confuse a quick glance",
+  "A eucalyptus diet is so low in energy that a long koala nap is sensible budgeting",
+  "Koalas have two opposable digits on each front paw for gripping branches",
+  "A koala joey spends about six months in its mother’s pouch before riding on her back",
+];
+
+var DOCK_PET_MOTIVATION = [
+  "One clean example, then decide whether the rule actually makes sense",
+  "Check the units before wrestling the algebra. They catch a surprising amount",
+  "Finish this heading, then take the tiny break you were about to negotiate for",
+];
+
+var DOCK_PET_BANTER = [
+  "That definition has exam-question energy",
+  "I read that equation twice. Respectfully, it could use a diagram",
+  "We are not memorising that symbol until it earns a name",
+];
 
 function dockPetGuidance(event, section, hasPlot) {
-  if (event === "save") {
-    return "Drag me to move; Arrow keys fine-tune and Escape returns me to the footer";
-  }
-  if (event === "resume" || event === "half") {
+  if (event === "half") {
     return "Current section: “" + section + "”";
   }
   if (event === "complete") {
@@ -15,31 +29,6 @@ function dockPetGuidance(event, section, hasPlot) {
       : "Use the page navigation to choose the next topic";
   }
   return "";
-}
-
-function dockPetPageKey(location) {
-  return String(location.pathname || "/") + String(location.search || "");
-}
-
-function dockPetSpot(value, page) {
-  if (
-    !value ||
-    value.page !== page ||
-    typeof value.heading !== "string" ||
-    typeof value.id !== "string" ||
-    !Number.isFinite(value.y) ||
-    value.y < 0
-  ) {
-    return null;
-  }
-  var heading = value.heading.trim().replace(/\s+/g, " ").slice(0, 80);
-  if (!heading) return null;
-  return {
-    heading: heading,
-    id: value.id.slice(0, 160),
-    page: page,
-    y: Math.round(value.y),
-  };
 }
 
 function dockPetCurrentHeading(headings, position, fallback) {
@@ -111,6 +100,152 @@ function dockPetThemeRadius(point, width, height) {
   );
 }
 
+function dockPetText(value, limit) {
+  var text = String(value || "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!limit || text.length <= limit) return text;
+  var cut = text.slice(0, limit + 1).lastIndexOf(" ");
+  return text.slice(0, cut > limit * 0.65 ? cut : limit).trimEnd() + "…";
+}
+
+function dockPetSummary(value) {
+  var text = dockPetText(value, 420);
+  if (!text)
+    return "This section is mostly notation. Try the heading beside it";
+  var sentence = text.match(/^.{24,180}?[.!?](?:\s|$)/)?.[0] || text;
+  return dockPetText(sentence, 180);
+}
+
+function dockPetTerms(value) {
+  var ignored = new Set([
+    "about",
+    "could",
+    "explain",
+    "help",
+    "how",
+    "please",
+    "show",
+    "tell",
+    "that",
+    "the",
+    "this",
+    "what",
+    "where",
+    "which",
+    "why",
+    "with",
+    "would",
+  ]);
+  return Array.from(
+    new Set(
+      String(value || "")
+        .normalize("NFKC")
+        .toLocaleLowerCase()
+        .split(/[^\p{L}\p{N}]+/u)
+        .filter(function (term) {
+          return term.length > 2 && !ignored.has(term);
+        }),
+    ),
+  );
+}
+
+function dockPetStudyReply(query, sections, currentIndex, turn, contextIndex?) {
+  var cleanQuery = dockPetText(query, 240);
+  var lower = cleanQuery.toLocaleLowerCase();
+  var startingIndex =
+    typeof contextIndex === "number" && sections[contextIndex]
+      ? contextIndex
+      : currentIndex;
+  var current = sections[startingIndex] ||
+    sections[0] || {
+      heading: "this page",
+      id: "page",
+      text: "",
+    };
+  var intent = /\b(quiz|test me|question)\b/u.test(lower) ? "quiz" : "explain";
+  if (/^(g['’]?day|hello|hey|hi)\b/u.test(lower)) {
+    return {
+      behavior: "curious",
+      key: "greeting",
+      sectionIndex: startingIndex,
+      text: "G’day. Ask about a heading, or say ‘explain this bit’",
+    };
+  }
+  if (intent === "quiz") {
+    return {
+      behavior: "curious",
+      key: "quiz:" + (current.id || current.heading),
+      sectionIndex: startingIndex,
+      text: current.text
+        ? "Quick check from “" +
+          current.heading +
+          "”: what main relationship, rule or assumption does this section establish?"
+        : "I can’t build a grounded quiz until this note section has written evidence",
+    };
+  }
+  var terms = dockPetTerms(cleanQuery);
+  var best = current;
+  var bestIndex = Math.max(0, startingIndex);
+  var bestScore = 0;
+  sections.forEach(function (section, index) {
+    var headingTerms = new Set(dockPetTerms(section.heading));
+    var bodyTerms = new Set(dockPetTerms(section.text));
+    var score = terms.reduce(function (total, term) {
+      return total + (headingTerms.has(term) ? 4 : bodyTerms.has(term) ? 1 : 0);
+    }, 0);
+    if (score > bestScore) {
+      best = section;
+      bestIndex = index;
+      bestScore = score;
+    }
+  });
+  if (terms.length && bestScore === 0) {
+    return {
+      behavior: "curious",
+      key: "absent:" + (current.id || current.heading),
+      sectionIndex: startingIndex,
+      text: current.text
+        ? "I can’t find evidence for that in the current note — the nearest grounded context is “" +
+          current.heading +
+          "”: " +
+          dockPetSummary(current.text)
+        : "I can’t find evidence for that in the current note",
+    };
+  }
+  var summary = dockPetSummary(best.text);
+  var prefix = /\b(simple|simply|simpler|plain)\b/u.test(lower)
+    ? "Simply: "
+    : /\b(why|mean|meaning)\b/u.test(lower)
+      ? "The key point in “" + best.heading + "” is: "
+      : /\b(example|worked)\b/u.test(lower)
+        ? "The note’s example or rule here is: "
+        : "Under “" + best.heading + "”: ";
+  return {
+    behavior: "curious",
+    key: "explain:" + (best.id || best.heading),
+    sectionIndex: bestIndex,
+    text: prefix + summary,
+  };
+}
+
+function dockPetIdlePlan(index) {
+  var plan = [
+    { behavior: "blink", message: "" },
+    { behavior: "scratch-head", message: "" },
+    { behavior: "curious", message: "banter" },
+    { behavior: "yawn", message: "" },
+    { behavior: "scratch-bum", message: "" },
+    { behavior: "peek", message: "motivate" },
+    { behavior: "blink", message: "fact" },
+  ];
+  return plan[index % plan.length];
+}
+
+function dockPetIdleDelay(now, index) {
+  return 45000 + ((Math.floor(now / 1000) + index * 7919) % 45001);
+}
+
 (function () {
   var pet = document.getElementById("dock-pet") as HTMLElement;
   var footer = document.querySelector<HTMLElement>(".md-footer");
@@ -122,6 +257,17 @@ function dockPetThemeRadius(point, width, height) {
   var cloudPath = cloud.querySelector<SVGPathElement>("path");
   var irises = Array.from(pet.querySelectorAll<SVGElement>(".dock-pet__iris"));
   var status = document.getElementById("dock-pet-status") as HTMLElement;
+  var help = document.getElementById("dock-pet-help") as HTMLElement;
+  var helpForm = document.getElementById(
+    "dock-pet-help-form",
+  ) as HTMLFormElement;
+  var question = document.getElementById(
+    "dock-pet-question",
+  ) as HTMLInputElement;
+  var listenButton = document.getElementById(
+    "dock-pet-listen",
+  ) as HTMLButtonElement;
+  var thread = document.getElementById("dock-pet-thread") as HTMLOListElement;
   var heading = document.querySelector<HTMLElement>(".md-content h1");
   var palette = document.querySelector<HTMLElement>(
     "[data-md-component=palette]",
@@ -129,10 +275,20 @@ function dockPetThemeRadius(point, width, height) {
   var headings = Array.from(
     document.querySelectorAll<HTMLElement>(".md-content :is(h1, h2, h3)"),
   );
+  if (
+    !bubble ||
+    !bubbleText ||
+    !cloud ||
+    !status ||
+    !help ||
+    !helpForm ||
+    !question ||
+    !thread
+  )
+    return;
   var pageTitle = heading
     ? heading.textContent.trim()
     : document.title || "this page";
-  var pageKey = dockPetPageKey(window.location);
   var reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   var desktop = window.matchMedia("(min-width: 60em)");
   var bubbleTimer = 0;
@@ -146,6 +302,7 @@ function dockPetThemeRadius(point, width, height) {
   var progressFrame = 0;
   var dragFrame = 0;
   var fallFrame = 0;
+  var idleTimer = 0;
   var pointer = null;
   var pointerUpdatedAt = 0;
   var eyeTime = 0;
@@ -155,12 +312,35 @@ function dockPetThemeRadius(point, width, height) {
   var drag = null;
   var fall = null;
   var suppressClick = false;
+  var helpOpen = false;
+  var idleIndex = 0;
+  var idleOffset = randomIndex(7);
+  var idleMessages = 0;
+  var studyTurn = 0;
+  var studyCache = new Map<string, string>();
+  var studyMessages = [];
+  var studyContextIndex = -1;
+  var studyRequest = 0;
+  var activeStudy = null;
+  var lastIdleMessage = "";
+  var recognition = null;
+  var speaking = false;
   var hasPlot = Boolean(document.querySelector(".note-plot"));
-  var savedSpot = loadSpot();
-  var resumeAvailable = Boolean(
-    savedSpot && Math.abs(readScroll() - savedSpot.y) > 80,
-  );
-  var resumeOffered = false;
+  var sections = headings.map(function (sectionHeading) {
+    var text = "";
+    var node = sectionHeading.nextElementSibling;
+    while (node && !node.matches("h1, h2, h3")) {
+      if (node.matches("p, li, table, pre, .admonition")) {
+        text += " " + (node.textContent || "");
+      }
+      node = node.nextElementSibling;
+    }
+    return {
+      heading: dockPetText(sectionHeading.textContent, 80),
+      id: String(sectionHeading.id || "section"),
+      text: dockPetText(text, 2400),
+    };
+  });
   var lastGuidanceAt = -Infinity;
   var pendingMilestone = "";
   var seenMilestones = new Set();
@@ -177,8 +357,10 @@ function dockPetThemeRadius(point, width, height) {
   );
   pet.setAttribute(
     "aria-description",
-    "Drag and release to drop; arrow keys move when focused and Escape restores automatic docking",
+    "Open the study helper, or drag and release to move; arrow keys fine-tune and Escape restores automatic docking",
   );
+  pet.setAttribute("aria-controls", "dock-pet-help");
+  pet.setAttribute("aria-expanded", "false");
 
   footer.classList.add("has-reveal");
   if (window.IntersectionObserver) {
@@ -312,6 +494,95 @@ function dockPetThemeRadius(point, width, height) {
     return Math.max(minimum, Math.min(maximum, value));
   }
 
+  function randomIndex(length) {
+    if (length <= 1) return 0;
+    try {
+      var values = new Uint32Array(1);
+      window.crypto.getRandomValues(values);
+      return values[0] % length;
+    } catch (_) {
+      return Math.floor(Date.now() / 1000) % length;
+    }
+  }
+
+  function nearbySections(index) {
+    return [index, index - 1, index + 1]
+      .filter(function (place, position, places) {
+        return (
+          place >= 0 &&
+          place < sections.length &&
+          places.indexOf(place) === position
+        );
+      })
+      .map(function (place) {
+        return sections[place];
+      })
+      .filter(function (section) {
+        return Boolean(section.heading && section.text);
+      })
+      .map(function (section) {
+        return { heading: section.heading, text: section.text };
+      });
+  }
+
+  async function studyKey(payload) {
+    var value = JSON.stringify(payload);
+    if (!window.crypto?.subtle || typeof TextEncoder !== "function") {
+      return "memory:" + value;
+    }
+    var digest = await window.crypto.subtle.digest(
+      "SHA-256",
+      new TextEncoder().encode(value),
+    );
+    return Array.from(new Uint8Array(digest))
+      .map(function (byte) {
+        return byte.toString(16).padStart(2, "0");
+      })
+      .join("");
+  }
+
+  function sessionReply(key) {
+    if (key.startsWith("memory:")) return "";
+    try {
+      var cache = JSON.parse(
+        window.sessionStorage.getItem("dock-pet-cache-v1") || "{}",
+      );
+      return typeof cache[key] === "string" ? cache[key] : "";
+    } catch (_) {
+      return "";
+    }
+  }
+
+  function rememberReply(key, value) {
+    studyCache.set(key, value);
+    if (key.startsWith("memory:")) return;
+    try {
+      var cache = JSON.parse(
+        window.sessionStorage.getItem("dock-pet-cache-v1") || "{}",
+      );
+      delete cache[key];
+      cache[key] = value;
+      Object.keys(cache)
+        .slice(0, -24)
+        .forEach(function (oldKey) {
+          delete cache[oldKey];
+        });
+      window.sessionStorage.setItem("dock-pet-cache-v1", JSON.stringify(cache));
+    } catch (_) {
+      // Session storage is an optional speed-up
+    }
+  }
+
+  function appendThread(role, message, pending?) {
+    var item = document.createElement("li");
+    item.dataset.role = role;
+    if (pending) item.dataset.pending = "true";
+    item.textContent = message;
+    thread.append(item);
+    thread.scrollTop = thread.scrollHeight;
+    return item;
+  }
+
   function clampPosition(point) {
     return {
       x: clamp(
@@ -329,26 +600,6 @@ function dockPetThemeRadius(point, width, height) {
 
   function readScroll() {
     return window.scrollY || window.pageYOffset || 0;
-  }
-
-  function loadSpot() {
-    try {
-      return dockPetSpot(
-        JSON.parse(window.localStorage.getItem(DOCK_PET_SPOT_KEY) || "null"),
-        pageKey,
-      );
-    } catch (_) {
-      return null;
-    }
-  }
-
-  function storeSpot(spot) {
-    try {
-      window.localStorage.setItem(DOCK_PET_SPOT_KEY, JSON.stringify(spot));
-      return true;
-    } catch (_) {
-      return false;
-    }
   }
 
   function currentHeading() {
@@ -379,22 +630,12 @@ function dockPetThemeRadius(point, width, height) {
     position = { x: point.x, y: point.y };
     pet.style.left = pixels(point.x);
     pet.style.top = pixels(point.y);
+    if (fall?.rope) updateRope(point);
     pet.dataset.bubbleSide =
       point.x < document.documentElement.clientWidth / 2 ? "right" : "left";
     scheduleLook();
     if (!bubble.hidden) scheduleCloud();
-  }
-
-  function setAction(action, label?) {
-    pet.dataset.action = action;
-    var text =
-      action === "resume"
-        ? "Resume reading at " + label
-        : label
-          ? "Update saved reading spot at " + label
-          : "Save current reading spot";
-    pet.setAttribute("aria-label", text);
-    pet.setAttribute("title", text);
+    if (helpOpen) positionHelp();
   }
 
   function nextGuidance(event, section) {
@@ -428,6 +669,7 @@ function dockPetThemeRadius(point, width, height) {
       ? setTimeout(function () {
           bubbleTimer = 0;
           bubble.hidden = true;
+          scheduleIdle();
         }, duration)
       : 0;
   }
@@ -443,6 +685,7 @@ function dockPetThemeRadius(point, width, height) {
       delete pet.dataset.behavior;
       delete pet.dataset.wink;
       scheduleLook();
+      scheduleIdle();
     }, duration);
   }
 
@@ -450,8 +693,254 @@ function dockPetThemeRadius(point, width, height) {
     status.textContent = message;
   }
 
+  function currentSectionIndex() {
+    var place = currentHeading();
+    var index = sections.findIndex(function (section) {
+      return section.id === place.id;
+    });
+    return Math.max(0, index);
+  }
+
+  function speak(message) {
+    var synth = (window as any).speechSynthesis;
+    var Voice = (window as any).SpeechSynthesisUtterance;
+    if (!speaking || !synth || !Voice) return;
+    synth.cancel();
+    var utterance = new Voice(message);
+    utterance.lang =
+      window.navigator?.language || document.documentElement.lang;
+    synth.speak(utterance);
+    speaking = false;
+  }
+
+  function finishStudy(task, message, cacheKey?) {
+    if (activeStudy !== task) return;
+    delete task.pending.dataset.pending;
+    task.pending.textContent = message;
+    studyMessages.push({ role: "assistant", content: message });
+    if (cacheKey) rememberReply(cacheKey, message);
+    activeStudy = null;
+    react(task.reply.behavior, 1200);
+    announce(message);
+    speaking = Boolean(task.useVoice);
+    speak(message);
+    thread.scrollTop = thread.scrollHeight;
+    positionHelp();
+  }
+
+  function cancelStudy(useFallback) {
+    if (!activeStudy) return;
+    var task = activeStudy;
+    studyRequest += 1;
+    task.abort?.abort();
+    if (useFallback) {
+      finishStudy(task, task.reply.text);
+    } else {
+      task.pending.remove();
+      activeStudy = null;
+    }
+  }
+
+  async function answerQuestion(value, useVoice?) {
+    cancelStudy(true);
+    var reply = dockPetStudyReply(
+      value,
+      sections,
+      currentSectionIndex(),
+      studyTurn,
+      studyContextIndex,
+    );
+    studyTurn += 1;
+    studyContextIndex = reply.sectionIndex;
+    while (studyMessages.length >= 8) studyMessages.splice(0, 2);
+    studyMessages.push({ role: "user", content: value });
+    appendThread("user", value);
+    var pending = appendThread("assistant", reply.text, true);
+    var requestId = (studyRequest += 1);
+    var abort =
+      typeof AbortController === "function" ? new AbortController() : null;
+    var task = { abort, pending, reply, requestId, useVoice };
+    activeStudy = task;
+    question.value = "";
+    announce("Koa is reading the current note");
+    positionHelp();
+
+    var context = nearbySections(studyContextIndex);
+    var payload = {
+      locale:
+        document.documentElement.lang || window.navigator?.language || "en-AU",
+      messages: studyMessages.slice(),
+      sections: context,
+      title: pageTitle,
+    };
+    if (!context.length || typeof window.fetch !== "function") {
+      finishStudy(task, reply.text);
+      return;
+    }
+
+    try {
+      var key = await studyKey(payload);
+      if (activeStudy !== task || requestId !== studyRequest) return;
+      var cached = studyCache.get(key) || sessionReply(key);
+      if (cached) {
+        studyCache.set(key, cached);
+        finishStudy(task, cached);
+        return;
+      }
+      var timeout = setTimeout(function () {
+        abort?.abort();
+      }, 8000);
+      var response;
+      try {
+        response = await window.fetch(pet.dataset.endpoint || "/api/pet", {
+          body: JSON.stringify(payload),
+          headers: { "Content-Type": "application/json" },
+          method: "POST",
+          signal: abort?.signal,
+        });
+      } finally {
+        clearTimeout(timeout);
+      }
+      if (!response.ok) throw new Error("study model unavailable");
+      var body = await response.json();
+      if (body?.grounded === false) {
+        finishStudy(task, reply.text);
+        return;
+      }
+      var answer = String(body?.answer || "")
+        .trim()
+        .slice(0, 1800);
+      if (!answer) throw new Error("study model returned no answer");
+      var citations = Array.isArray(body?.citations)
+        ? body.citations
+            .map(function (citation) {
+              return dockPetText(
+                typeof citation === "string"
+                  ? citation
+                  : citation?.label || citation?.title || citation?.url,
+                120,
+              );
+            })
+            .filter(Boolean)
+            .slice(0, 3)
+        : [];
+      if (citations.length) answer += "\nSources: " + citations.join(" · ");
+      if (activeStudy !== task || requestId !== studyRequest) return;
+      finishStudy(task, answer, key);
+    } catch (_) {
+      if (activeStudy === task && requestId === studyRequest) {
+        finishStudy(task, reply.text);
+      }
+    }
+  }
+
+  function positionHelp() {
+    if (!helpOpen) return;
+    var petRect = pet.getBoundingClientRect();
+    var width = help.offsetWidth || Math.min(320, window.innerWidth - 24);
+    var height = help.offsetHeight || 190;
+    var left = clamp(
+      petRect.left + petRect.width / 2 - width / 2,
+      12,
+      Math.max(12, window.innerWidth - width - 12),
+    );
+    var top =
+      petRect.top >= height + 20
+        ? petRect.top - height - 12
+        : petRect.bottom + 12;
+    help.style.left = pixels(left);
+    help.style.top = pixels(
+      clamp(top, 12, Math.max(12, window.innerHeight - height - 12)),
+    );
+  }
+
+  function setHelp(open) {
+    helpOpen = open;
+    help.hidden = !open;
+    pet.setAttribute("aria-expanded", String(open));
+    if (!open) {
+      recognition?.abort();
+      question?.blur();
+      pet.focus?.();
+      scheduleIdle();
+      return;
+    }
+    bubble.hidden = true;
+    clearTimeout(bubbleTimer);
+    positionHelp();
+    question?.focus();
+    announce("Study helper open");
+    clearTimeout(idleTimer);
+    idleTimer = 0;
+  }
+
+  function idleMessage(kind) {
+    if (kind === "fact") {
+      var current = sections[currentSectionIndex()];
+      if (idleIndex % 2 === 0 && current?.text) {
+        return (
+          "From “" + current.heading + "”: " + dockPetSummary(current.text)
+        );
+      }
+      return DOCK_PET_FACTS[randomIndex(DOCK_PET_FACTS.length)];
+    }
+    if (kind === "motivate") {
+      return DOCK_PET_MOTIVATION[randomIndex(DOCK_PET_MOTIVATION.length)];
+    }
+    return DOCK_PET_BANTER[randomIndex(DOCK_PET_BANTER.length)];
+  }
+
+  function runIdle() {
+    idleTimer = 0;
+    if (
+      document.hidden ||
+      reducedMotion.matches ||
+      pet.hidden ||
+      helpOpen ||
+      drag ||
+      fall ||
+      !bubble.hidden
+    ) {
+      scheduleIdle();
+      return;
+    }
+    var plan = dockPetIdlePlan(idleIndex + idleOffset);
+    idleIndex += 1;
+    react(plan.behavior, plan.behavior === "blink" ? 220 : 1400);
+    if (plan.message && idleMessages < 4) {
+      var message = idleMessage(plan.message);
+      if (message === lastIdleMessage) message = idleMessage("banter");
+      lastIdleMessage = message;
+      idleMessages += 1;
+      showBubble(message, 6500);
+    }
+    scheduleIdle();
+  }
+
+  function scheduleIdle() {
+    clearTimeout(idleTimer);
+    idleTimer = 0;
+    if (
+      document.hidden ||
+      reducedMotion.matches ||
+      pet.hidden ||
+      helpOpen ||
+      drag ||
+      fall
+    ) {
+      return;
+    }
+    idleTimer = setTimeout(runIdle, dockPetIdleDelay(Date.now(), idleIndex));
+  }
+
+  function noteActivity() {
+    clearTimeout(idleTimer);
+    idleTimer = 0;
+    scheduleIdle();
+  }
+
   function flushMilestone() {
-    if (!pendingMilestone || resumeAvailable || pet.hidden) return;
+    if (!pendingMilestone || pet.hidden || helpOpen) return;
     var event = pendingMilestone;
     pendingMilestone = "";
     var message =
@@ -462,7 +951,7 @@ function dockPetThemeRadius(point, width, height) {
 
   function configure(settling?) {
     if (drag?.active || fall) return;
-    var wasHidden = pet.hidden;
+    var previousDock = pet.dataset.dock;
     pet.hidden = false;
     if (manualPosition) {
       manualPosition = clampPosition(manualPosition);
@@ -470,13 +959,15 @@ function dockPetThemeRadius(point, width, height) {
       pet.dataset.state = "perched";
       setPosition(manualPosition);
       flushMilestone();
+      scheduleIdle();
       return;
     }
     var ground = footerGeometry();
     if (ground.visible) {
       pet.dataset.dock = "footer";
       setPosition({ x: ground.maximum, y: ground.y });
-      pet.dataset.state = settling && wasHidden ? "walking" : "perched";
+      pet.dataset.state =
+        settling && previousDock !== "footer" ? "walking" : "perched";
       if (pet.dataset.state === "walking") {
         clearTimeout(settleTimer);
         settleTimer = setTimeout(function () {
@@ -485,67 +976,18 @@ function dockPetThemeRadius(point, width, height) {
         }, 520);
       }
       flushMilestone();
+      scheduleIdle();
       return;
     }
-    if (resumeAvailable && savedSpot) {
-      pet.dataset.dock = "resume";
-      setPosition({
-        x: Math.max(
-          12,
-          document.documentElement.clientWidth - pet.offsetWidth - 16,
-        ),
-        y: Math.max(64, window.innerHeight - pet.offsetHeight - 24),
-      });
-      pet.dataset.state = "perched";
-      if (!resumeOffered) {
-        resumeOffered = true;
-        showBubble("Resume at “" + savedSpot.heading + "”", 8000);
-      }
-      return;
-    }
-    pet.hidden = true;
-    pet.dataset.state = "perched";
-  }
-
-  function handleAction() {
-    if (resumeAvailable && savedSpot) {
-      var resumed = savedSpot;
-      resumeAvailable = false;
-      setAction("save", resumed.heading);
-      var message = withGuidance(
-        "Resuming at “" + resumed.heading + "”",
-        "resume",
-        resumed.heading,
-      );
-      showBubble(message, 5200);
-      announce(message);
-      react("peek", 1100);
-      window.scrollTo({
-        behavior: reducedMotion.matches ? "auto" : "smooth",
-        top: resumed.y,
-      });
-      return;
-    }
-
-    var place = currentHeading();
-    var spot = {
-      heading: place.heading,
-      id: place.id,
-      page: pageKey,
-      y: Math.round(readScroll()),
-    };
-    if (!storeSpot(spot)) {
-      var failed = "I couldn’t save this reading spot in this browser";
-      showBubble(failed, 5200);
-      announce(failed);
-      return;
-    }
-    savedSpot = spot;
-    setAction("save", spot.heading);
-    var saved = withGuidance("Saved at “" + spot.heading + "”", "save");
-    showBubble(saved, 5200);
-    announce(saved);
-    react("scratch", 1100);
+    pet.dataset.dock = "edge";
+    pet.dataset.state = "clinging";
+    pet.dataset.direction = "left";
+    setPosition({
+      x: Math.max(0, document.documentElement.clientWidth - pet.offsetWidth),
+      y: Math.max(64, window.innerHeight - pet.offsetHeight - 24),
+    });
+    flushMilestone();
+    scheduleIdle();
   }
 
   function scheduleDrag() {
@@ -565,8 +1007,43 @@ function dockPetThemeRadius(point, width, height) {
     fallFrame = 0;
     delete pet.dataset.falling;
     delete pet.dataset.parachute;
+    delete pet.dataset.climbing;
+    delete pet.dataset.rope;
     pet.style.removeProperty("--dock-pet-fall-speed");
     pet.style.removeProperty("--dock-pet-fall-tilt");
+    pet.style.removeProperty("--dock-pet-hook-turn");
+    pet.style.removeProperty("--dock-pet-hook-x");
+    pet.style.removeProperty("--dock-pet-hook-y");
+    pet.style.removeProperty("--dock-pet-rope-angle");
+    pet.style.removeProperty("--dock-pet-rope-body-angle");
+    pet.style.removeProperty("--dock-pet-rope-length");
+  }
+
+  function updateRope(point) {
+    if (!fall?.rope) return;
+    var startX = pet.offsetWidth * 0.5;
+    var startY = pet.offsetHeight * 0.77;
+    var hookX = fall.rope === "left" ? 1 : window.innerWidth - 1;
+    var hookY = fall.hookY;
+    var deltaX = hookX - (point.x + startX);
+    var deltaY = hookY - (point.y + startY);
+    var angle = (Math.atan2(deltaY, deltaX) * 180) / Math.PI;
+    pet.style.setProperty("--dock-pet-hook-x", pixels(hookX - point.x));
+    pet.style.setProperty("--dock-pet-hook-y", pixels(hookY - point.y));
+    pet.style.setProperty(
+      "--dock-pet-hook-turn",
+      fall.rope === "left" ? "90deg" : "-90deg",
+    );
+    pet.style.setProperty("--dock-pet-rope-angle", angle.toFixed(2) + "deg");
+    pet.style.setProperty(
+      "--dock-pet-rope-body-angle",
+      clamp(angle + (fall.rope === "left" ? 180 : 0), -12, 12).toFixed(2) +
+        "deg",
+    );
+    pet.style.setProperty(
+      "--dock-pet-rope-length",
+      pixels(Math.hypot(deltaX, deltaY)),
+    );
   }
 
   function landFall() {
@@ -601,10 +1078,13 @@ function dockPetThemeRadius(point, width, height) {
     if (!fall) return;
     var elapsed = fall.last ? clamp(now - fall.last, 8, 34) : 16;
     fall.last = now;
-    fall.velocity = Math.min(
-      fall.parachute ? 0.22 : 1.5,
-      fall.velocity + elapsed * (fall.parachute ? 0.0004 : 0.003),
-    );
+    fall.velocity =
+      fall.edge || fall.rope
+        ? 0.06
+        : Math.min(
+            fall.parachute ? 0.22 : 1.5,
+            fall.velocity + elapsed * (fall.parachute ? 0.0004 : 0.003),
+          );
     fall.y += fall.velocity * elapsed;
     pet.style.setProperty("--dock-pet-fall-speed", fall.velocity.toFixed(3));
     pet.style.setProperty(
@@ -617,7 +1097,10 @@ function dockPetThemeRadius(point, width, height) {
       document.documentElement.scrollHeight - window.innerHeight,
     );
     if (fall.scroll && readScroll() < maximumScroll) {
-      var scrollStep = Math.min(8, Math.max(3, fall.velocity * elapsed));
+      var scrollStep =
+        fall.edge || fall.rope
+          ? Math.min(5, Math.max(2, elapsed * 0.12))
+          : Math.min(8, Math.max(3, fall.velocity * elapsed));
       window.scrollTo({
         behavior: "auto",
         top: Math.min(maximumScroll, readScroll() + scrollStep),
@@ -628,6 +1111,12 @@ function dockPetThemeRadius(point, width, height) {
     var viewportFloor = Math.max(8, window.innerHeight - pet.offsetHeight - 8);
     var footerReady = ground.visible && ground.y <= viewportFloor + 1;
     var floor = footerReady ? ground.y : viewportFloor;
+    if (fall.edge) {
+      fall.x =
+        fall.edge === "left"
+          ? 0
+          : Math.max(0, document.documentElement.clientWidth - pet.offsetWidth);
+    }
     fall.y = Math.min(fall.y, floor);
     setPosition({ x: fall.x, y: fall.y });
     var pageBottom = readScroll() >= maximumScroll - 1;
@@ -641,28 +1130,62 @@ function dockPetThemeRadius(point, width, height) {
   function startFall(point) {
     var target = clampPosition(point);
     var viewportFloor = Math.max(8, window.innerHeight - pet.offsetHeight - 8);
-    var edge =
-      target.x >= document.documentElement.clientWidth - pet.offsetWidth - 32;
-    var parachute = edge || target.y <= Math.min(280, viewportFloor - 160);
+    var viewportWidth = document.documentElement.clientWidth;
+    var rightEdge = viewportWidth - pet.offsetWidth - 16;
+    var edge = target.x <= 16 ? "left" : target.x >= rightEdge ? "right" : "";
+    var leftGap = target.x;
+    var rightGap = viewportWidth - target.x - pet.offsetWidth;
+    var rope =
+      !edge && Math.min(leftGap, rightGap) <= 96
+        ? leftGap < rightGap
+          ? "left"
+          : "right"
+        : "";
+    var climbing = edge || rope;
+    var parachute = !climbing && target.y <= Math.min(280, viewportFloor - 160);
     manualPosition = null;
     fall = {
+      edge: edge,
+      hookY: clamp(target.y - 22, 12, window.innerHeight - 12),
       last: 0,
       parachute: parachute,
-      scroll: parachute,
-      velocity: parachute ? 0.08 : 0.12,
-      x: target.x,
+      rope: rope,
+      scroll: Boolean(climbing) || parachute,
+      velocity: climbing ? 0.06 : parachute ? 0.08 : 0.12,
+      x:
+        edge === "left"
+          ? 0
+          : edge === "right"
+            ? Math.max(
+                0,
+                document.documentElement.clientWidth - pet.offsetWidth,
+              )
+            : target.x,
       y: target.y,
     };
     pet.hidden = false;
     pet.dataset.dock = "fall";
-    pet.dataset.state = parachute ? "parachuting" : "falling";
+    pet.dataset.state = climbing
+      ? "climbing"
+      : parachute
+        ? "parachuting"
+        : "falling";
     pet.dataset.falling = "true";
+    if (climbing) {
+      pet.dataset.climbing = climbing;
+      pet.dataset.direction = climbing === "left" ? "right" : "left";
+    }
+    if (rope) pet.dataset.rope = rope;
     if (parachute) pet.dataset.parachute = "true";
-    setPosition(target);
+    setPosition({ x: fall.x, y: target.y });
     announce(
-      parachute
-        ? "Parachute open; scrolling towards the footer"
-        : "Koala falling towards the footer",
+      edge
+        ? "Koala gripping and climbing down the " + edge + " edge"
+        : rope
+          ? "Hook set on the " + rope + " edge; koala climbing down the rope"
+          : parachute
+            ? "Parachute open; scrolling towards the footer"
+            : "Koala falling towards the footer",
     );
     if (reducedMotion.matches) {
       landFall();
@@ -673,6 +1196,8 @@ function dockPetThemeRadius(point, width, height) {
 
   function beginDrag(event) {
     if (drag || (event.button !== undefined && event.button !== 0)) return;
+    if (helpOpen) setHelp(false);
+    noteActivity();
     if (fall) {
       stopFall();
       manualPosition = clampPosition(position);
@@ -759,6 +1284,11 @@ function dockPetThemeRadius(point, width, height) {
   }
 
   function moveWithKeyboard(event) {
+    if (event.key === "Escape" && helpOpen) {
+      setHelp(false);
+      event.preventDefault();
+      return;
+    }
     if (event.key === "Escape" && manualPosition) {
       manualPosition = null;
       delete pet.dataset.dock;
@@ -904,6 +1434,7 @@ function dockPetThemeRadius(point, width, height) {
   }
 
   function scheduleScroll() {
+    noteActivity();
     if (fall) {
       scheduleProgress();
       return;
@@ -924,8 +1455,7 @@ function dockPetThemeRadius(point, width, height) {
       if (drag?.active || fall) return;
       if (!pet.hidden && pet.dataset.dock === "footer") {
         var ground = footerGeometry();
-        if (!ground.visible) pet.hidden = true;
-        else setPosition({ x: ground.maximum, y: ground.y });
+        if (ground.visible) setPosition({ x: ground.maximum, y: ground.y });
       }
     });
   }
@@ -936,7 +1466,7 @@ function dockPetThemeRadius(point, width, height) {
       event?.preventDefault?.();
       return;
     }
-    handleAction();
+    setHelp(!helpOpen);
   });
   pet.addEventListener("pointerdown", beginDrag);
   pet.addEventListener("pointermove", moveDrag);
@@ -950,6 +1480,68 @@ function dockPetThemeRadius(point, width, height) {
     endDrag(event, true);
   });
   pet.addEventListener("keydown", moveWithKeyboard);
+  helpForm.addEventListener("submit", function (event) {
+    event.preventDefault();
+    var value = dockPetText(question?.value, 240);
+    if (!value) {
+      question?.focus();
+      return;
+    }
+    answerQuestion(value);
+  });
+  help
+    .querySelectorAll<HTMLElement>("[data-pet-action]")
+    .forEach(function (control) {
+      control.addEventListener("click", function () {
+        if (control.dataset.petAction === "close") setHelp(false);
+      });
+    });
+
+  var Recognition =
+    (window as any).SpeechRecognition ||
+    (window as any).webkitSpeechRecognition;
+  if (Recognition && listenButton) {
+    listenButton.hidden = false;
+    listenButton.addEventListener("click", function () {
+      if (recognition) {
+        recognition.abort();
+        return;
+      }
+      recognition = new Recognition();
+      recognition.interimResults = false;
+      recognition.lang =
+        window.navigator?.language || document.documentElement.lang || "en-AU";
+      recognition.maxAlternatives = 1;
+      recognition.onresult = function (event) {
+        var transcript = dockPetText(event.results?.[0]?.[0]?.transcript, 240);
+        if (!transcript) return;
+        question.value = transcript;
+        answerQuestion(transcript, true);
+      };
+      recognition.onerror = function () {
+        var message = "Voice didn’t come through. Type it instead";
+        announce(message);
+        question.placeholder = message;
+      };
+      recognition.onend = function () {
+        recognition = null;
+        delete listenButton.dataset.listening;
+      };
+      listenButton.dataset.listening = "true";
+      try {
+        recognition.start();
+      } catch (_) {
+        recognition = null;
+        delete listenButton.dataset.listening;
+        question.placeholder = "Voice is busy. Type it instead";
+      }
+    });
+  }
+  question?.addEventListener("keydown", function (event) {
+    if (event.key !== "Escape") return;
+    setHelp(false);
+    event.preventDefault();
+  });
   window.addEventListener("resize", scheduleConfigure);
   window.addEventListener("pointermove", scheduleLook, { passive: true });
   window.addEventListener("blur", function () {
@@ -957,6 +1549,17 @@ function dockPetThemeRadius(point, width, height) {
     scheduleLook();
   });
   window.addEventListener("scroll", scheduleScroll, { passive: true });
+  document.addEventListener("visibilitychange", function () {
+    if (!document.hidden) {
+      scheduleIdle();
+      return;
+    }
+    clearTimeout(idleTimer);
+    idleTimer = 0;
+    cancelStudy(true);
+    recognition?.abort();
+    (window as any).speechSynthesis?.cancel();
+  });
   reducedMotion.addEventListener("change", function () {
     clearThemeEffect();
     clearTimeout(behaviorTimer);
@@ -965,10 +1568,10 @@ function dockPetThemeRadius(point, width, height) {
     if (fall) landFall();
     configure();
     scheduleLook();
+    scheduleIdle();
   });
   desktop.addEventListener("change", configure);
 
-  setAction(resumeAvailable ? "resume" : "save", savedSpot?.heading);
   updateProgress();
   configure();
 })();

@@ -1,5 +1,11 @@
 # Local secrets and editors
 .env
+.env.*
+!.env.example
+!.env.*.example
+.dev.vars*
+!.dev.vars.example
+.wrangler/
 .DS_Store
 .idea/
 .vscode/
@@ -12,11 +18,22 @@ __pycache__/
 *.py[cod]
 *.egg-info/
 /dist/
+/.hypothesis/
+/.mypy_cache/
+/.nox/
+/.pytest_cache/
+/.ruff_cache/
+/.tox/
 
 # Generated output and coverage
 /.cache/
 /.coverage*
 /htmlcov/
 /node_modules/
+*.tsbuildinfo
 /assets/js/
+/api/build/
+/api/target/
 /public/
+/work/
+*.log
