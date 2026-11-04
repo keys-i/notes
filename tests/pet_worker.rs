@@ -1,11 +1,8 @@
 use notes_pet::{
-    Attachment, AttachmentKind, InputClass, Message, ModelRoute, PetReply, PetRequest, ReplyKind,
-    ReplyMode, RerankScore, RetrievalAction, Role, Scope, Section, answer_kind, audio_question,
-    authorize_scope, cache_key, cited_headings, classify_input, clean_answer,
-    evidence_from_indices, grounded_answer, guard_allows, image_prompt, model_prompt,
-    parse_retrieval_plan, planned_candidates, reply_mode, reranked_evidence, retrieve,
-    select_model, select_verifier, semantic_cache_keys, semantic_match, semantic_record,
-    shared_cacheable, uses_planned_retrieval, validate, verification_allows,
+    Attachment, AttachmentKind, InputClass, Message, ModelRoute, PetRequest, ReplyKind, ReplyMode,
+    Role, Scope, Section, answer_kind, audio_question, authorize_scope, cache_key, cited_headings,
+    classify_input, clean_answer, grounded_answer, guard_allows, image_prompt, model_prompt,
+    reply_mode, retrieve, select_model, shared_cacheable, validate,
 };
 
 fn request() -> PetRequest {
@@ -207,163 +204,108 @@ fn deterministic_and_model_guards_fail_closed() {
     );
     assert!(guard_allows("safe"));
     assert!(guard_allows("**SAFE**"));
+    assert!(guard_allows("<|safe|>"));
     assert!(!guard_allows("unsafe\nS1"));
     assert!(!guard_allows("SAFE\nexplanation"));
     assert!(!guard_allows("probably safe"));
 }
 
 #[test]
-fn hybrid_retrieval_ranks_dense_evidence_then_an_adjacent_section() {
-    let input = request();
-    let evidence = retrieve(
-        &input,
-        &[
-            vec![1.0, 0.0],
-            vec![0.0, 1.0],
-            vec![1.0, 0.0],
-            vec![0.86, 0.14],
-        ],
-    );
-    assert_eq!(evidence[0].heading, "Newton's second law");
-    assert_eq!(evidence[1].heading, "Impulse");
-    assert_eq!(evidence[0].source, 1);
-    assert_eq!(evidence[1].source, 2);
-}
-
-#[test]
-fn bounded_planning_is_reserved_for_difficult_note_questions() {
+fn local_bm25_retrieval_ranks_and_bounds_note_evidence() {
     let mut input = request();
-    input.messages[0].content = "Derive the momentum balance step by step".into();
-    assert!(uses_planned_retrieval(&input));
-
-    input.messages[0].content = "Define momentum".into();
-    assert!(!uses_planned_retrieval(&input));
-
-    input.messages[0].content = "Compare several ways to revise a new subject step by step".into();
-    assert_eq!(select_model(&input), ModelRoute::Deep);
-    assert_eq!(answer_kind(&input), ReplyKind::General);
-    assert!(!uses_planned_retrieval(&input));
-
-    input.attachment = Some(png_attachment());
-    assert!(!uses_planned_retrieval(&input));
-}
-
-#[test]
-fn retrieval_plan_accepts_one_bounded_action_and_rejects_model_drift() {
-    let plan = parse_retrieval_plan(
-        r#"```json
-{"action":"retrieve","query":"impulse momentum relation","hypothetical_answer":"Impulse changes momentum over a time interval"}
-```"#,
-    )
-    .unwrap();
-    assert_eq!(plan.action, RetrievalAction::Retrieve);
-    assert_eq!(plan.query, "impulse momentum relation");
-
-    assert!(
-        parse_retrieval_plan(
-            r#"{"action":"browse","query":"momentum","hypothetical_answer":"answer"}"#
-        )
-        .is_none()
-    );
-    assert!(
-        parse_retrieval_plan(
-            r#"{"action":"retrieve","query":"momentum","hypothetical_answer":"answer","reasoning":"hidden"}"#
-        )
-        .is_none()
-    );
-    assert!(
-        parse_retrieval_plan(&format!(
-            r#"{{"action":"retrieve","query":"{}","hypothetical_answer":"answer"}}"#,
-            "x".repeat(301)
-        ))
-        .is_none()
-    );
-}
-
-#[test]
-fn bm25_and_dense_fusion_preserves_lexical_matches_and_hyde_signal() {
-    let mut input = request();
-    input.messages[0].content = "Derive the impulse momentum relation step by step".into();
-    let lexical = planned_candidates(&input, &[], "integral force time changes momentum");
-    assert_eq!(input.sections[lexical[0]].heading, "Impulse");
-
-    let hyde = planned_candidates(
-        &input,
-        &[
-            vec![1.0, 0.0],
-            vec![0.0, 1.0],
-            vec![0.2, 0.8],
-            vec![1.0, 0.0],
-        ],
-        "relation between force and momentum",
-    );
-    assert!(hyde.iter().position(|index| *index == 2).unwrap() < 2);
-}
-
-#[test]
-fn learned_reranking_preserves_the_fused_winner_and_renumbers_evidence() {
-    let input = request();
-    let candidates = vec![0, 1, 2];
-    let evidence = reranked_evidence(
-        &input,
-        &candidates,
-        &[
-            RerankScore { id: 2, score: 0.9 },
-            RerankScore { id: 0, score: 0.5 },
-            RerankScore { id: 1, score: 0.7 },
-        ],
-    )
-    .unwrap();
-    assert_eq!(evidence[0].heading, "Energy");
-    assert_eq!(evidence[1].heading, "Impulse");
-    assert_eq!(evidence[2].heading, "Newton's second law");
+    input.messages[0].content = "How is impulse the integral of force over time?".into();
+    input.sections.extend([
+        Section {
+            heading: "Mass".into(),
+            text: "Mass measures inertia".into(),
+        },
+        Section {
+            heading: "Position".into(),
+            text: "Position locates a particle".into(),
+        },
+    ]);
+    let evidence = retrieve(&input);
+    assert_eq!(evidence.len(), 3);
+    assert_eq!(evidence[0].heading, "Impulse");
     assert_eq!(
         evidence.iter().map(|item| item.source).collect::<Vec<_>>(),
         [1, 2, 3]
     );
+}
 
-    assert!(
-        reranked_evidence(
-            &input,
-            &candidates,
-            &[
-                RerankScore { id: 0, score: 0.9 },
-                RerankScore { id: 0, score: 0.8 },
-                RerankScore { id: 1, score: 0.7 },
-            ],
-        )
-        .is_none()
+#[test]
+fn local_bm25_retrieval_is_deterministic_without_a_term_match() {
+    let mut input = request();
+    input.messages[0].content = "Summarise this section".into();
+    let first = retrieve(&input);
+    let second = retrieve(&input);
+    assert_eq!(first, second);
+    assert_eq!(
+        first
+            .iter()
+            .map(|item| item.heading.as_str())
+            .collect::<Vec<_>>(),
+        ["Energy", "Newton's second law", "Impulse"]
     );
+}
+
+#[test]
+fn free_tier_prompt_keeps_bounded_evidence_and_recent_context() {
+    let mut input = request();
+    input.sections = (1..=3)
+        .map(|index| Section {
+            heading: format!("Section {index}"),
+            text: format!("momentum {}", "x".repeat(3_880)),
+        })
+        .collect();
+    input.messages = vec![
+        Message {
+            role: Role::User,
+            content: "u".repeat(600),
+        },
+        Message {
+            role: Role::Assistant,
+            content: "a".repeat(4_500),
+        },
+        Message {
+            role: Role::User,
+            content: "u".repeat(600),
+        },
+        Message {
+            role: Role::Assistant,
+            content: "a".repeat(4_500),
+        },
+        Message {
+            role: Role::User,
+            content: "u".repeat(600),
+        },
+        Message {
+            role: Role::Assistant,
+            content: "a".repeat(4_500),
+        },
+        Message {
+            role: Role::User,
+            content: "Explain momentum".into(),
+        },
+    ];
+    assert!(validate(input.clone()).is_ok());
+    let evidence = retrieve(&input);
     assert!(
-        reranked_evidence(
-            &input,
-            &candidates,
-            &[
-                RerankScore { id: 0, score: 0.9 },
-                RerankScore {
-                    id: 1,
-                    score: f32::NAN
-                },
-                RerankScore { id: 3, score: 0.7 },
-            ],
-        )
-        .is_none()
+        evidence
+            .iter()
+            .all(|item| item.text.chars().count() <= 1_800)
     );
-    assert_eq!(evidence_from_indices(&input, &candidates).len(), 3);
+    let prompt_chars = model_prompt(&input, &evidence)
+        .iter()
+        .map(|(_, content)| content.chars().count())
+        .sum::<usize>();
+    assert!(prompt_chars <= 24_000);
 }
 
 #[test]
 fn prompt_keeps_evidence_and_conversation_as_untrusted_data() {
     let input = request();
-    let evidence = retrieve(
-        &input,
-        &[
-            vec![1.0, 0.0],
-            vec![0.0, 1.0],
-            vec![1.0, 0.0],
-            vec![0.8, 0.2],
-        ],
-    );
+    let evidence = retrieve(&input);
     let messages = model_prompt(&input, &evidence);
     assert_eq!(messages.len(), 3);
     assert_eq!(messages[0].0, "system");
@@ -481,12 +423,6 @@ fn transcribed_questions_route_by_their_content_not_the_media_wrapper() {
 }
 
 #[test]
-fn verifier_router_uses_the_deep_model_for_grounded_verdicts() {
-    assert_eq!(select_verifier(ReplyKind::Note), ModelRoute::Deep);
-    assert_eq!(select_verifier(ReplyKind::General), ModelRoute::Fast);
-}
-
-#[test]
 fn note_questions_stay_grounded_while_general_questions_remain_conversational() {
     let mut input = request();
     assert_eq!(answer_kind(&input), ReplyKind::Note);
@@ -524,57 +460,6 @@ fn note_questions_stay_grounded_while_general_questions_remain_conversational() 
         content: "What makes a useful study break?".into(),
     });
     assert_eq!(answer_kind(&input), ReplyKind::General);
-}
-
-#[test]
-fn semantic_cache_is_versioned_scoped_and_similarity_checked() {
-    let input = request();
-    let embedding = vec![0.8, 0.2, 0.1, -0.1];
-    let reply = PetReply {
-        answer: "Force changes momentum [1]".into(),
-        citations: vec!["Newton's second law".into()],
-        grounded: true,
-        kind: ReplyKind::Note,
-        mode: ReplyMode::Text,
-        mini: "/mini/".into(),
-    };
-    let record = semantic_record(&input, "public", embedding.clone(), reply);
-    assert!(semantic_match(
-        &record,
-        &input,
-        "public",
-        &[0.79, 0.21, 0.1, -0.1]
-    ));
-    assert!(!semantic_match(&record, &input, "student-a", &embedding));
-    assert!(!semantic_match(
-        &record,
-        &input,
-        "public",
-        &[0.0, 1.0, 0.0, 0.0]
-    ));
-    assert_ne!(
-        semantic_cache_keys(&input, "public", &embedding),
-        semantic_cache_keys(&input, "student-a", &embedding)
-    );
-    let mut changed_note = input.clone();
-    changed_note.sections[0].text = "Different public note revision".into();
-    assert_ne!(
-        semantic_cache_keys(&input, "public", &embedding),
-        semantic_cache_keys(&changed_note, "public", &embedding)
-    );
-    let mut deep_route = input.clone();
-    deep_route.messages[0].content = "Derive momentum step by step".into();
-    assert_ne!(
-        semantic_cache_keys(&input, "public", &embedding),
-        semantic_cache_keys(&deep_route, "public", &embedding)
-    );
-    let mut general = input.clone();
-    general.messages[0].content = "What makes a useful study break?".into();
-    assert_ne!(
-        semantic_cache_keys(&input, "public", &embedding),
-        semantic_cache_keys(&general, "public", &embedding)
-    );
-    assert!(!semantic_cache_keys(&input, "public", &embedding)[0].contains("momentum"));
 }
 
 #[test]
@@ -656,11 +541,11 @@ fn output_is_bounded_and_cited_to_available_evidence() {
     );
     assert_eq!(
         grounded_answer("Force changes momentum", &evidence[..1]).as_deref(),
-        Some("Force changes momentum [1]")
+        None
     );
     assert_eq!(
         grounded_answer("Force changes momentum.", &evidence[..1]).as_deref(),
-        Some("Force changes momentum [1].")
+        None
     );
     assert!(grounded_answer("Force changes momentum", &[]).is_none());
     let long_grounded = format!("[1] {}", "x".repeat(5_000));
@@ -672,6 +557,7 @@ fn output_is_bounded_and_cited_to_available_evidence() {
         4_500
     );
     assert_eq!(grounded_answer("Unsupported source [3]", &evidence), None);
+    assert_eq!(grounded_answer("Malformed source [1a]", &evidence), None);
     assert_eq!(
         cited_headings(
             "Force changes momentum [1]. Again [1], then impulse [2]",
@@ -679,17 +565,4 @@ fn output_is_bounded_and_cited_to_available_evidence() {
         ),
         ["Momentum", "Impulse"]
     );
-}
-
-#[test]
-fn verifier_accepts_a_supported_verdict_without_accepting_unsupported_text() {
-    assert!(verification_allows("SUPPORTED"));
-    assert!(verification_allows("SUPPORTED."));
-    assert!(verification_allows("**SUPPORTED**\n"));
-    assert!(!verification_allows("UNSUPPORTED"));
-    assert!(!verification_allows("not supported"));
-    assert!(!verification_allows("Verdict: SUPPORTED"));
-    assert!(!verification_allows(
-        "SUPPORTED because the answer looks right"
-    ));
 }
