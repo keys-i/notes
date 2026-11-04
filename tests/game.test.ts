@@ -427,6 +427,7 @@ test("gameplay budgets keep generation, movement, and scenes brisk", () => {
 test("reset shows an idle attract screen before the introduction", () => {
   game.sceneTakes.set("vegemite", 2);
   game.weakPowerups.add("banana");
+  game.setPlayerAura("dragon");
   game.resetGame(false);
   assert.equal(game.gameScene, "attract");
   assert.equal(game.gameStarted, false);
@@ -434,6 +435,8 @@ test("reset shows an idle attract screen before the introduction", () => {
   assert.equal(game.sceneTakes.has("vegemite"), false);
   assert.equal(game.sceneTakes.has("ready"), false);
   assert.equal(game.weakPowerups.size, 0);
+  assert.equal(game.playerElement.dataset.aura, undefined);
+  assert.equal(game.playerElement.dataset.form, undefined);
   assert.equal(game.board.dataset.scene, undefined);
   game.startGameScene("ready");
   assert.equal(game.gameScene, "ready");
@@ -474,6 +477,10 @@ test("Saiyan paths follow pickup strength and keep explicit payoffs", () => {
     new URL("../site/theme/404.html", import.meta.url),
     "utf8",
   );
+  const styles = fs.readFileSync(
+    new URL("../assets/styles/404/game.css", import.meta.url),
+    "utf8",
+  );
   assert.equal(game.nextPowerKind("", "dragon", 0), "dragon");
   assert.equal(game.nextPowerKind("vegemite", "dragon", 4), "combined");
   assert.equal(game.nextPowerKind("dragon", "vegemite", 4), "combined");
@@ -481,10 +488,11 @@ test("Saiyan paths follow pickup strength and keep explicit payoffs", () => {
   assert.equal(game.nextPowerKind("hakai", "dragon", 4), "hakai");
   assert.equal(game.boostSceneKind("dragon", 1), "dragon");
   assert.equal(game.boostSceneKind("dragon", 2), "hakai");
-  assert.equal(game.bonusSceneKind("", 1), "weak");
-  assert.equal(game.bonusSceneKind("dragon", 1), "ultra");
-  assert.equal(game.bonusSceneKind("ultra", 2), "hakai");
-  assert.equal(game.bonusSceneKind("vegemite", 1), "");
+  assert.equal(game.bonusSceneKind("", 1, true), "weak");
+  assert.equal(game.bonusSceneKind("", 0, false), "");
+  assert.equal(game.bonusSceneKind("dragon", 1, true), "ultra");
+  assert.equal(game.bonusSceneKind("ultra", 2, true), "hakai");
+  assert.equal(game.bonusSceneKind("vegemite", 1, true), "");
   assert.equal(game.sceneStageKind("hakai"), "dragon");
   assert.equal(game.sceneStageKind("vegemite"), "vegemite");
   assert.equal(game.captureReaction("vegemite"), "pie-splat");
@@ -500,15 +508,60 @@ test("Saiyan paths follow pickup strength and keep explicit payoffs", () => {
   assert.match(template, /scene-dragon__ground/);
   assert.match(template, /scene-dragon__aura/);
   assert.match(template, /scene-dragon__debris/);
+  assert.match(template, /scene-dragon__beam/);
   assert.match(template, /SUPER SAIYAN 2 <b>100× BASE<\/b>/);
   assert.match(template, /ULTRA INSTINCT <b>2× OMEN<\/b>/);
   assert.match(template, /SUPER SAIYAN GOD <b>1,200× SSJ<\/b>/);
   assert.match(template, /HAKAI <b>100×<\/b>/);
+  assert.match(styles, /scene-dragon-paw-far/);
+  assert.match(styles, /scene-dragon-paw-near/);
+  assert.match(styles, /\.scene-dragon__beam::after/);
   assert.deepEqual(Array.from(game.AUSSIE_SLANG), [
     "Too easy",
     "Beauty",
     "No worries",
   ]);
+});
+
+test("Saiyan rituals require both distinct weak pickups", () => {
+  const weak = new Set<string>();
+  const collect = (activePower: string, id: string) => {
+    const isWeak = game.isSaiyanWeakPowerup(id);
+    if (isWeak) weak.add(id);
+    return game.bonusSceneKind(activePower, weak.size, isWeak);
+  };
+
+  assert.equal(collect("", "cherries"), "");
+  assert.equal(weak.size, 0, "ordinary fruit never advances the ritual");
+  assert.equal(collect("", "avocado"), "weak");
+  assert.equal(collect("", "avocado"), "weak");
+  assert.equal(weak.size, 1, "a repeated weak pickup stays one ingredient");
+  assert.equal(game.boostSceneKind("dragon", weak.size), "dragon");
+  assert.equal(collect("", "banana"), "weak");
+  assert.equal(game.boostSceneKind("dragon", weak.size), "hakai");
+
+  weak.clear();
+  assert.equal(collect("dragon", "avocado"), "ultra");
+  assert.equal(collect("ultra", "banana"), "hakai");
+});
+
+test("finished Saiyan forms persist until their owning state clears", () => {
+  const forms = {
+    vegemite: "super-saiyan-god",
+    dragon: "super-saiyan-2",
+    weak: "oozaru",
+    ultra: "ultra-instinct",
+    hakai: "hakai",
+  };
+
+  Object.entries(forms).forEach(([aura, form]) => {
+    game.setPlayerAura(aura);
+    assert.equal(game.playerElement.dataset.aura, aura);
+    assert.equal(game.playerElement.dataset.form, form);
+  });
+  game.setPlayerAura("");
+  assert.equal(game.playerElement.dataset.aura, undefined);
+  assert.equal(game.playerElement.dataset.form, undefined);
 });
 
 test("404 chrome keeps the game primary and the terminal optional", () => {
