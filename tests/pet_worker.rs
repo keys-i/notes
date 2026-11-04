@@ -162,6 +162,12 @@ fn note_questions_stay_grounded_while_general_questions_remain_conversational() 
     assert_eq!(answer_kind(&input), ReplyKind::General);
     input.messages[0].content = "Explain this section".into();
     assert_eq!(answer_kind(&input), ReplyKind::Note);
+    input.messages[0].content = "According to this note, name the stored fields".into();
+    assert_eq!(answer_kind(&input), ReplyKind::Note);
+    input.messages[0].content = "Is this noteworthy?".into();
+    assert_eq!(answer_kind(&input), ReplyKind::General);
+    input.messages[0].content = "Is the noteworthy result aboveboard?".into();
+    assert_eq!(answer_kind(&input), ReplyKind::General);
     input.messages = vec![
         Message {
             role: Role::User,
@@ -276,21 +282,6 @@ fn exact_cache_keys_are_stable_hashed_and_content_sensitive() {
 
 #[test]
 fn output_must_be_plain_bounded_and_cited_to_available_evidence() {
-    assert_eq!(
-        clean_answer("  hello\0 there  ").as_deref(),
-        Some("hello there")
-    );
-    assert_eq!(clean_answer("\n\t"), None);
-    assert_eq!(
-        clean_answer(&"x".repeat(2_000)).unwrap().chars().count(),
-        1_800
-    );
-    assert_eq!(
-        grounded_answer("Force changes momentum [1]", 2).as_deref(),
-        Some("Force changes momentum [1]")
-    );
-    assert_eq!(grounded_answer("Force changes momentum", 2), None);
-    assert_eq!(grounded_answer("Unsupported source [3]", 2), None);
     let evidence = vec![
         notes_pet::Evidence {
             heading: "Momentum".into(),
@@ -303,6 +294,32 @@ fn output_must_be_plain_bounded_and_cited_to_available_evidence() {
             text: "Impulse integrates force".into(),
         },
     ];
+    assert_eq!(
+        clean_answer("  hello\0 there  ").as_deref(),
+        Some("hello there")
+    );
+    assert_eq!(clean_answer("\n\t"), None);
+    assert_eq!(
+        clean_answer(&"x".repeat(2_000)).unwrap().chars().count(),
+        1_800
+    );
+    assert_eq!(
+        grounded_answer("Force changes momentum [1]", &evidence).as_deref(),
+        Some("Force changes momentum [1]")
+    );
+    assert_eq!(
+        grounded_answer("Force changes momentum", &evidence).as_deref(),
+        Some("Force changes momentum\n\nSources: [1]")
+    );
+    assert!(grounded_answer("Force changes momentum", &[]).is_none());
+    assert_eq!(
+        grounded_answer(&"x".repeat(2_000), &evidence)
+            .unwrap()
+            .chars()
+            .count(),
+        1_800
+    );
+    assert_eq!(grounded_answer("Unsupported source [3]", &evidence), None);
     assert_eq!(
         cited_headings(
             "Force changes momentum [1]. Again [1], then impulse [2]",
