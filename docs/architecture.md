@@ -9,6 +9,11 @@
 ├── site/                 # source and configuration used to build the website
 │   ├── hooks/            # Python build rules and project command entry points
 │   ├── api/              # Rust edge API for grounded study answers
+│   │   └── src/
+│   │       ├── input.rs  # request, media and trust-boundary validation
+│   │       ├── model.rs  # bounded Groq HTTPS client
+│   │       ├── study.rs  # routing, prompts, BM25 and grounding
+│   │       └── worker.rs # edge orchestration, cache and responses
 │   ├── ts/               # authored browser TypeScript
 │   ├── theme/            # Material templates and partials
 │   ├── game.toml         # recovery-game data and tuning
@@ -80,28 +85,31 @@ The optional study helper backend is independent of the static build
 
 ```text
 current public note sections + short conversation
-  → site/api/worker.rs                # validation, access, rate limit and cache
-  → self-hosted compatible model API  # guard, embeddings, reranking and inference
-  → routed answer + verifier          # cited response or a closed failure
-  → browser thread                    # rich safe rendering or local fallback
+  → input.rs               # validate size, media signatures and public scope
+  → worker.rs              # exact cache, rate limit and typed failures
+  → study.rs               # bounded local BM25 and model routing
+  → Groq free models       # guard, one answer call and optional transcription
+  → deterministic checks   # valid bounded citations or a closed failure
+  → browser thread         # rich safe rendering or immediate local fallback
 ```
 
-The browser first selects the relevant heading and its neighbours, then the
-Worker combines multilingual embedding similarity, term overlap and adjacency
-before generation. A response is accepted only when its citations resolve to
-the retrieved sections and the verifier finds every factual claim supported
+The browser supplies the current heading and its neighbours. The Worker ranks
+those bounded sections locally with BM25, sends at most 1,800 characters from
+each of the top three sections and keeps only the most recent 2,000 conversation
+characters. No question or note text is sent to an embedding, HyDE or reranking
+service
 
-The Worker owns the open-model identifiers and sends them only to a
-credentialled HTTPS backend exposing OpenAI-compatible chat, embedding and
-audio endpoints plus the common `/rerank` endpoint. It has no Workers AI
-binding. The backend may be a self-hosted LiteLLM, vLLM or equivalent gateway;
-browser input cannot select a model or override the backend
+[`site/api/src/study.rs`](../site/api/src/study.rs) owns the fixed Groq model
+routes. Browser input cannot select a model. Text and image requests use one
+fail-closed guard call and one answer call; audio adds one transcription call
+before the same guarded text path. There is no second verifier model call or
+paid-provider fallback. Note answers are accepted only when citations are
+present, well formed and resolve to the retrieved evidence
 
-Exact and locality-sensitive semantic cache keys include the prompt version,
-public access scope, locale, note content and model route. Shared edge caching
-is disabled for follow-ups and personal-looking prompts. The browser keeps a
-small page-session cache so repeated questions remain fast without durable chat
-history
+Exact cache keys include the prompt version, public access scope, locale, note
+content and model route. Shared edge caching is disabled for follow-ups and
+personal-looking prompts. The browser keeps a small page-session cache so
+repeated questions remain fast without durable chat history
 
 ## Runtime ownership
 

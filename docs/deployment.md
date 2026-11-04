@@ -35,19 +35,17 @@ cargo check --locked --manifest-path site/api/Cargo.toml --target wasm32-unknown
 wrangler deploy --config site/api/wrangler.toml
 ```
 
-Before deployment, configure a credentialled HTTPS model gateway whose base
-URL ends in `/v1/`
+Before deployment, add a Groq API key as a Worker secret
 
 ```sh
-wrangler secret put MODEL_BASE_URL --config site/api/wrangler.toml
 wrangler secret put MODEL_API_KEY --config site/api/wrangler.toml
 ```
 
-The gateway must expose `/chat/completions`, `/embeddings`,
-`/audio/transcriptions` and `/rerank`, and route the model identifiers in
-[`site/api/worker.rs`](../site/api/worker.rs) to the corresponding local or
-self-hosted open models. A model server running only on a developer laptop is
-not reachable from the deployed edge Worker
+The client is fixed to Groq's OpenAI-compatible HTTPS API. Model identifiers in
+[`site/api/src/study.rs`](../site/api/src/study.rs) route quick, general,
+difficult, image, audio and guard work. Retrieval stays inside the Worker, so
+the provider receives no embedding or reranking request. No paid fallback or
+automatic overage path is configured
 
 The Cloudflare account provides only the existing rate limiter and edge
 runtime; model inference does not use Workers AI. Privacy-safe structured
@@ -55,21 +53,27 @@ metrics use Workers Logs with invocation logs disabled and query strings
 redacted. No model credential is stored in the repository. `workers_dev` is
 disabled and the route is limited to `uni.keysi.dev/api/pet`
 
+Groq's free tier has quotas and no availability SLA. A quota, network or model
+failure returns the typed `model_unavailable` response, and the browser keeps
+the student in the local note-grounded path. Review Groq Data Controls before
+production use because provider reliability and abuse logs can outlive the
+request even when model inputs and outputs are not retained by default
+
 Deployment does not grant the Worker access to Minis. Private scope returns
 `403` until the separate Minis service supplies a cryptographically verifiable
 identity contract; browser roles or headers are never trusted as authority
 
 ## Failure diagnosis
 
-| Failure                            | First check                                      |
-| ---------------------------------- | ------------------------------------------------ |
-| TypeScript compilation             | `npm run check:web`                              |
-| Python or browser tests            | `uv run test`                                    |
-| Formatting or Markdown             | `uv run lint`                                    |
-| Missing page or asset              | strict MkDocs build and `site/hooks/site.py`     |
-| Page renders but interaction fails | browser console and the relevant `site/ts/` test |
-| Koala falls back to local answers  | Worker route, model secrets, gateway, rate limit |
-| Worker build fails                 | Rust checks from the Study Worker section        |
+| Failure                            | First check                                       |
+| ---------------------------------- | ------------------------------------------------- |
+| TypeScript compilation             | `npm run check:web`                               |
+| Python or browser tests            | `uv run test`                                     |
+| Formatting or Markdown             | `uv run lint`                                     |
+| Missing page or asset              | strict MkDocs build and `site/hooks/site.py`      |
+| Page renders but interaction fails | browser console and the relevant `site/ts/` test  |
+| Koala falls back to local answers  | Worker route, Groq secret, free quota, rate limit |
+| Worker build fails                 | Rust checks from the Study Worker section         |
 
 Generated output in `public/` and `assets/js/` is disposable. Fix the authored
 source, rerun the relevant check, then rebuild rather than patching generated
