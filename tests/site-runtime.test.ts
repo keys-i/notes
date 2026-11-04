@@ -863,6 +863,13 @@ test("graph helpers preserve routes, ordering, labels, and timeline state", asyn
     ),
     false,
   );
+  assert.equal(call("fit_graph(null)"), null);
+  assert.equal(call("fit_graph({isDisposed:()=>true})"), null);
+  assert.equal(call("fit_graph({isDisposed:()=>false})"), null);
+  assert.equal(
+    call("fit_graph({isDisposed:()=>false,getWidth:()=>800})"),
+    null,
+  );
   call("update_graph_labels(null)");
   call("update_graph_labels({isDisposed:()=>true})");
   call("replay_graph_growth(null)");
@@ -1045,6 +1052,9 @@ test("graph drag wakes adjacent force briefly and returns to idle", async () => 
   await call("graphModalPromise");
   [...graph.timers.values()][0].callback();
   assert.equal(graph.timers.size, 0);
+  const cameraChanges = () =>
+    graph.chart.options.filter((value) => value.series?.[0]?.center).length;
+  const openingCameraChanges = cameraChanges();
 
   graph.chartHandlers.mousedown({ dataType: "edge" });
   assert.equal(graph.timers.size, 0);
@@ -1071,6 +1081,7 @@ test("graph drag wakes adjacent force briefly and returns to idle", async () => 
       .series[0].layout,
     "none",
   );
+  assert.equal(cameraChanges(), openingCameraChanges);
 
   graph.chartHandlers.mousedown({ dataType: "node" });
   graph.chartHandlers.globalout({});

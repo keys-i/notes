@@ -323,7 +323,6 @@ function replay_graph_growth(chart) {
     chart.setOption({
       series: [{ data: graphTimelineNodes, links: graphTimelineLinks }],
     });
-    fit_graph(chart);
     finish_graph_timelapse();
     return;
   }
@@ -383,7 +382,6 @@ function replay_graph_growth(chart) {
       chart.setOption({
         series: [{ data: graphTimelineNodes, links: graphTimelineLinks }],
       });
-      fit_graph(chart);
       finish_graph_timelapse();
     } else if (!chart.isDisposed()) {
       graphTimelineFrame = requestAnimationFrame(reveal_nodes);
@@ -748,7 +746,6 @@ function settle_graph(chart) {
       },
     ],
   });
-  fit_graph(chart);
 }
 
 function start_graph_drag_response(chart, params) {
