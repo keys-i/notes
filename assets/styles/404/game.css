@@ -2919,14 +2919,16 @@ body.routing-snap {
   bottom: 0.45rem;
   z-index: 9;
   display: inline-grid;
-  min-width: 4.5rem;
-  min-height: 2.25rem;
-  padding: 0.3rem 0.65rem;
+  place-items: center;
+  min-width: 5.25rem;
+  min-height: 2.75rem;
+  padding: 0.45rem 0.9rem;
   color: #fff;
-  font-size: 0.6rem;
+  font-size: clamp(0.72rem, 2.4cqw, 0.84rem);
   font-weight: 800;
   line-height: 1;
   letter-spacing: 0.04em;
+  text-align: center;
   text-transform: uppercase;
   background: rgb(2 3 10 / 0.94);
   border: 1px solid rgb(255 255 255 / 0.78);
@@ -2951,20 +2953,31 @@ body.routing-snap {
 .game-scene[data-kind="attract"] .game-scene__skip {
   right: 50%;
   bottom: 13%;
-  min-width: 7rem;
-  min-height: 2.6rem;
+  min-width: 7.75rem;
+  min-height: 3.1rem;
   border-color: #f2ff3d;
   color: #00020a;
   background: #f2ff3d;
   box-shadow:
     0 0 0 0.1rem #00020a,
     0.18rem 0.18rem 0 #69e8ff;
-  font-size: 0.72rem;
+  font-size: clamp(0.84rem, 2.8cqw, 1rem);
   transform: translateX(50%);
 }
 
 .game-scene[data-kind="attract"] .game-scene__skip:active {
   transform: translate(50%, 0.08rem);
+}
+
+@container (max-width: 22rem) {
+  .game-scene[data-kind="attract"] .scene-attract__route {
+    top: 28%;
+    height: 36%;
+  }
+
+  .game-scene[data-kind="attract"] .game-scene__skip {
+    bottom: 4%;
+  }
 }
 
 .win-route__count::after {

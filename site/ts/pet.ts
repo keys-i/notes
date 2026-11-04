@@ -423,6 +423,41 @@ function dockPetSpeechText(value) {
     .trim();
 }
 
+function dockPetAttachmentKind(type) {
+  var mime = String(type || "").toLocaleLowerCase();
+  if (/^image\/(?:avif|bmp|gif|heic|heif|jpeg|png|webp)$/.test(mime))
+    return "image";
+  if (/^audio\/(?:aac|flac|mpeg|mp4|x-m4a|wav|x-wav|ogg|webm)$/.test(mime))
+    return "audio";
+  if (/^video\/(?:mp4|webm|quicktime)$/.test(mime)) return "video";
+  return "";
+}
+
+function dockPetAttachmentQuestion(kind) {
+  if (kind === "audio") return "Please explain this recording";
+  if (kind === "video") return "What should I notice in this video frame?";
+  return "What should I notice in this image?";
+}
+
+function dockPetStudyError(code, timedOut?) {
+  if (timedOut) return "That answer took longer than expected. Try again";
+  if (code === "grounding_failed")
+    return "I couldn’t verify that answer well enough. Try rephrasing the question";
+  if (code === "no_evidence")
+    return "I couldn’t find enough in this note to answer that. Try naming the topic";
+  if (code === "rate_limited")
+    return "Koa needs a short breather. Try again in a minute";
+  if (code === "invalid_attachment")
+    return "That attachment couldn’t be read safely. Try a smaller file";
+  if (code === "invalid_audio")
+    return "I couldn’t hear usable speech in that recording. Try a clearer clip";
+  if (code === "analysis_failed")
+    return "I couldn’t verify what was in that image. Try a clearer frame";
+  if (code === "unsafe_input")
+    return "I can’t use that request safely. Rephrase it as a study question";
+  return "The study service is offline right now. Try again shortly";
+}
+
 (function () {
   var pet = document.getElementById("dock-pet") as HTMLElement;
   var footer = document.querySelector<HTMLElement>(".md-footer");
@@ -444,6 +479,19 @@ function dockPetSpeechText(value) {
   var listenButton = document.getElementById(
     "dock-pet-listen",
   ) as HTMLButtonElement;
+  var attachmentPanel = document.getElementById(
+    "dock-pet-attachment",
+  ) as HTMLElement;
+  var attachmentName = document.getElementById(
+    "dock-pet-attachment-name",
+  ) as HTMLElement;
+  var attachmentRemove = document.getElementById(
+    "dock-pet-attachment-remove",
+  ) as HTMLButtonElement;
+  var fileInput = document.getElementById("dock-pet-file") as HTMLInputElement;
+  var attachButton = document.getElementById(
+    "dock-pet-attach",
+  ) as HTMLButtonElement;
   var thread = document.getElementById("dock-pet-thread") as HTMLOListElement;
   var heading = document.querySelector<HTMLElement>(".md-content h1");
   var palette = document.querySelector<HTMLElement>(
@@ -460,6 +508,11 @@ function dockPetSpeechText(value) {
     !help ||
     !helpForm ||
     !question ||
+    !attachmentPanel ||
+    !attachmentName ||
+    !attachmentRemove ||
+    !fileInput ||
+    !attachButton ||
     !thread
   )
     return;
@@ -499,6 +552,8 @@ function dockPetSpeechText(value) {
   var studyContextIndex = -1;
   var studyRequest = 0;
   var activeStudy = null;
+  var attachment = null;
+  var attachmentRead = 0;
   var lastIdleMessage = "";
   var recognition = null;
   var speaking = false;
@@ -913,8 +968,147 @@ function dockPetSpeechText(value) {
     finishStudy(task, task.reply.text);
   }
 
+  function readAttachmentData(file) {
+    return new Promise<string>(function (resolve, reject) {
+      var reader = new FileReader();
+      reader.onerror = function () {
+        reject(new Error("attachment read failed"));
+      };
+      reader.onload = function () {
+        var data = String(reader.result || "");
+        if (!data.startsWith("data:")) {
+          reject(new Error("attachment read failed"));
+          return;
+        }
+        resolve(data);
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function mediaEvent(target, name) {
+    return new Promise<void>(function (resolve, reject) {
+      var cleanup = function () {
+        target.removeEventListener(name, ready);
+        target.removeEventListener("error", failed);
+      };
+      var ready = function () {
+        cleanup();
+        resolve();
+      };
+      var failed = function () {
+        cleanup();
+        reject(new Error("media decode failed"));
+      };
+      target.addEventListener(name, ready, { once: true });
+      target.addEventListener("error", failed, { once: true });
+    });
+  }
+
+  async function renderAttachmentFrame(source, width, height) {
+    if (!(width > 0) || !(height > 0)) throw new Error("media decode failed");
+    var limit = 1280;
+    var scale = Math.min(1, limit / Math.max(width, height));
+    var canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(width * scale));
+    canvas.height = Math.max(1, Math.round(height * scale));
+    var context = canvas.getContext("2d", { alpha: false });
+    if (!context) throw new Error("image processing unavailable");
+    context.drawImage(source, 0, 0, canvas.width, canvas.height);
+    var blob = await new Promise<Blob | null>(function (resolve) {
+      canvas.toBlob(resolve, "image/webp", 0.78);
+    });
+    if (!blob || blob.size > 700_000)
+      throw new Error("attachment is too large");
+    return readAttachmentData(blob);
+  }
+
+  async function imageAttachment(file) {
+    if (file.size <= 700_000 && /^image\/(?:jpeg|png|webp)$/.test(file.type))
+      return readAttachmentData(file);
+    var decode = (window as any).createImageBitmap;
+    if (typeof decode !== "function")
+      throw new Error("attachment is too large");
+    var bitmap = await decode(file);
+    try {
+      return await renderAttachmentFrame(bitmap, bitmap.width, bitmap.height);
+    } finally {
+      bitmap.close?.();
+    }
+  }
+
+  async function videoAttachment(file) {
+    if (file.size > 64_000_000) throw new Error("attachment is too large");
+    var video = document.createElement("video");
+    var url = window.URL.createObjectURL(file);
+    if (!url.startsWith("blob:")) {
+      window.URL.revokeObjectURL(url);
+      throw new Error("media decode failed");
+    }
+    video.muted = true;
+    video.preload = "metadata";
+    video.playsInline = true;
+    video.src = url;
+    try {
+      var metadata = mediaEvent(video, "loadedmetadata");
+      video.load();
+      await metadata;
+      if (video.readyState < 2) await mediaEvent(video, "loadeddata");
+      if (Number.isFinite(video.duration) && video.duration > 0.2) {
+        video.currentTime = Math.min(5, video.duration / 2);
+        await mediaEvent(video, "seeked");
+      }
+      return await renderAttachmentFrame(
+        video,
+        video.videoWidth,
+        video.videoHeight,
+      );
+    } finally {
+      window.URL.revokeObjectURL(url);
+    }
+  }
+
+  function setAttachment(value, error?) {
+    attachment = value;
+    if (!value && !error) {
+      attachmentPanel.hidden = true;
+      attachmentName.textContent = "";
+      delete attachmentPanel.dataset.error;
+      positionHelp();
+      return;
+    }
+    attachmentPanel.hidden = false;
+    attachmentName.textContent = error || value.label;
+    if (error) attachmentPanel.dataset.error = "true";
+    else delete attachmentPanel.dataset.error;
+    positionHelp();
+  }
+
+  async function prepareAttachment(file) {
+    var sourceKind = dockPetAttachmentKind(file?.type);
+    if (!sourceKind) throw new Error("Use an image, audio file or video");
+    var kind = sourceKind === "video" ? "image" : sourceKind;
+    var data;
+    if (sourceKind === "image") data = await imageAttachment(file);
+    else if (sourceKind === "video") data = await videoAttachment(file);
+    else {
+      if (file.size > 2_000_000) throw new Error("Audio must be under 2 MB");
+      data = await readAttachmentData(file);
+    }
+    if (data.length > 2_800_000) throw new Error("attachment is too large");
+    return {
+      data: data,
+      kind: kind,
+      label:
+        (sourceKind === "audio" ? "♪ " : sourceKind === "video" ? "▶ " : "▧ ") +
+        dockPetText(file.name || sourceKind, 64),
+      sourceKind: sourceKind,
+    };
+  }
+
   async function answerQuestion(value, useVoice?) {
     cancelStudy();
+    var selectedAttachment = attachment;
     var reply = dockPetStudyReply(
       value,
       sections,
@@ -926,7 +1120,11 @@ function dockPetSpeechText(value) {
     studyContextIndex = reply.sectionIndex;
     while (studyMessages.length >= 6) studyMessages.splice(0, 2);
     studyMessages.push({ role: "user", content: value });
-    appendThread("user", value);
+    appendThread(
+      "user",
+      value +
+        (selectedAttachment ? "\nAttached: " + selectedAttachment.label : ""),
+    );
     var pending = appendThread("assistant", reply.text, true);
     var requestId = (studyRequest += 1);
     var abort =
@@ -934,39 +1132,48 @@ function dockPetSpeechText(value) {
     var task = { abort, pending, reply, requestId, useVoice };
     activeStudy = task;
     question.value = "";
+    setAttachment(null);
     announce("Koa is thinking");
     positionHelp();
 
     var context = nearbySections(studyContextIndex);
-    var payload = {
+    var payload: any = {
       locale:
         document.documentElement.lang || window.navigator?.language || "en-AU",
       messages: studyMessages.slice(),
       sections: context,
       title: pageTitle,
     };
+    if (selectedAttachment) {
+      payload.attachment = {
+        data_url: selectedAttachment.data,
+        kind: selectedAttachment.kind,
+      };
+    }
     if (!context.length || typeof window.fetch !== "function") {
       finishStudy(
         task,
         reply.key.startsWith("absent:")
-          ? "I couldn’t reach the study service. Try that question again in a moment"
+          ? "There isn’t enough page context to answer that here"
           : reply.text,
       );
       return;
     }
 
     try {
-      var key = await studyKey(payload);
+      var key = selectedAttachment ? "" : await studyKey(payload);
       if (activeStudy !== task || requestId !== studyRequest) return;
-      var cached = studyCache.get(key) || sessionReply(key);
+      var cached = key && (studyCache.get(key) || sessionReply(key));
       if (cached) {
         studyCache.set(key, cached);
         finishStudy(task, cached);
         return;
       }
+      var timedOut = false;
       var timeout = setTimeout(function () {
+        timedOut = true;
         abort?.abort();
-      }, 15000);
+      }, 30000);
       var response;
       try {
         response = await window.fetch(pet.dataset.endpoint || "/api/pet", {
@@ -978,8 +1185,14 @@ function dockPetSpeechText(value) {
       } finally {
         clearTimeout(timeout);
       }
-      if (!response.ok) throw new Error("study model unavailable");
       var body = await response.json();
+      if (!response.ok) {
+        var failure = new Error(
+          body?.error?.message || "study model unavailable",
+        ) as any;
+        failure.code = body?.error?.code || "service_unavailable";
+        throw failure;
+      }
       if (body?.grounded === false && body?.kind !== "general") {
         finishStudy(task, reply.text);
         return;
@@ -1003,29 +1216,47 @@ function dockPetSpeechText(value) {
         : [];
       if (citations.length) answer += "\nSources: " + citations.join(" · ");
       if (activeStudy !== task || requestId !== studyRequest) return;
-      finishStudy(task, answer, key);
-    } catch (_) {
+      finishStudy(task, answer, key || undefined);
+    } catch (error) {
       if (activeStudy === task && requestId === studyRequest) {
-        finishStudy(
-          task,
-          reply.key.startsWith("absent:")
-            ? "I couldn’t reach the study service. Try that question again in a moment"
-            : reply.text,
-        );
+        var code = String((error as any)?.code || "");
+        var aborted = Boolean((error as any)?.name === "AbortError");
+        finishStudy(task, dockPetStudyError(code, timedOut || aborted));
       }
     }
   }
 
   function positionHelp() {
     if (!helpOpen) return;
-    help.style.left = "";
-    help.style.top = "";
+    var edge = 12;
+    var gap = 10;
+    var petRect = pet.getBoundingClientRect();
+    var width = help.offsetWidth;
+    var height = help.offsetHeight;
+    var roomAbove = petRect.top - edge;
+    var roomBelow = window.innerHeight - petRect.bottom - edge;
+    var placement =
+      roomAbove >= height + gap || roomAbove >= roomBelow ? "above" : "below";
+    var left = clamp(
+      petRect.left + petRect.width / 2 - width / 2,
+      edge,
+      Math.max(edge, window.innerWidth - width - edge),
+    );
+    var top =
+      placement === "above" ? petRect.top - height - gap : petRect.bottom + gap;
+    top = clamp(top, edge, Math.max(edge, window.innerHeight - height - edge));
+    help.dataset.placement = placement;
+    help.style.left = pixels(left);
+    help.style.top = pixels(top);
+    help.style.setProperty(
+      "--dock-pet-help-tail-x",
+      pixels(clamp(petRect.left + petRect.width / 2 - left, 22, width - 22)),
+    );
   }
 
   function setHelp(open) {
     helpOpen = open;
     help.hidden = !open;
-    document.documentElement.classList.toggle?.("pet-help-open", open);
     pet.setAttribute("aria-expanded", String(open));
     if (!open) {
       recognition?.abort();
@@ -1660,9 +1891,44 @@ function dockPetSpeechText(value) {
     endDrag(event, true);
   });
   pet.addEventListener("keydown", moveWithKeyboard);
+  attachButton.addEventListener("click", function () {
+    fileInput.click();
+  });
+  attachmentRemove.addEventListener("click", function () {
+    attachmentRead += 1;
+    fileInput.value = "";
+    setAttachment(null);
+    question.focus();
+  });
+  fileInput.addEventListener("change", async function () {
+    var file = fileInput.files?.[0];
+    if (!file) return;
+    var read = (attachmentRead += 1);
+    attachButton.disabled = true;
+    setAttachment(null, "Preparing " + dockPetText(file.name, 48));
+    try {
+      var prepared = await prepareAttachment(file);
+      if (read !== attachmentRead) return;
+      setAttachment(prepared);
+      announce(prepared.label + " attached for this question");
+    } catch (error) {
+      if (read !== attachmentRead) return;
+      setAttachment(
+        null,
+        String((error as any)?.message || "Attachment couldn’t be read"),
+      );
+      announce("Attachment couldn’t be read");
+    } finally {
+      if (read === attachmentRead) attachButton.disabled = false;
+      fileInput.value = "";
+    }
+  });
   helpForm.addEventListener("submit", function (event) {
     event.preventDefault();
     var value = dockPetText(question?.value, 240);
+    if (!value && attachment) {
+      value = dockPetAttachmentQuestion(attachment.sourceKind);
+    }
     if (!value) {
       question?.focus();
       return;
