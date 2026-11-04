@@ -79,10 +79,10 @@ test("reading helpers find a heading and keep grounded replies short", () => {
   );
   assert.equal(first.key, "explain:dynamics");
   assert.equal(paraphrase.key, first.key);
-  assert.match(first.text, /Under “Dynamics”/);
+  assert.match(first.text, /From “Dynamics”/);
   assert.match(
     pure.dockPetStudyReply("fun fact", sections, 1, 0).text,
-    /can’t find evidence.*current note/,
+    /isn’t covered on this page/,
   );
   assert.match(
     pure.dockPetStudyReply("quiz me", sections, 1, 2).text,
@@ -90,7 +90,7 @@ test("reading helpers find a heading and keep grounded replies short", () => {
   );
   assert.match(
     pure.dockPetStudyReply("Explain quantum entanglement", sections, 1, 3).text,
-    /can’t find evidence.*current note/,
+    /isn’t covered on this page/,
   );
   assert.equal(pure.dockPetIdlePlan(1).behavior, "scratch-head");
   assert.equal(pure.dockPetIdlePlan(4).behavior, "scratch-bum");
@@ -152,7 +152,7 @@ test("study replies handle empty notes, greetings, context, and phrasing", () =>
     1,
   );
   assert.equal(contextual.sectionIndex, 1);
-  assert.match(contextual.text, /^The key point in “Dynamics” is:/);
+  assert.match(contextual.text, /^In “Dynamics”, the main idea is:/);
   assert.equal(contextual.key, "explain:Dynamics");
   assert.match(
     pure.dockPetStudyReply("simple force", sections, 1, 2).text,
@@ -160,7 +160,7 @@ test("study replies handle empty notes, greetings, context, and phrasing", () =>
   );
   assert.match(
     pure.dockPetStudyReply("worked force", sections, 1, 3).text,
-    /^The note’s example or rule here is:/,
+    /^Here’s the useful example from the page:/,
   );
   assert.equal(
     pure.dockPetStudyReply(
@@ -169,7 +169,7 @@ test("study replies handle empty notes, greetings, context, and phrasing", () =>
       0,
       0,
     ).text,
-    "I can’t build a grounded quiz until this note section has written evidence",
+    "There isn’t enough written here for a fair quiz yet",
   );
   const absent = pure.dockPetStudyReply(
     "quantum",
@@ -180,11 +180,11 @@ test("study replies handle empty notes, greetings, context, and phrasing", () =>
   assert.equal(absent.key, "absent:Blank");
   assert.equal(
     absent.text,
-    "I can’t find evidence for that in the current note",
+    "That isn’t covered here, so I won’t pretend it is",
   );
   assert.equal(
     pure.dockPetStudyReply("", [], 0, 0).text,
-    "Under “this page”: This section is mostly notation. Try the heading beside it",
+    "From “this page”: This section is mostly notation. Try the heading beside it",
   );
   assert.match(
     pure.dockPetStudyReply("dynamics", sections, 0, 0).text,
@@ -275,9 +275,14 @@ test("the koala is squat, asymmetric, and free of a skeletal rig", () => {
       `class="dock-pet__wall-paw dock-pet__wall-paw--${paw}"[\\s\\S]*?d="([^"]+)"`,
     ).exec(template);
     assert.ok(wallPaw);
-    assert.match(wallPaw[1], /L0 /);
+    assert.match(wallPaw[1], /L18 /);
+    assert.doesNotMatch(wallPaw[1], /M(?:79|85) /);
   });
   assert.match(style, /data-grip[\s\S]*dock-pet__paw[\s\S]*display: none/);
+  assert.match(
+    style,
+    /prefers-reduced-motion: reduce[\s\S]*data-grip[\s\S]*translateX\(-18px\) !important/,
+  );
   assert.match(style, /dock-pet-wall-step-a/);
   assert.match(style, /dock-pet-wall-step-b/);
   assert.match(style, /dock-pet-rope-search-a/);
@@ -996,7 +1001,7 @@ test("click opens grounded study help and keeps follow-up context", async () => 
   assert.equal(runtime.threadItems[0].dataset.role, "user");
   assert.match(
     runtime.threadItems[1].textContent,
-    /^Under “Dynamics”: Dynamics relates forces and motion/,
+    /^From “Dynamics”: Dynamics relates forces and motion/,
   );
   assert.equal(runtime.help.hidden, false);
   assert.equal(prevented, 1);
@@ -1023,7 +1028,7 @@ test("hosted study replies enhance immediate fallback with plain-text sources", 
   runtime.petHandlers.click();
   runtime.question.value = "Explain force and motion";
   runtime.formHandlers.submit({ preventDefault() {} });
-  assert.match(runtime.threadItems[1].textContent, /^Under “Dynamics”/);
+  assert.match(runtime.threadItems[1].textContent, /^From “Dynamics”/);
   await flushStudy();
   assert.equal(runtime.fetchCalls.length, 1);
   assert.equal(runtime.fetchCalls[0].payload.messages.length, 1);
@@ -1041,7 +1046,23 @@ test("hosted study replies enhance immediate fallback with plain-text sources", 
   rejected.question.value = "Explain force and motion";
   rejected.formHandlers.submit({ preventDefault() {} });
   await flushStudy();
-  assert.match(rejected.threadItems[1].textContent, /^Under “Dynamics”/);
+  assert.match(rejected.threadItems[1].textContent, /^From “Dynamics”/);
+  const general = createRuntime({
+    fetchResponse: {
+      answer: "A short walk and a glass of water can make a study break useful",
+      citations: [],
+      grounded: false,
+      kind: "general",
+    },
+  });
+  general.petHandlers.click();
+  general.question.value = "What makes a useful study break?";
+  general.formHandlers.submit({ preventDefault() {} });
+  await flushStudy();
+  assert.equal(
+    general.threadItems[1].textContent,
+    "A short walk and a glass of water can make a study break useful",
+  );
   assert.doesNotMatch(rejected.threadItems[1].textContent, /Ungrounded claim/);
 });
 
@@ -1373,9 +1394,10 @@ test("edge-band drops use an anchored rope and never grip mid-air", () => {
   rope.petHandlers.pointerup({ pointerId: 17 });
   assert.equal(rope.pet.dataset.rope, "left");
   assert.equal(rope.pet.dataset.climbing, "left");
-  assert.equal(rope.pet.dataset.grip, undefined);
+  assert.equal(rope.pet.dataset.grip, "left");
   assert.equal(rope.pet.dataset.parachute, undefined);
-  assert.equal(rope.pet.style["--dock-pet-hook-x"], "-70px");
+  assert.equal(rope.pet.style.left, "0px");
+  assert.equal(rope.pet.style["--dock-pet-hook-x"], "0px");
   assert.notEqual(rope.pet.style["--dock-pet-rope-length"], "0px");
   assert.match(rope.status.textContent, /Hook set on the left edge/);
   assert.match(style, /data-rope[\s\S]*dock-pet__harness[\s\S]*opacity: 1/);
@@ -1417,9 +1439,9 @@ test("edge-band drops use an anchored rope and never grip mid-air", () => {
   rightRope.runAnimationFrames();
   rightRope.petHandlers.pointerup({ pointerId: 20 });
   assert.equal(rightRope.pet.dataset.rope, "right");
-  assert.equal(rightRope.pet.dataset.grip, undefined);
-  assert.equal(rightRope.pet.style.left, "912px");
-  assert.equal(rightRope.pet.style["--dock-pet-hook-x"], "88px");
+  assert.equal(rightRope.pet.dataset.grip, "right");
+  assert.equal(rightRope.pet.style.left, "920px");
+  assert.equal(rightRope.pet.style["--dock-pet-hook-x"], "80px");
 
   const free = createRuntime({ footerTop: 1400 });
   free.petHandlers.pointerdown({
@@ -1561,7 +1583,7 @@ test("voice input is optional and uses the same grounded answer path", async () 
   recognition.onresult({
     results: [[{ transcript: "explain force and motion" }]],
   });
-  assert.match(runtime.threadItems[1].textContent, /Under “Dynamics”/);
+  assert.match(runtime.threadItems[1].textContent, /From “Dynamics”/);
   await flushStudy();
   recognition.onend();
   assert.equal(runtime.listenButton.dataset.listening, undefined);
