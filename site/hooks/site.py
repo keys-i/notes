@@ -11,6 +11,15 @@ from mkdocs.structure.files import File
 ROOT = Path(__file__).parents[2]
 ASSETS = ROOT / "assets"
 SUBJECTS = ("COMP", "INFS", "MECH")
+VERSIONED_ASSETS = (
+    "assets/styles/site.min.css",
+    "assets/styles/graph.min.css",
+    "assets/styles/pet.min.css",
+    "assets/js/comments.min.js",
+    "assets/js/graph.min.js",
+    "assets/js/pet.min.js",
+    "assets/js/math.min.js",
+)
 WEEK_TITLE = re.compile(r"^(?:W|Week\s+)(\d+)\b", re.IGNORECASE)
 
 
@@ -101,6 +110,17 @@ def _redirect(target):
 def on_post_build(config):
     """Redirect the former markdown subject paths to their stable pages"""
     site = Path(config.site_dir)
+    index = site / "index.html"
+    if index.is_file():
+        markup = index.read_text(encoding="utf-8")
+        version = config.extra.get("asset_version", "dev")
+        missing = [
+            asset for asset in VERSIONED_ASSETS if f"{asset}?v={version}" not in markup
+        ]
+        if missing:
+            raise RuntimeError(
+                f"built assets lack version {version}: {', '.join(missing)}"
+            )
     for subject in SUBJECTS:
         subject_root = site / subject
         if not subject_root.is_dir():

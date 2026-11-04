@@ -83,6 +83,24 @@ class HookTests(unittest.TestCase):
             site_hook.on_config(self.config)
         self.assertEqual(self.config.extra["asset_version"], "dev")
 
+    def test_site_build_rejects_unversioned_custom_assets(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            version = "release123"
+            markup = "\n".join(
+                f'url="{asset}?v={version}"' for asset in site_hook.VERSIONED_ASSETS
+            )
+            (root / "index.html").write_text(markup, encoding="utf-8")
+            config = SimpleNamespace(
+                site_dir=root,
+                extra={"asset_version": version},
+            )
+            site_hook.on_post_build(config)
+
+            (root / "index.html").write_text(markup.replace("?v=release123", "?v=", 1))
+            with self.assertRaisesRegex(RuntimeError, "built assets lack version"):
+                site_hook.on_post_build(config)
+
     def test_game_rejects_attempt_overflow(self):
         source = (ROOT / "site/game.toml").read_text(encoding="utf-8")
         with TemporaryDirectory() as directory:

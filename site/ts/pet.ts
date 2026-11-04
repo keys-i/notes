@@ -522,9 +522,7 @@ function dockPetSpeechText(value) {
   var pendingMilestone = "";
   var seenMilestones = new Set();
   var themeTimer = 0;
-  var themeInputTimer = 0;
   var themeView;
-  var themeResolve;
   var themeOrigin = { x: window.innerWidth - 32, y: 32 };
   var themeOriginCaptured = false;
 
@@ -554,28 +552,32 @@ function dockPetSpeechText(value) {
   if (palette) {
     palette.addEventListener("pointerdown", function (event) {
       themeOriginCaptured = captureThemeOrigin(event);
-      beginThemeWave();
     });
     palette.addEventListener(
       "keydown",
       function (event) {
         if (event.key !== "Enter" && event.key !== " ") return;
         themeOriginCaptured = captureThemeOrigin(event);
-        beginThemeWave();
       },
       true,
     );
     palette.addEventListener(
       "change",
       function (event) {
-        if (themeView) {
-          finishThemeUpdate();
-          themeOriginCaptured = false;
-          return;
-        }
         if (!themeOriginCaptured) captureThemeOrigin(event);
         themeOriginCaptured = false;
         clearThemeEffect();
+        var control = event.target as HTMLElement;
+        var scheme = control?.dataset?.mdColorScheme;
+        if (!scheme) return;
+        if (
+          !reducedMotion.matches &&
+          typeof (document as any).startViewTransition === "function"
+        ) {
+          beginThemeWave(scheme);
+          return;
+        }
+        applyTheme(scheme);
         if (reducedMotion.matches) return;
         setThemeGeometry();
         document.body.classList.remove("theme-fade");
@@ -590,19 +592,11 @@ function dockPetSpeechText(value) {
     );
   }
 
-  function beginThemeWave() {
-    if (reducedMotion.matches || !(document as any).startViewTransition) {
-      return;
-    }
-    clearThemeEffect();
+  function beginThemeWave(scheme) {
     setThemeGeometry();
     document.documentElement.classList.add("theme-wave");
-    var update = new Promise<void>(function (resolve) {
-      themeResolve = resolve;
-    });
-    themeInputTimer = setTimeout(finishThemeUpdate, 240);
     var transition = (document as any).startViewTransition(function () {
-      return update;
+      applyTheme(scheme);
     });
     themeView = transition;
     transition.finished.finally(function () {
@@ -612,12 +606,8 @@ function dockPetSpeechText(value) {
     });
   }
 
-  function finishThemeUpdate() {
-    clearTimeout(themeInputTimer);
-    themeInputTimer = 0;
-    var resolve = themeResolve;
-    themeResolve = null;
-    resolve?.();
+  function applyTheme(scheme) {
+    document.body.setAttribute("data-md-color-scheme", scheme);
   }
 
   function setThemeGeometry() {
@@ -652,7 +642,6 @@ function dockPetSpeechText(value) {
   }
 
   function clearThemeEffect() {
-    finishThemeUpdate();
     clearTimeout(themeTimer);
     themeTimer = 0;
     document.body.classList.remove("theme-fade");
