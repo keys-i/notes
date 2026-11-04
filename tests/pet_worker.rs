@@ -301,7 +301,7 @@ fn bm25_and_dense_fusion_preserves_lexical_matches_and_hyde_signal() {
 }
 
 #[test]
-fn learned_reranking_is_validated_and_renumbers_evidence() {
+fn learned_reranking_preserves_the_fused_winner_and_renumbers_evidence() {
     let input = request();
     let candidates = vec![0, 1, 2];
     let evidence = reranked_evidence(
@@ -314,9 +314,9 @@ fn learned_reranking_is_validated_and_renumbers_evidence() {
         ],
     )
     .unwrap();
-    assert_eq!(evidence[0].heading, "Impulse");
-    assert_eq!(evidence[1].heading, "Newton's second law");
-    assert_eq!(evidence[2].heading, "Energy");
+    assert_eq!(evidence[0].heading, "Energy");
+    assert_eq!(evidence[1].heading, "Impulse");
+    assert_eq!(evidence[2].heading, "Newton's second law");
     assert_eq!(
         evidence.iter().map(|item| item.source).collect::<Vec<_>>(),
         [1, 2, 3]
@@ -387,6 +387,12 @@ fn prompt_keeps_evidence_and_conversation_as_untrusted_data() {
     assert!(messages[2].1.contains("EVIDENCE_JSON only"));
     assert!(messages[2].1.contains("no uncited introduction"));
     assert!(messages[2].1.contains("Use close paraphrases"));
+    assert!(
+        messages[2]
+            .1
+            .contains("The note does not state the mechanism")
+    );
+    assert!(messages[2].1.contains("Do not add a relation"));
     assert!(messages[2].1.contains("every factual sentence"));
 
     let mut another_note = input.clone();
