@@ -1489,13 +1489,16 @@ function dockPetIdleDelay(now, index) {
     }
     answerQuestion(value);
   });
-  help
-    .querySelectorAll<HTMLElement>("[data-pet-action]")
-    .forEach(function (control) {
-      control.addEventListener("click", function () {
-        if (control.dataset.petAction === "close") setHelp(false);
-      });
-    });
+  help.addEventListener("keydown", function (event) {
+    if (event.key !== "Escape") return;
+    setHelp(false);
+    event.preventDefault();
+  });
+  document.addEventListener("pointerdown", function (event) {
+    if (!helpOpen) return;
+    var path = event.composedPath();
+    if (!path.includes(help) && !path.includes(pet)) setHelp(false);
+  });
 
   var Recognition =
     (window as any).SpeechRecognition ||
@@ -1537,11 +1540,6 @@ function dockPetIdleDelay(now, index) {
       }
     });
   }
-  question?.addEventListener("keydown", function (event) {
-    if (event.key !== "Escape") return;
-    setHelp(false);
-    event.preventDefault();
-  });
   window.addEventListener("resize", scheduleConfigure);
   window.addEventListener("pointermove", scheduleLook, { passive: true });
   window.addEventListener("blur", function () {
