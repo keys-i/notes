@@ -82,7 +82,7 @@ test("reading helpers find a heading and keep grounded replies short", () => {
   assert.match(first.text, /From “Dynamics”/);
   assert.match(
     pure.dockPetStudyReply("fun fact", sections, 1, 0).text,
-    /isn’t covered on this page/,
+    /Thinking that through/,
   );
   assert.match(
     pure.dockPetStudyReply("quiz me", sections, 1, 2).text,
@@ -90,7 +90,7 @@ test("reading helpers find a heading and keep grounded replies short", () => {
   );
   assert.match(
     pure.dockPetStudyReply("Explain quantum entanglement", sections, 1, 3).text,
-    /isn’t covered on this page/,
+    /Thinking that through/,
   );
   assert.equal(pure.dockPetIdlePlan(1).behavior, "scratch-head");
   assert.equal(pure.dockPetIdlePlan(4).behavior, "scratch-bum");
@@ -178,10 +178,7 @@ test("study replies handle empty notes, greetings, context, and phrasing", () =>
     0,
   );
   assert.equal(absent.key, "absent:Blank");
-  assert.equal(
-    absent.text,
-    "That isn’t covered here, so I won’t pretend it is",
-  );
+  assert.equal(absent.text, "Thinking that through…");
   assert.equal(
     pure.dockPetStudyReply("", [], 0, 0).text,
     "From “this page”: This section is mostly notation. Try the heading beside it",
@@ -338,7 +335,12 @@ test("site chrome exposes progress and authored footer motion safely", () => {
     siteStyle,
     /prefers-reduced-motion: reduce[\s\S]*?\.md-header,[\s\S]*?\.md-footer,[\s\S]*?animation: none/,
   );
-  assert.match(mainTemplate, /<h2 id="__comments">Comments<\/h2>/);
+  assert.match(mainTemplate, /<details class="note-comments" id="__comments">/);
+  assert.match(mainTemplate, /Discuss this note/);
+  assert.match(style, /width: min\(32rem, calc\(100vw - 1\.5rem\)\)/);
+  assert.match(style, /html\.pet-help-open \.md-main__inner/);
+  assert.match(style, /dock-pet__token--keyword/);
+  assert.match(style, /dock-pet__math--display/);
   assert.doesNotMatch(mainTemplate, /lang\.t|data-lang|giscus/);
 });
 
@@ -521,14 +523,16 @@ function createRuntime({
     },
   };
   const themeControl: any = {
+    dataset: { mdColorScheme: "slate" },
     closest: () => ({
       click: () => themeControl.click(),
       getBoundingClientRect: () => rectangle(12, 52, 900, 940),
     }),
     click() {
+      themeControl.dataset.mdColorScheme =
+        body.dataset.mdColorScheme === "default" ? "slate" : "default";
       paletteHandlers.change({ target: themeControl });
       themeChanges.push(viewUpdateActive);
-      document.documentElement.dataset.mdColorScheme = "slate";
     },
     dispatchEvent() {
       themeControl.click();
@@ -539,12 +543,16 @@ function createRuntime({
   const bodyStyle: Record<string, string> = {};
   const rootClasses = new Set<string>();
   const rootClassChanges: string[] = [];
-  const body = {
+  const body: any = {
     classList: {
       add: (name) => bodyClasses.add(name),
       remove: (name) => bodyClasses.delete(name),
     },
+    dataset: { mdColorScheme: "default" },
     offsetWidth: viewportWidth,
+    setAttribute(name, value) {
+      if (name === "data-md-color-scheme") this.dataset.mdColorScheme = value;
+    },
     style: {
       setProperty(name, value) {
         bodyStyle[name] = value;
@@ -664,6 +672,10 @@ function createRuntime({
           rootClasses.delete(name);
           rootClassChanges.push("remove:" + name);
         },
+        toggle(name, enabled) {
+          if (enabled) this.add(name);
+          else this.remove(name);
+        },
       },
       clientWidth: viewportWidth,
       dataset: { mdColorScheme: "default" },
@@ -699,16 +711,54 @@ function createRuntime({
     addEventListener(name, handler) {
       documentHandlers[name] = handler;
     },
-    createElement() {
+    createElement(tag = "div") {
+      let ownText = "";
       const item: any = {
+        children: [],
+        className: "",
         dataset: {},
-        textContent: "",
+        ownerDocument: document,
+        tagName: tag.toUpperCase(),
+        append(...children) {
+          this.children.push(...children);
+        },
+        querySelector(selector) {
+          const className = selector.startsWith(".") ? selector.slice(1) : "";
+          return (
+            this.children.find(
+              (child) =>
+                className &&
+                String(child.className || "")
+                  .split(/\s+/)
+                  .includes(className),
+            ) ||
+            this.children
+              .map((child) => child.querySelector?.(selector))
+              .find(Boolean) ||
+            null
+          );
+        },
         remove() {
           const index = threadItems.indexOf(item);
           if (index >= 0) threadItems.splice(index, 1);
         },
       };
+      Object.defineProperty(item, "textContent", {
+        get() {
+          return (
+            ownText +
+            this.children.map((child) => child.textContent || "").join("")
+          );
+        },
+        set(value) {
+          ownText = String(value);
+          this.children = [];
+        },
+      });
       return item;
+    },
+    createTextNode(value) {
+      return { ownerDocument: document, textContent: String(value) };
     },
   };
   if (viewTransition) {
@@ -969,7 +1019,7 @@ function createRuntime({
     timers,
     themeChanges,
     themeControl,
-    themeScheme: () => document.documentElement.dataset.mdColorScheme,
+    themeScheme: () => document.body.dataset.mdColorScheme,
     threadItems,
     viewTransitions,
     window,
@@ -1016,7 +1066,7 @@ test("click opens grounded study help and keeps follow-up context", async () => 
   assert.equal(runtime.threadItems[3].dataset.pending, undefined);
 });
 
-test("hosted study replies enhance immediate fallback with plain-text sources", async () => {
+test("hosted study replies enhance immediate fallback with safe rich sources", async () => {
   const runtime = createRuntime({
     fetchResponse: {
       answer: "Force changes motion when the net force is non-zero",
@@ -1034,7 +1084,7 @@ test("hosted study replies enhance immediate fallback with plain-text sources", 
   assert.equal(runtime.fetchCalls[0].payload.messages.length, 1);
   assert.equal(
     runtime.threadItems[1].textContent,
-    "Force changes motion when the net force is non-zero\nSources: Dynamics note · <b>Lecture 2</b>",
+    "Force changes motion when the net force is non-zero Sources: Dynamics note · <b>Lecture 2</b>",
   );
   assert.equal(runtime.threadItems[1].dataset.pending, undefined);
 
@@ -1064,6 +1114,55 @@ test("hosted study replies enhance immediate fallback with plain-text sources", 
     "A short walk and a glass of water can make a study break useful",
   );
   assert.doesNotMatch(rejected.threadItems[1].textContent, /Ungrounded claim/);
+});
+
+test("study replies render maths and highlighted code without trusting HTML", async () => {
+  const runtime = createRuntime({
+    fetchResponse: {
+      answer:
+        '## Worked example\nFor $F = ma$, use `newtons`, **keep units**, and check \\(J = Ft\\).\n\n- Draw the body\n- Resolve forces\n\n1. Substitute values\n2. Check units\n\n$$E = \\frac12 mv^2$$\n\n\\[\nJ = \\int F\\,dt\n\\]\n\n```ts\n// Keep the unit\nconst label = "N"\nconst force = 12\n```\n\n<img src=x onerror=alert(1)>\n\n$$broken\nStill readable',
+      grounded: true,
+    },
+  });
+  runtime.petHandlers.click();
+  runtime.question.value = "Explain force";
+  runtime.formHandlers.submit({ preventDefault() {} });
+  await flushStudy();
+
+  const answer = runtime.threadItems[1];
+  assert.deepEqual(
+    answer.children.map((child) => child.tagName),
+    ["H3", "P", "UL", "OL", "DIV", "DIV", "PRE", "P", "P", "P"],
+  );
+  assert.match(answer.textContent, /F = ma/);
+  assert.match(answer.textContent, /<img src=x onerror=alert\(1\)>/);
+  assert.match(answer.textContent, /\$\$brokenStill readable/);
+  assert.equal(
+    answer.querySelector(".arithmatex")?.className.includes("dock-pet__math"),
+    true,
+  );
+  assert.equal(
+    answer.querySelector(".dock-pet__token--keyword")?.textContent,
+    "const",
+  );
+  assert.equal(
+    answer.querySelector(".dock-pet__token--comment")?.textContent,
+    "// Keep the unit",
+  );
+  assert.equal(
+    answer.querySelector(".dock-pet__token--string")?.textContent,
+    '"N"',
+  );
+  assert.equal(
+    answer.querySelector(".dock-pet__token--number")?.textContent,
+    "12",
+  );
+  assert.equal(
+    pure.dockPetSpeechText(
+      "## Rule\nUse **force** in `$F = ma$`.\n```ts\nlet x = 1\n```",
+    ),
+    "Rule Use force in F = ma. Code example.",
+  );
 });
 
 test("hosted study recovers safely and reuses bounded session answers", async () => {
@@ -1168,7 +1267,7 @@ test("a slow hosted study request is aborted at its deadline", async () => {
   runtime.formHandlers.submit({ preventDefault() {} });
   await flushStudy();
   assert.equal(runtime.fetchCalls.length, 1);
-  runtime.runTimer(8000);
+  runtime.runTimer(15000);
   assert.equal(runtime.aborts[0].aborted, true);
 
   releaseFetch();
@@ -1978,7 +2077,7 @@ test("theme changes radiate from the palette control and clean up", async () => 
       }),
     },
   });
-  runtime.paletteHandlers.change();
+  runtime.paletteHandlers.change({ target: runtime.themeControl });
   assert.equal(runtime.rootStyle["--theme-x"], "920px");
   assert.equal(runtime.rootStyle["--theme-y"], "32px");
   assert.equal(runtime.rootStyle["--theme-radius"], "1199px");
@@ -1987,8 +2086,9 @@ test("theme changes radiate from the palette control and clean up", async () => 
   assert.equal(runtime.bodyClasses.has("theme-fade"), false);
 
   const reduced = createRuntime({ reduced: true });
-  reduced.paletteHandlers.change();
+  reduced.paletteHandlers.change({ target: reduced.themeControl });
   assert.equal(reduced.bodyClasses.has("theme-fade"), false);
+  assert.equal(reduced.themeScheme(), "slate");
 
   const native = createRuntime({ viewTransition: true });
   const change = () => {
@@ -2006,6 +2106,7 @@ test("theme changes radiate from the palette control and clean up", async () => 
   assert.equal(native.viewTransitions[0].skipped, true);
   assert.equal(native.viewTransitions.length, 2);
   assert.deepEqual(native.themeChanges, [true, true]);
+  assert.equal(native.themeScheme(), "default");
   await Promise.all(native.viewTransitions.map((record) => record.updated));
   native.viewTransitions[0].finish();
   assert.equal(native.rootClasses.has("theme-wave"), true);

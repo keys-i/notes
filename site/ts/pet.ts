@@ -209,9 +209,7 @@ function dockPetStudyReply(query, sections, currentIndex, turn, contextIndex?) {
       behavior: "curious",
       key: "absent:" + (current.id || current.heading),
       sectionIndex: startingIndex,
-      text: current.text
-        ? "That isn’t covered on this page. I’ll answer it generally if I can"
-        : "That isn’t covered here, so I won’t pretend it is",
+      text: "Thinking that through…",
     };
   }
   var summary = dockPetSummary(best.text);
@@ -245,6 +243,184 @@ function dockPetIdlePlan(index) {
 
 function dockPetIdleDelay(now, index) {
   return 45000 + ((Math.floor(now / 1000) + index * 7919) % 45001);
+}
+
+function dockPetAppendInline(parent, value) {
+  var doc = parent.ownerDocument || document;
+  var pattern = /(`[^`\n]+`|\\\([^\n]+?\\\)|\$[^$\n]+?\$|\*\*[^*\n]+?\*\*)/g;
+  var cursor = 0;
+  var match;
+  while ((match = pattern.exec(value))) {
+    if (match.index > cursor) {
+      parent.append(doc.createTextNode(value.slice(cursor, match.index)));
+    }
+    var source = match[0];
+    var node;
+    if (source.startsWith("`")) {
+      node = doc.createElement("code");
+      node.textContent = source.slice(1, -1);
+    } else if (source.startsWith("**")) {
+      node = doc.createElement("strong");
+      node.textContent = source.slice(2, -2);
+    } else {
+      node = doc.createElement("span");
+      node.className = "arithmatex dock-pet__math";
+      node.textContent = source.startsWith("$")
+        ? "\\(" + source.slice(1, -1) + "\\)"
+        : source;
+    }
+    parent.append(node);
+    cursor = pattern.lastIndex;
+  }
+  if (cursor < value.length) {
+    parent.append(doc.createTextNode(value.slice(cursor)));
+  }
+}
+
+function dockPetAppendCode(parent, value) {
+  var doc = parent.ownerDocument || document;
+  var pattern =
+    /(\/\*[\s\S]*?\*\/|\/\/[^\n]*|#[^\n]*|'(?:\\.|[^'\\])*'|"(?:\\.|[^"\\])*"|\b(?:async|await|class|const|def|else|enum|false|fn|for|from|function|if|impl|import|interface|let|match|new|null|pub|return|struct|true|type|use|var|while)\b|\b\d+(?:\.\d+)?\b)/g;
+  var cursor = 0;
+  var match;
+  while ((match = pattern.exec(value))) {
+    if (match.index > cursor) {
+      parent.append(doc.createTextNode(value.slice(cursor, match.index)));
+    }
+    var token = doc.createElement("span");
+    var source = match[0];
+    token.className =
+      "dock-pet__token--" +
+      (/^(?:\/[/\*]|#)/.test(source)
+        ? "comment"
+        : /^["'`]/.test(source)
+          ? "string"
+          : /^\d/.test(source)
+            ? "number"
+            : "keyword");
+    token.textContent = source;
+    parent.append(token);
+    cursor = pattern.lastIndex;
+  }
+  if (cursor < value.length) {
+    parent.append(doc.createTextNode(value.slice(cursor)));
+  }
+}
+
+function dockPetRenderMessage(item, message) {
+  var doc = item.ownerDocument || document;
+  var lines = String(message || "")
+    .replace(/\r\n?/g, "\n")
+    .split("\n");
+  item.textContent = "";
+
+  function appendBlock(tag, value, className?) {
+    var block = doc.createElement(tag);
+    if (className) block.className = className;
+    dockPetAppendInline(block, value);
+    item.append(block);
+  }
+
+  for (var index = 0; index < lines.length;) {
+    var line = lines[index];
+    if (!line.trim()) {
+      index += 1;
+      continue;
+    }
+    var fence = /^```([\w#+.-]{0,24})\s*$/.exec(line.trim());
+    if (fence) {
+      var codeLines = [];
+      index += 1;
+      while (index < lines.length && lines[index].trim() !== "```") {
+        codeLines.push(lines[index]);
+        index += 1;
+      }
+      if (index < lines.length) index += 1;
+      var pre = doc.createElement("pre");
+      var code = doc.createElement("code");
+      pre.dataset.language = fence[1] || "code";
+      dockPetAppendCode(code, codeLines.join("\n"));
+      pre.append(code);
+      item.append(pre);
+      continue;
+    }
+    if (line.trim().startsWith("$$") || line.trim().startsWith("\\[")) {
+      var trimmedMath = line.trim();
+      var dollar = trimmedMath.startsWith("$$");
+      var closing = dollar ? "$$" : "\\]";
+      var math = trimmedMath.slice(2);
+      index += 1;
+      if (math.endsWith(closing)) {
+        math = math.slice(0, -2);
+      } else {
+        var closingIndex = index;
+        while (
+          closingIndex < lines.length &&
+          !lines[closingIndex].trim().endsWith(closing)
+        ) {
+          closingIndex += 1;
+        }
+        if (closingIndex === lines.length) {
+          appendBlock("p", line.trim());
+          continue;
+        }
+        while (index < closingIndex) {
+          math += (math ? "\n" : "") + lines[index];
+          index += 1;
+        }
+        math += (math ? "\n" : "") + lines[index].trim().slice(0, -2);
+        index += 1;
+      }
+      var display = doc.createElement("div");
+      display.className = "arithmatex dock-pet__math dock-pet__math--display";
+      display.textContent = "\\[" + math.trim() + "\\]";
+      item.append(display);
+      continue;
+    }
+    var heading = /^(#{2,4})\s+(.+)$/.exec(line);
+    if (heading) {
+      appendBlock("h3", heading[2]);
+      index += 1;
+      continue;
+    }
+    var list = /^\s*(?:([-*])|(\d+)\.)\s+(.+)$/.exec(line);
+    if (list) {
+      var listTag = list[2] ? "ol" : "ul";
+      var listNode = doc.createElement(listTag);
+      while (index < lines.length) {
+        var entry = /^\s*(?:([-*])|(\d+)\.)\s+(.+)$/.exec(lines[index]);
+        if (!entry || (entry[2] ? "ol" : "ul") !== listTag) break;
+        var listItem = doc.createElement("li");
+        dockPetAppendInline(listItem, entry[3]);
+        listNode.append(listItem);
+        index += 1;
+      }
+      item.append(listNode);
+      continue;
+    }
+    var paragraph = [line.trim()];
+    index += 1;
+    while (
+      index < lines.length &&
+      lines[index].trim() &&
+      !/^```|^\s*(?:[-*]|\d+\.)\s+|^#{2,4}\s+|^\$\$|^\\\[/.test(lines[index])
+    ) {
+      paragraph.push(lines[index].trim());
+      index += 1;
+    }
+    appendBlock("p", paragraph.join(" "));
+  }
+}
+
+function dockPetSpeechText(value) {
+  return String(value || "")
+    .replace(/```[\s\S]*?```/g, " Code example. ")
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/\$\$?|\\\[|\\\]|\\\(|\\\)/g, "")
+    .replace(/^#{1,6}\s+|^\s*(?:[-*]|\d+\.)\s+/gm, "")
+    .replace(/\*\*/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 (function () {
@@ -346,9 +522,7 @@ function dockPetIdleDelay(now, index) {
   var pendingMilestone = "";
   var seenMilestones = new Set();
   var themeTimer = 0;
-  var themeInputTimer = 0;
   var themeView;
-  var themeResolve;
   var themeOrigin = { x: window.innerWidth - 32, y: 32 };
   var themeOriginCaptured = false;
 
@@ -378,28 +552,32 @@ function dockPetIdleDelay(now, index) {
   if (palette) {
     palette.addEventListener("pointerdown", function (event) {
       themeOriginCaptured = captureThemeOrigin(event);
-      beginThemeWave();
     });
     palette.addEventListener(
       "keydown",
       function (event) {
         if (event.key !== "Enter" && event.key !== " ") return;
         themeOriginCaptured = captureThemeOrigin(event);
-        beginThemeWave();
       },
       true,
     );
     palette.addEventListener(
       "change",
       function (event) {
-        if (themeView) {
-          finishThemeUpdate();
-          themeOriginCaptured = false;
-          return;
-        }
         if (!themeOriginCaptured) captureThemeOrigin(event);
         themeOriginCaptured = false;
         clearThemeEffect();
+        var control = event.target as HTMLElement;
+        var scheme = control?.dataset?.mdColorScheme;
+        if (!scheme) return;
+        if (
+          !reducedMotion.matches &&
+          typeof (document as any).startViewTransition === "function"
+        ) {
+          beginThemeWave(scheme);
+          return;
+        }
+        applyTheme(scheme);
         if (reducedMotion.matches) return;
         setThemeGeometry();
         document.body.classList.remove("theme-fade");
@@ -414,19 +592,11 @@ function dockPetIdleDelay(now, index) {
     );
   }
 
-  function beginThemeWave() {
-    if (reducedMotion.matches || !(document as any).startViewTransition) {
-      return;
-    }
-    clearThemeEffect();
+  function beginThemeWave(scheme) {
     setThemeGeometry();
     document.documentElement.classList.add("theme-wave");
-    var update = new Promise<void>(function (resolve) {
-      themeResolve = resolve;
-    });
-    themeInputTimer = setTimeout(finishThemeUpdate, 240);
     var transition = (document as any).startViewTransition(function () {
-      return update;
+      applyTheme(scheme);
     });
     themeView = transition;
     transition.finished.finally(function () {
@@ -436,12 +606,8 @@ function dockPetIdleDelay(now, index) {
     });
   }
 
-  function finishThemeUpdate() {
-    clearTimeout(themeInputTimer);
-    themeInputTimer = 0;
-    var resolve = themeResolve;
-    themeResolve = null;
-    resolve?.();
+  function applyTheme(scheme) {
+    document.body.setAttribute("data-md-color-scheme", scheme);
   }
 
   function setThemeGeometry() {
@@ -476,7 +642,6 @@ function dockPetIdleDelay(now, index) {
   }
 
   function clearThemeEffect() {
-    finishThemeUpdate();
     clearTimeout(themeTimer);
     themeTimer = 0;
     document.body.classList.remove("theme-fade");
@@ -722,7 +887,7 @@ function dockPetIdleDelay(now, index) {
     var Voice = (window as any).SpeechSynthesisUtterance;
     if (!speaking || !synth || !Voice) return;
     synth.cancel();
-    var utterance = new Voice(message);
+    var utterance = new Voice(dockPetSpeechText(message));
     utterance.lang =
       window.navigator?.language || document.documentElement.lang;
     synth.speak(utterance);
@@ -732,7 +897,8 @@ function dockPetIdleDelay(now, index) {
   function finishStudy(task, message, cacheKey?) {
     if (activeStudy !== task) return;
     delete task.pending.dataset.pending;
-    task.pending.textContent = message;
+    dockPetRenderMessage(task.pending, message);
+    void window.notesMath?.(task.pending);
     studyMessages.push({ role: "assistant", content: message });
     if (cacheKey) rememberReply(cacheKey, message);
     activeStudy = null;
@@ -744,21 +910,16 @@ function dockPetIdleDelay(now, index) {
     positionHelp();
   }
 
-  function cancelStudy(useFallback) {
+  function cancelStudy() {
     if (!activeStudy) return;
     var task = activeStudy;
     studyRequest += 1;
     task.abort?.abort();
-    if (useFallback) {
-      finishStudy(task, task.reply.text);
-    } else {
-      task.pending.remove();
-      activeStudy = null;
-    }
+    finishStudy(task, task.reply.text);
   }
 
   async function answerQuestion(value, useVoice?) {
-    cancelStudy(true);
+    cancelStudy();
     var reply = dockPetStudyReply(
       value,
       sections,
@@ -768,7 +929,7 @@ function dockPetIdleDelay(now, index) {
     );
     studyTurn += 1;
     studyContextIndex = reply.sectionIndex;
-    while (studyMessages.length >= 8) studyMessages.splice(0, 2);
+    while (studyMessages.length >= 6) studyMessages.splice(0, 2);
     studyMessages.push({ role: "user", content: value });
     appendThread("user", value);
     var pending = appendThread("assistant", reply.text, true);
@@ -790,7 +951,12 @@ function dockPetIdleDelay(now, index) {
       title: pageTitle,
     };
     if (!context.length || typeof window.fetch !== "function") {
-      finishStudy(task, reply.text);
+      finishStudy(
+        task,
+        reply.key.startsWith("absent:")
+          ? "I couldn’t reach the study service. Try that question again in a moment"
+          : reply.text,
+      );
       return;
     }
 
@@ -805,7 +971,7 @@ function dockPetIdleDelay(now, index) {
       }
       var timeout = setTimeout(function () {
         abort?.abort();
-      }, 8000);
+      }, 15000);
       var response;
       try {
         response = await window.fetch(pet.dataset.endpoint || "/api/pet", {
@@ -825,7 +991,7 @@ function dockPetIdleDelay(now, index) {
       }
       var answer = String(body?.answer || "")
         .trim()
-        .slice(0, 1800);
+        .slice(0, 4500);
       if (!answer) throw new Error("study model returned no answer");
       var citations = Array.isArray(body?.citations)
         ? body.citations
@@ -845,34 +1011,26 @@ function dockPetIdleDelay(now, index) {
       finishStudy(task, answer, key);
     } catch (_) {
       if (activeStudy === task && requestId === studyRequest) {
-        finishStudy(task, reply.text);
+        finishStudy(
+          task,
+          reply.key.startsWith("absent:")
+            ? "I couldn’t reach the study service. Try that question again in a moment"
+            : reply.text,
+        );
       }
     }
   }
 
   function positionHelp() {
     if (!helpOpen) return;
-    var petRect = pet.getBoundingClientRect();
-    var width = help.offsetWidth || Math.min(320, window.innerWidth - 24);
-    var height = help.offsetHeight || 190;
-    var left = clamp(
-      petRect.left + petRect.width / 2 - width / 2,
-      12,
-      Math.max(12, window.innerWidth - width - 12),
-    );
-    var top =
-      petRect.top >= height + 20
-        ? petRect.top - height - 12
-        : petRect.bottom + 12;
-    help.style.left = pixels(left);
-    help.style.top = pixels(
-      clamp(top, 12, Math.max(12, window.innerHeight - height - 12)),
-    );
+    help.style.left = "";
+    help.style.top = "";
   }
 
   function setHelp(open) {
     helpOpen = open;
     help.hidden = !open;
+    document.documentElement.classList.toggle?.("pet-help-open", open);
     pet.setAttribute("aria-expanded", String(open));
     if (!open) {
       recognition?.abort();
@@ -1581,7 +1739,7 @@ function dockPetIdleDelay(now, index) {
     }
     clearTimeout(idleTimer);
     idleTimer = 0;
-    cancelStudy(true);
+    cancelStudy();
     recognition?.abort();
     (window as any).speechSynthesis?.cancel();
   });
