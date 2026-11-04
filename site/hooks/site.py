@@ -14,6 +14,13 @@ SUBJECTS = ("COMP", "INFS", "MECH")
 WEEK_TITLE = re.compile(r"^(?:W|Week\s+)(\d+)\b", re.IGNORECASE)
 
 
+def on_config(config):
+    """Give deployed assets a commit-specific URL while local serving stays stable"""
+    version = re.sub(r"[^0-9A-Za-z_-]", "", os.environ.get("GITHUB_SHA", "dev"))
+    config.extra["asset_version"] = (version or "dev")[:40]
+    return config
+
+
 def on_files(files, config):
     """Expose root assets through MkDocs without copying source into content"""
     existing = {file.src_uri for file in files}

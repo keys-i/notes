@@ -23,7 +23,7 @@ hooks:
 theme:
   name: material
   custom_dir: theme
-  logo: assets/images/logo.png
+  logo: assets/images/logo.svg
 
   static_templates:
     - 404.html
@@ -44,7 +44,6 @@ theme:
     - content.code.copy # Adds copy button to code blocks
     - content.code.select # Allows code block selection
     - content.tabs.link # Creates links for tabbed content
-    - navigation.expand # Expands navigation sections
     - navigation.indexes # Adds indexes for easier navigation
     # - navigation.instant  # Disabled as it breaks some JavaScript functionality
     - navigation.sections # Shows sections in the navigation
@@ -112,14 +111,6 @@ markdown_extensions:
   - pymdownx.caret # Adds caret notation for insertions
   - pymdownx.mark # Adds mark notation for highlighting
   - pymdownx.smartsymbols # Adds smart symbols for better typography
-
-# Shared site presentation
-extra_css:
-  - assets/styles/site.css
-
-# Extra JavaScript for enhanced functionality
-extra_javascript:
-  - assets/js/graph.js # Custom interactive graph script
 
 # Plugins for added functionality
 plugins:
