@@ -32,8 +32,8 @@ __pycache__/
 /node_modules/
 *.tsbuildinfo
 /assets/js/
-/api/build/
-/api/target/
+/site/api/build/
+/site/api/target/
 /public/
 /work/
 *.log

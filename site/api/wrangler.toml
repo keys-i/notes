@@ -6,10 +6,7 @@ routes = [{ pattern = "uni.keysi.dev/api/pet", zone_name = "keysi.dev" }]
 
 [build]
 command = "cargo install -q worker-build@^0.8 && worker-build --release"
-cwd = "api"
-
-[ai]
-binding = "AI"
+cwd = "site/api"
 
 [observability]
 enabled = true

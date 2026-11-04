@@ -17,4 +17,4 @@ worker = "0.8.7"
 
 [[test]]
 name = "pet_worker"
-path = "../tests/pet_worker.rs"
+path = "../../tests/pet_worker.rs"
