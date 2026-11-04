@@ -82,16 +82,23 @@ test("reading helpers validate one page, find a heading, and bound labels", () =
   );
 });
 
-test("local motivation decks are deterministic, complete, and never repeat at refill", () => {
-  const first = Array.from(pure.dockPetMotivationDeck("/week-2/:save:0", ""));
-  const again = Array.from(pure.dockPetMotivationDeck("/week-2/:save:0", ""));
-  assert.deepEqual(first, again);
-  assert.equal(first.length, 6);
-  assert.equal(new Set(first).size, first.length);
-  const refill = Array.from(
-    pure.dockPetMotivationDeck("/week-2/:save:1", first.at(-1)),
+test("pet guidance is useful and selected from page state", () => {
+  assert.match(
+    pure.dockPetGuidance("save", "Dynamics", false),
+    /Arrow keys.*Escape/,
   );
-  assert.notEqual(refill[0], first.at(-1));
+  assert.equal(
+    pure.dockPetGuidance("half", "Dynamics", false),
+    "Current section: “Dynamics”",
+  );
+  assert.match(
+    pure.dockPetGuidance("complete", "Energy", true),
+    /Graphs.*panned, zoomed and reset/,
+  );
+  assert.match(
+    pure.dockPetGuidance("complete", "Energy", false),
+    /page navigation/,
+  );
 });
 
 test("gaze and cloud helpers stay bounded", () => {
@@ -153,6 +160,9 @@ test("the koala is squat, asymmetric, and free of a skeletal rig", () => {
     assert.match(template, new RegExp(`dock-pet__limb--${paw}`));
   });
   assert.match(template, /dock-pet__yawn/);
+  assert.match(template, /dock-pet__shroud/);
+  assert.match(template, /dock-pet__harness-strap/);
+  assert.match(template, /dock-pet__harness-buckle/);
   assert.doesNotMatch(style, /climb|hanging|dock-pet-breathe|dock-pet-step/);
   assert.match(style, /data-behavior="scratch"/);
   assert.match(style, /data-behavior="sit"/);
@@ -205,14 +215,18 @@ test("personality is local and event-driven", () => {
   );
   assert.match(source, /handleAction/);
   assert.match(source, /pendingMilestone/);
-  assert.match(source, /now - lastMotivationAt < 30000/);
+  assert.match(source, /now - lastGuidanceAt < 30000/);
+  assert.doesNotMatch(source, /One clear idea|quick sketch|Math\.random/);
 });
 
 function createRuntime({
   desktop = true,
+  emitScrollEvents = false,
   footerRight = null,
   footerTop = 700,
   getError = false,
+  hasPlot = false,
+  moveFooterWithScroll = false,
   now = 100000,
   page = "/week-2/",
   reduced = false,
@@ -233,6 +247,8 @@ function createRuntime({
   const capturedPointers: number[] = [];
   const releasedPointers: number[] = [];
   const viewTransitions: any[] = [];
+  const themeChanges: boolean[] = [];
+  let viewUpdateActive = false;
   const rectangle = (top, bottom, left, right) => ({
     bottom,
     height: bottom - top,
@@ -296,6 +312,21 @@ function createRuntime({
       paletteHandlers[name] = handler;
     },
   };
+  const themeControl: any = {
+    closest: () => ({
+      click: () => themeControl.click(),
+      getBoundingClientRect: () => rectangle(12, 52, 900, 940),
+    }),
+    click() {
+      paletteHandlers.change({ target: themeControl });
+      themeChanges.push(viewUpdateActive);
+      document.documentElement.dataset.mdColorScheme = "slate";
+    },
+    dispatchEvent() {
+      themeControl.click();
+      return true;
+    },
+  };
   const bodyClasses = new Set<string>();
   const bodyStyle: Record<string, string> = {};
   const rootClasses = new Set<string>();
@@ -340,6 +371,9 @@ function createRuntime({
       left: "",
       top: "",
       transform: "",
+      removeProperty(name) {
+        delete this[name];
+      },
       setProperty(name, value) {
         this[name] = value;
       },
@@ -406,6 +440,7 @@ function createRuntime({
         },
       },
       clientWidth: viewportWidth,
+      dataset: { mdColorScheme: "default" },
       scrollHeight,
       style: {
         setProperty(name, value) {
@@ -423,6 +458,7 @@ function createRuntime({
       if (selector === ".md-footer") return footer;
       if (selector === ".md-content h1") return headings[0];
       if (selector === "[data-md-component=palette]") return palette;
+      if (selector === ".note-plot") return hasPlot ? {} : null;
       return null;
     },
     querySelectorAll(selector) {
@@ -431,13 +467,17 @@ function createRuntime({
   };
   if (viewTransition) {
     (document as any).startViewTransition = (update) => {
-      update();
+      viewUpdateActive = true;
+      const updated = Promise.resolve(update()).finally(() => {
+        viewUpdateActive = false;
+      });
       let finish;
       const record: any = {
         finish() {
           finish?.();
         },
         skipped: false,
+        updated,
         transition: {
           finished: {
             finally(callback) {
@@ -481,8 +521,12 @@ function createRuntime({
     },
     scrollTo(options) {
       scrollCalls.push(options);
+      if (moveFooterWithScroll) {
+        currentFooterTop -= options.top - this.scrollY;
+      }
       this.pageYOffset = options.top;
       this.scrollY = options.top;
+      if (emitScrollEvents) windowHandlers.scroll?.();
     },
   };
   let footerIntersection: ((entries: any[]) => void) | undefined;
@@ -499,6 +543,15 @@ function createRuntime({
   let frameId = 0;
   const context = vm.createContext({
     Date: { now: () => clock },
+    Event: class {
+      bubbles: boolean;
+      type: string;
+
+      constructor(type, options: any = {}) {
+        this.bubbles = Boolean(options.bubbles);
+        this.type = type;
+      }
+    },
     Math,
     Object,
     clearTimeout(id) {
@@ -571,13 +624,22 @@ function createRuntime({
     status,
     storage,
     timers,
+    themeChanges,
+    themeControl,
+    themeScheme: () => document.documentElement.dataset.mdColorScheme,
     viewTransitions,
     window,
     windowHandlers,
   };
 }
 
-test("click saves the nearest heading and keeps motivation secondary", () => {
+function runFrames(runtime, count, step = 16) {
+  for (let frame = 1; frame <= count; frame += 1) {
+    runtime.runAnimationFrames(frame * step);
+  }
+}
+
+test("click saves the nearest heading and keeps guidance secondary", () => {
   const runtime = createRuntime({ scrollY: 450 });
   assert.equal(runtime.pet.dataset.action, "save");
   runtime.petHandlers.click();
@@ -592,7 +654,10 @@ test("click saves the nearest heading and keeps motivation secondary", () => {
     runtime.pet.attributes["aria-label"],
     /Update saved reading spot at Dynamics/,
   );
-  assert.match(runtime.bubbleText.textContent, /^Saved at “Dynamics” · /);
+  assert.match(
+    runtime.bubbleText.textContent,
+    /^Saved at “Dynamics” · Drag me to move/,
+  );
   assert.equal(runtime.pet.dataset.behavior, "scratch");
   runtime.runTimer(1100);
   assert.equal(runtime.pet.dataset.behavior, undefined);
@@ -603,7 +668,7 @@ test("click saves the nearest heading and keeps motivation secondary", () => {
   assert.equal(runtime.bubble.hidden, true);
 });
 
-test("pointer drag uses a threshold, capture, transform frame, and click guard", () => {
+test("pointer pickup keeps the click threshold, capture, and cancellation", () => {
   const tap = createRuntime();
   tap.petHandlers.pointerdown({
     button: 0,
@@ -611,58 +676,21 @@ test("pointer drag uses a threshold, capture, transform frame, and click guard",
     clientY: 640,
     pointerId: 3,
   });
+  assert.equal(tap.pet.dataset.held, "true");
+  assert.equal(tap.pet.style["--dock-pet-drag-tilt"], "0deg");
   tap.petHandlers.pointermove({
     clientX: 925,
     clientY: 640,
     pointerId: 3,
   });
   assert.equal(tap.pet.dataset.dragging, undefined);
+  assert.equal(tap.pet.style["--dock-pet-drag-vx"], "5.00");
+  assert.ok(Number.parseFloat(tap.pet.style["--dock-pet-drag-tilt"]) <= 10);
   tap.petHandlers.pointerup({ pointerId: 3 });
+  assert.equal(tap.pet.dataset.held, undefined);
+  assert.equal(tap.pet.style["--dock-pet-drag-tilt"], undefined);
   tap.petHandlers.click();
   assert.equal(tap.storage.size, 1);
-
-  const drag = createRuntime();
-  let prevented = 0;
-  drag.petHandlers.pointerdown({
-    button: 0,
-    clientX: 920,
-    clientY: 640,
-    pointerId: 7,
-  });
-  drag.petHandlers.pointermove({
-    clientX: 900,
-    clientY: 670,
-    pointerId: 7,
-    preventDefault: () => (prevented += 1),
-  });
-  assert.deepEqual(drag.capturedPointers, [7]);
-  assert.equal(drag.pet.dataset.dragging, "true");
-  drag.runAnimationFrames();
-  assert.equal(drag.pet.style.transform, "translate3d(-20px, 30px, 0)");
-  drag.petHandlers.pointerup({ pointerId: 7 });
-  assert.deepEqual(drag.releasedPointers, [7]);
-  assert.equal(drag.pet.dataset.dock, "manual");
-  assert.equal(drag.pet.style.left, "892px");
-  assert.equal(drag.pet.style.top, "657.2px");
-  assert.equal(drag.pet.dataset.dropping, "true");
-  assert.equal(prevented, 1);
-  drag.petHandlers.click({ preventDefault: () => (prevented += 1) });
-  assert.equal(drag.storage.size, 0);
-  assert.equal(prevented, 2);
-  drag.runTimer(180);
-  assert.equal(drag.pet.dataset.dropping, undefined);
-
-  drag.setFooterTop(900);
-  drag.windowHandlers.scroll();
-  drag.runAnimationFrames();
-  drag.runTimer(160);
-  assert.equal(drag.pet.hidden, false);
-  assert.equal(drag.pet.style.left, "892px");
-  drag.setViewport(860, 650);
-  drag.windowHandlers.resize();
-  drag.runAnimationFrames();
-  assert.equal(drag.pet.style.left, "772px");
-  assert.equal(drag.pet.style.top, "562px");
 
   const cancelled = createRuntime();
   cancelled.petHandlers.pointerdown({
@@ -687,10 +715,15 @@ test("pointer drag uses a threshold, capture, transform frame, and click guard",
   cancelled.runAnimationFrames();
   cancelled.petHandlers.pointercancel({ pointerId: 9 });
   assert.deepEqual(cancelled.releasedPointers, [9]);
+  assert.equal(cancelled.pet.dataset.held, undefined);
   assert.equal(cancelled.pet.dataset.dragging, undefined);
   assert.equal(cancelled.pet.dataset.dock, "footer");
   assert.equal(cancelled.pet.dataset.dropping, undefined);
   assert.equal(cancelled.pet.style.transform, "");
+  assert.equal(
+    cancelled.status.textContent,
+    "Koala returned to its previous spot",
+  );
 
   const lost = createRuntime();
   lost.petHandlers.pointerdown({
@@ -700,7 +733,138 @@ test("pointer drag uses a threshold, capture, transform frame, and click guard",
     pointerId: 10,
   });
   lost.petHandlers.lostpointercapture({ pointerId: 10 });
+  assert.equal(lost.pet.dataset.held, undefined);
   assert.equal(lost.pet.dataset.dock, "footer");
+});
+
+test("normal release falls under gravity and lands on the footer", () => {
+  const runtime = createRuntime();
+  let prevented = 0;
+  runtime.petHandlers.pointerdown({
+    button: 0,
+    clientX: 912,
+    clientY: 627,
+    pointerId: 7,
+  });
+  runtime.petHandlers.pointermove({
+    clientX: 800,
+    clientY: 547,
+    pointerId: 7,
+    preventDefault: () => (prevented += 1),
+  });
+  runtime.runAnimationFrames();
+  assert.equal(runtime.pet.style.transform, "translate3d(-112px, -80px, 0)");
+  runtime.petHandlers.pointerup({ pointerId: 7 });
+  assert.deepEqual(runtime.releasedPointers, [7]);
+  assert.equal(runtime.pet.dataset.falling, "true");
+  assert.equal(runtime.pet.dataset.parachute, undefined);
+  assert.equal(runtime.pet.dataset.dock, "fall");
+  assert.equal(runtime.pet.style.left, "800px");
+  runtime.petHandlers.click({ preventDefault: () => (prevented += 1) });
+  assert.equal(runtime.storage.size, 0);
+  assert.equal(prevented, 2);
+
+  runFrames(runtime, 80);
+  assert.equal(runtime.pet.dataset.falling, undefined);
+  assert.equal(runtime.pet.dataset.dock, "footer");
+  assert.equal(runtime.pet.style.top, "627.2px");
+  assert.equal(runtime.pet.dataset.dropping, "true");
+  assert.equal(runtime.status.textContent, "Koala landed on the footer");
+  runtime.runTimer(180);
+  assert.equal(runtime.pet.dataset.dropping, undefined);
+});
+
+test("high release opens a readable parachute and can be re-grabbed", () => {
+  const landing = createRuntime();
+  landing.petHandlers.pointerdown({
+    button: 0,
+    clientX: 912,
+    clientY: 627,
+    pointerId: 12,
+  });
+  landing.petHandlers.pointermove({
+    clientX: 700,
+    clientY: 200,
+    pointerId: 12,
+    preventDefault() {},
+  });
+  landing.runAnimationFrames();
+  landing.petHandlers.pointerup({ pointerId: 12 });
+  assert.equal(landing.pet.dataset.parachute, "true");
+  assert.equal(landing.pet.dataset.state, "parachuting");
+  assert.equal(
+    landing.status.textContent,
+    "Parachute open; scrolling towards the footer",
+  );
+  runFrames(landing, 260);
+  assert.equal(landing.pet.dataset.parachute, undefined);
+  assert.equal(landing.pet.dataset.dock, "footer");
+
+  const regrab = createRuntime();
+  regrab.petHandlers.pointerdown({
+    button: 0,
+    clientX: 912,
+    clientY: 627,
+    pointerId: 13,
+  });
+  regrab.petHandlers.pointermove({
+    clientX: 700,
+    clientY: 200,
+    pointerId: 13,
+    preventDefault() {},
+  });
+  regrab.runAnimationFrames();
+  regrab.petHandlers.pointerup({ pointerId: 13 });
+  regrab.petHandlers.pointerdown({
+    button: 0,
+    clientX: 700,
+    clientY: 200,
+    pointerId: 14,
+  });
+  assert.equal(regrab.pet.dataset.falling, undefined);
+  assert.equal(regrab.pet.dataset.parachute, undefined);
+  assert.equal(regrab.pet.dataset.held, "true");
+  regrab.petHandlers.pointercancel({ pointerId: 14 });
+  runFrames(regrab, 10);
+  assert.equal(regrab.pet.dataset.dock, "manual");
+  assert.equal(regrab.pet.dataset.dropping, undefined);
+});
+
+test("scrollbar-edge parachute scrolls until the footer landing", () => {
+  const runtime = createRuntime({
+    footerTop: 1400,
+    emitScrollEvents: true,
+    moveFooterWithScroll: true,
+    scrollHeight: 2400,
+    storedSpot: {
+      heading: "Energy",
+      id: "energy",
+      page: "/week-2/",
+      y: 840,
+    },
+  });
+  runtime.petHandlers.pointerdown({
+    button: 0,
+    clientX: 904,
+    clientY: 696,
+    pointerId: 15,
+  });
+  runtime.petHandlers.pointermove({
+    clientX: 912,
+    clientY: 430,
+    pointerId: 15,
+    preventDefault() {},
+  });
+  runtime.runAnimationFrames();
+  runtime.petHandlers.pointerup({ pointerId: 15 });
+  assert.equal(runtime.pet.dataset.parachute, "true");
+  assert.match(runtime.status.textContent, /scrolling towards the footer/);
+  runFrames(runtime, 320);
+  assert.ok(runtime.scrollCalls.length > 20);
+  assert.ok(runtime.window.scrollY > 0);
+  assert.equal(runtime.pet.dataset.paused, undefined);
+  assert.equal(runtime.pet.dataset.dock, "footer");
+  assert.equal(runtime.status.textContent, "Koala landed on the footer");
 });
 
 test("focused arrows place the pet and Escape restores automatic docking", () => {
@@ -709,6 +873,10 @@ test("focused arrows place the pet and Escape restores automatic docking", () =>
   assert.equal(
     runtime.pet.attributes["aria-keyshortcuts"],
     "ArrowUp ArrowDown ArrowLeft ArrowRight Escape",
+  );
+  assert.equal(
+    runtime.pet.attributes["aria-description"],
+    "Drag and release to drop; arrow keys move when focused and Escape restores automatic docking",
   );
   runtime.petHandlers.keydown({
     key: "ArrowLeft",
@@ -813,7 +981,7 @@ test("scroll entry settles on the footer and exit hides without climbing", () =>
   assert.equal(runtime.pet.hidden, true);
 });
 
-test("halfway and completion motivation is gated by real progress", () => {
+test("halfway and completion guidance is gated by real progress", () => {
   const runtime = createRuntime({ footerTop: 900, scrollY: 500 });
   assert.equal(runtime.rootStyle["--reading-progress"], "0.5000");
   assert.equal(runtime.bubble.hidden, true);
@@ -822,7 +990,10 @@ test("halfway and completion motivation is gated by real progress", () => {
   runtime.windowHandlers.scroll();
   runtime.runAnimationFrames();
   runtime.runTimer(160);
-  assert.match(runtime.bubbleText.textContent, /^You’re halfway through · /);
+  assert.equal(
+    runtime.bubbleText.textContent,
+    "You’re halfway through · Current section: “Dynamics”",
+  );
 
   runtime.advance(31000);
   runtime.window.scrollY = 1000;
@@ -831,7 +1002,10 @@ test("halfway and completion motivation is gated by real progress", () => {
   runtime.runAnimationFrames();
   runtime.runTimer(160);
   assert.equal(runtime.rootStyle["--reading-progress"], "1.0000");
-  assert.match(runtime.bubbleText.textContent, /^Page complete · /);
+  assert.equal(
+    runtime.bubbleText.textContent,
+    "Page complete · Use the page navigation to choose the next topic",
+  );
 });
 
 test("reduced motion resumes instantly and suppresses character reactions", () => {
@@ -851,6 +1025,30 @@ test("reduced motion resumes instantly and suppresses character reactions", () =
   ]);
   assert.equal(runtime.pet.dataset.behavior, undefined);
   assert.equal(runtime.pet.dataset.wink, undefined);
+
+  const drop = createRuntime({ reduced: true });
+  drop.petHandlers.pointerdown({
+    button: 0,
+    clientX: 912,
+    clientY: 627,
+    pointerId: 16,
+  });
+  drop.petHandlers.pointermove({
+    clientX: 700,
+    clientY: 200,
+    pointerId: 16,
+    preventDefault() {},
+  });
+  drop.runAnimationFrames();
+  drop.petHandlers.pointerup({ pointerId: 16 });
+  assert.equal(drop.pet.dataset.falling, undefined);
+  assert.equal(drop.pet.dataset.parachute, undefined);
+  assert.equal(drop.pet.dataset.dock, "footer");
+  assert.equal(drop.status.textContent, "Koala landed on the footer");
+  assert.match(
+    style,
+    /prefers-reduced-motion: reduce[\s\S]*?dock-pet__parachute,[\s\S]*?animation: none !important/,
+  );
 });
 
 test("pointer gaze settles back to neutral and thought clouds stay in view", () => {
@@ -910,7 +1108,7 @@ test("footer reveal follows intersection when the platform supports it", () => {
   assert.equal(runtime.footerClasses.has("is-visible"), false);
 });
 
-test("theme changes radiate from the palette control and clean up", () => {
+test("theme changes radiate from the palette control and clean up", async () => {
   const runtime = createRuntime();
   runtime.paletteHandlers.pointerdown({
     target: {
@@ -937,12 +1135,22 @@ test("theme changes radiate from the palette control and clean up", () => {
   assert.equal(reduced.bodyClasses.has("theme-fade"), false);
 
   const native = createRuntime({ viewTransition: true });
-  native.paletteHandlers.change();
+  const change = () => {
+    native.paletteHandlers.pointerdown({
+      target: native.themeControl,
+    });
+    native.themeControl.click();
+  };
+  change();
   assert.equal(native.rootClasses.has("theme-wave"), true);
   assert.equal(native.viewTransitions.length, 1);
-  native.paletteHandlers.change();
+  assert.deepEqual(native.themeChanges, [true]);
+  assert.equal(native.themeScheme(), "slate");
+  change();
   assert.equal(native.viewTransitions[0].skipped, true);
   assert.equal(native.viewTransitions.length, 2);
+  assert.deepEqual(native.themeChanges, [true, true]);
+  await Promise.all(native.viewTransitions.map((record) => record.updated));
   native.viewTransitions[0].finish();
   assert.equal(native.rootClasses.has("theme-wave"), true);
   native.viewTransitions[1].finish();
