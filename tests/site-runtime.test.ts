@@ -85,7 +85,8 @@ class RuntimeElement {
     if (
       (selector.startsWith(".") &&
         this.classList.contains(selector.slice(1).split("[")[0])) ||
-      (selector.startsWith("#") && this.id === selector.slice(1))
+      (selector.startsWith("#") && this.id === selector.slice(1)) ||
+      this.tagName.toLowerCase() === selector.toLowerCase()
     ) {
       return this;
     }
@@ -214,6 +215,11 @@ const settle = () => new Promise((resolve) => setImmediate(resolve));
 function mathHarness(hasMath: boolean) {
   const root = new RuntimeElement();
   const head = new RuntimeElement();
+  if (hasMath) {
+    const equation = new RuntimeElement();
+    equation.className = "arithmatex";
+    root.append(equation);
+  }
   const errors: string[] = [];
   const window: any = {};
   const context = vm.createContext({
@@ -226,7 +232,7 @@ function mathHarness(hasMath: boolean) {
       },
       documentElement: root,
       head,
-      querySelector: () => (hasMath ? new RuntimeElement() : null),
+      querySelector: (selector: string) => root.querySelector(selector),
     },
     window,
   });
@@ -238,6 +244,7 @@ test("math rendering loads only for equations and fails visibly", () => {
   const plain = mathHarness(false);
   assert.equal(plain.head.children.length, 0);
   assert.equal(plain.window.MathJax, undefined);
+  assert.equal(typeof plain.window.notesMath, "function");
 
   const math = mathHarness(true);
   assert.equal(math.head.children.length, 1);
@@ -259,6 +266,28 @@ test("math rendering loads only for equations and fails visibly", () => {
   assert.deepEqual(math.errors, ["Mathematics renderer failed to load"]);
 });
 
+test("math rendering typesets equations inserted after page load", async () => {
+  const runtime = mathHarness(false);
+  const message = new RuntimeElement();
+  const equation = new RuntimeElement();
+  equation.className = "arithmatex";
+  message.append(equation);
+
+  const pending = runtime.window.notesMath(message);
+  const script: any = runtime.head.children[0];
+  const cleared: any[] = [];
+  const typeset: any[] = [];
+  runtime.window.MathJax.typesetClear = (roots: any[]) => cleared.push(roots);
+  runtime.window.MathJax.typesetPromise = async (roots: any[]) => {
+    typeset.push(roots);
+  };
+  script.dispatch("load");
+  await pending;
+
+  assert.equal(cleared[0][0], message);
+  assert.equal(typeset[0][0], message);
+});
+
 function commentHarness(mode: "giscus" | "utterances", observed: boolean) {
   const host = new RuntimeElement();
   host.id = "comments-provider";
@@ -268,7 +297,11 @@ function commentHarness(mode: "giscus" | "utterances", observed: boolean) {
     mode,
     repo: "keys-i/notes",
   };
-  const heading = new RuntimeElement();
+  const disclosure: any = new RuntimeElement();
+  disclosure.tagName = "DETAILS";
+  disclosure.id = "__comments";
+  disclosure.open = !observed;
+  disclosure.append(host);
   const palette = new RuntimeElement();
   palette.dataset.mdColorScheme = "default";
   const posts: any[] = [];
@@ -290,7 +323,7 @@ function commentHarness(mode: "giscus" | "utterances", observed: boolean) {
       return id === "comments-provider"
         ? host
         : id === "__comments"
-          ? heading
+          ? disclosure
           : null;
     },
     querySelector(selector: string) {
@@ -302,24 +335,11 @@ function commentHarness(mode: "giscus" | "utterances", observed: boolean) {
   };
   const window: any = {};
   const context: any = { document, window };
-  if (observed) {
-    const Observer = class {
-      constructor(callback: typeof intersection) {
-        intersection = callback;
-      }
-      observe() {}
-      disconnect() {
-        disconnected = true;
-      }
-    };
-    window.IntersectionObserver = Observer;
-    context.IntersectionObserver = Observer;
-  }
   runRuntime("comments", vm.createContext(context));
   return {
     disconnected: () => disconnected,
+    disclosure,
     frame,
-    heading,
     host,
     intersection,
     palette,
@@ -343,20 +363,16 @@ test("comment providers load once and follow the site palette", () => {
   ]);
 
   const utterances = commentHarness("utterances", true);
-  utterances.intersection!([{ isIntersecting: false }], {
-    disconnect() {},
-  });
   assert.equal(utterances.host.children.length, 0);
-  utterances.intersection!([{ isIntersecting: true }], {
-    disconnect() {},
-  });
+  utterances.disclosure.dispatch("toggle");
+  assert.equal(utterances.host.children.length, 0);
+  utterances.disclosure.open = true;
+  utterances.disclosure.dispatch("toggle");
   const utterancesScript = utterances.host.querySelector("script")!;
   assert.equal((utterancesScript as any).src, "https://utteranc.es/client.js");
   assert.equal(utterancesScript.attributes.repo, "keys-i/notes");
   assert.equal(utterancesScript.attributes["issue-term"], "title");
-  utterances.intersection!([{ isIntersecting: true }], {
-    disconnect() {},
-  });
+  utterances.disclosure.dispatch("toggle");
   utterancesScript.dispatch("load");
   assert.deepEqual(JSON.parse(JSON.stringify(utterances.posts.at(-1))), [
     { theme: "github-light", type: "set-theme" },

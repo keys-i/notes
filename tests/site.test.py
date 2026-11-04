@@ -2,6 +2,7 @@
 
 import base64
 import json
+import os
 import re
 import tomllib
 import unittest
@@ -9,8 +10,10 @@ import wave
 from array import array
 from hashlib import sha256
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
 
-from hooks import plot
+from hooks import plot, site
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -151,7 +154,9 @@ class SiteAssetTests(unittest.TestCase):
         theme = (ROOT / "assets/styles/site.css").read_text(encoding="utf-8")
         graph = (ROOT / "assets/js/graph.js").read_text(encoding="utf-8")
 
-        self.assertIn("assets/styles/site.css", config)
+        self.assertNotIn("extra_css:", config)
+        self.assertIn("assets/styles/site.min.css?v=", main)
+        self.assertIn("assets/js/graph.min.js?v=", main)
         self.assertIn("@view-transition", theme)
         self.assertIn("prefers-reduced-motion: reduce", theme)
         self.assertIn('[data-md-color-scheme="default"]', theme)
@@ -182,8 +187,9 @@ class SiteAssetTests(unittest.TestCase):
         self.assertIn("generic: true", config)
         self.assertIn("mathjax@3.2.2", math)
         self.assertNotIn("MathJax/2.7.0", math)
-        self.assertIn('script.integrity =\n    "sha384-', math)
-        self.assertIn('document.querySelector(".arithmatex")', math)
+        self.assertRegex(math, r'script\.integrity\s*=\s*\n\s*"sha384-')
+        self.assertIn("window.notesMath", math)
+        self.assertIn('root.querySelector(".arithmatex")', math)
         self.assertIn("script.integrity = ECHARTS_INTEGRITY", graph)
         self.assertIn('script.crossOrigin = "anonymous"', graph)
         self.assertNotRegex(workflows, r"uses: [^\n]+@v\d")
@@ -297,6 +303,22 @@ class SiteAssetTests(unittest.TestCase):
         self.assertEqual(artwork.count('class="dock-pet__iris"'), 2)
         self.assertNotIn('class="dock-pet__limb ', artwork)
         self.assertNotIn("<canvas", artwork)
+
+    def test_deployed_assets_are_versioned_without_changing_local_urls(self):
+        config = SimpleNamespace(extra={})
+        with patch.dict(os.environ, {}, clear=True):
+            self.assertIs(site.on_config(config), config)
+        self.assertEqual(config.extra["asset_version"], "dev")
+
+        with patch.dict(os.environ, {"GITHUB_SHA": "release/abc.123!"}, clear=True):
+            site.on_config(config)
+        self.assertEqual(config.extra["asset_version"], "releaseabc123")
+
+        main = (ROOT / "site/theme/main.html").read_text(encoding="utf-8")
+        for asset in ("site", "graph", "pet"):
+            self.assertIn(f"assets/styles/{asset}.min.css?v=", main)
+        for asset in ("comments", "graph", "math", "pet"):
+            self.assertIn(f"assets/js/{asset}.min.js?v=", main)
 
 
 if __name__ == "__main__":
