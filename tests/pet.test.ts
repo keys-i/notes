@@ -1114,7 +1114,7 @@ test("study replies render maths and highlighted code without trusting HTML", as
   const runtime = createRuntime({
     fetchResponse: {
       answer:
-        "## Worked example\nFor $F = ma$, use `newtons`.\n\n```ts\nconst force = 12\n```\n\n<img src=x onerror=alert(1)>\n\n$$broken\nStill readable",
+        '## Worked example\nFor $F = ma$, use `newtons`, **keep units**, and check \\(J = Ft\\).\n\n- Draw the body\n- Resolve forces\n\n1. Substitute values\n2. Check units\n\n$$E = \\frac12 mv^2$$\n\n\\[\nJ = \\int F\\,dt\n\\]\n\n```ts\n// Keep the unit\nconst label = "N"\nconst force = 12\n```\n\n<img src=x onerror=alert(1)>\n\n$$broken\nStill readable',
       grounded: true,
     },
   });
@@ -1126,7 +1126,7 @@ test("study replies render maths and highlighted code without trusting HTML", as
   const answer = runtime.threadItems[1];
   assert.deepEqual(
     answer.children.map((child) => child.tagName),
-    ["H3", "P", "PRE", "P", "P", "P"],
+    ["H3", "P", "UL", "OL", "DIV", "DIV", "PRE", "P", "P", "P"],
   );
   assert.match(answer.textContent, /F = ma/);
   assert.match(answer.textContent, /<img src=x onerror=alert\(1\)>/);
@@ -1138,6 +1138,24 @@ test("study replies render maths and highlighted code without trusting HTML", as
   assert.equal(
     answer.querySelector(".dock-pet__token--keyword")?.textContent,
     "const",
+  );
+  assert.equal(
+    answer.querySelector(".dock-pet__token--comment")?.textContent,
+    "// Keep the unit",
+  );
+  assert.equal(
+    answer.querySelector(".dock-pet__token--string")?.textContent,
+    '"N"',
+  );
+  assert.equal(
+    answer.querySelector(".dock-pet__token--number")?.textContent,
+    "12",
+  );
+  assert.equal(
+    pure.dockPetSpeechText(
+      "## Rule\nUse **force** in `$F = ma$`.\n```ts\nlet x = 1\n```",
+    ),
+    "Rule Use force in F = ma. Code example.",
   );
 });
 
