@@ -8,12 +8,12 @@
 ├── assets/               # published audio, images, styles, manuals and vendor files
 ├── site/                 # source and configuration used to build the website
 │   ├── hooks/            # Python build rules and project command entry points
+│   ├── api/              # Rust edge API for grounded study answers
 │   ├── ts/               # authored browser TypeScript
 │   ├── theme/            # Material templates and partials
 │   ├── game.toml         # recovery-game data and tuning
 │   ├── mkdocs.yml        # MkDocs configuration
 │   └── tsconfig*.json    # browser and test type checking
-├── api/                  # Rust Cloudflare Worker for grounded study answers
 ├── tests/                # all Python and TypeScript behaviour tests
 ├── docs/                 # architecture, development and deployment guides
 ├── .github/              # contribution policy, issue templates and CI workflows
@@ -28,8 +28,8 @@
 assets/js/                # compiled browser scripts
 public/                   # built website
 node_modules/              # installed Node dependencies
-api/build/                 # compiled Worker bundle
-api/target/                # Rust build cache
+site/api/build/            # compiled Worker bundle
+site/api/target/           # Rust build cache
 ```
 
 The root keeps standard tool entry files where `uv`, npm and GitHub expect
@@ -80,16 +80,22 @@ The optional study helper backend is independent of the static build
 
 ```text
 current public note sections + short conversation
-  → api/worker.rs                  # validation, public-scope access and rate limit
-  → Workers AI guard + embeddings # input classification and hybrid retrieval
-  → routed answer + verifier      # cited response or a closed failure
-  → browser thread                # plain text only, local fallback on failure
+  → site/api/worker.rs                # validation, access, rate limit and cache
+  → self-hosted compatible model API  # guard, embeddings, reranking and inference
+  → routed answer + verifier          # cited response or a closed failure
+  → browser thread                    # rich safe rendering or local fallback
 ```
 
 The browser first selects the relevant heading and its neighbours, then the
 Worker combines multilingual embedding similarity, term overlap and adjacency
 before generation. A response is accepted only when its citations resolve to
 the retrieved sections and the verifier finds every factual claim supported
+
+The Worker owns the open-model identifiers and sends them only to a
+credentialled HTTPS backend exposing OpenAI-compatible chat, embedding and
+audio endpoints plus the common `/rerank` endpoint. It has no Workers AI
+binding. The backend may be a self-hosted LiteLLM, vLLM or equivalent gateway;
+browser input cannot select a model or override the backend
 
 Exact and locality-sensitive semantic cache keys include the prompt version,
 public access scope, locale, note content and model route. Shared edge caching
