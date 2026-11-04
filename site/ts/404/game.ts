@@ -132,6 +132,7 @@ var gameAudio;
 var gameStarted = false;
 var gameScene = "";
 var gameSceneTimer;
+var gameSceneExitTimer;
 var gameReactionTimer;
 var nextTunnelReactionTurn = 0;
 var sceneTake = 0;
@@ -529,11 +530,15 @@ function createGameAudio(
 
 function clearGameScene() {
   clearTimeout(gameSceneTimer);
+  clearTimeout(gameSceneExitTimer);
   gameSceneTimer = 0;
+  gameSceneExitTimer = 0;
   sceneTake += 1;
   gameScene = "";
   sceneElement.hidden = true;
+  delete sceneElement.dataset.exit;
   delete board.dataset.scene;
+  delete board.dataset.entering;
   osElement.classList.remove("power-cutscene");
   gameAudio.stop();
 }
@@ -576,6 +581,20 @@ function finishGameScene() {
   var kind = gameScene;
   if (!kind || kind === "attract") return;
   var restoreFocus = sceneElement.contains(document.activeElement);
+  var reduced =
+    typeof matchMedia === "function" &&
+    matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (kind === "ready" && !reduced && sceneElement.dataset.exit !== "ready") {
+    clearTimeout(gameSceneTimer);
+    gameSceneTimer = 0;
+    sceneElement.dataset.exit = "ready";
+    board.dataset.entering = "true";
+    delete board.dataset.scene;
+    gameSceneExitTimer = setTimeout(function () {
+      finishGameScene();
+    }, 360);
+    return;
+  }
   clearGameScene();
   if (restoreFocus && !document.hidden && !shuttingDown)
     board.focus({ preventScroll: true });
