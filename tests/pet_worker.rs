@@ -164,6 +164,10 @@ fn note_questions_stay_grounded_while_general_questions_remain_conversational() 
     assert_eq!(answer_kind(&input), ReplyKind::Note);
     input.messages[0].content = "According to this note, name the stored fields".into();
     assert_eq!(answer_kind(&input), ReplyKind::Note);
+    input.messages[0].content = "Is this noteworthy?".into();
+    assert_eq!(answer_kind(&input), ReplyKind::General);
+    input.messages[0].content = "Is the noteworthy result aboveboard?".into();
+    assert_eq!(answer_kind(&input), ReplyKind::General);
     input.messages = vec![
         Message {
             role: Role::User,
@@ -305,7 +309,15 @@ fn output_must_be_plain_bounded_and_cited_to_available_evidence() {
     );
     assert_eq!(
         grounded_answer("Force changes momentum", &evidence).as_deref(),
-        Some("Force changes momentum [1]")
+        Some("Force changes momentum\n\nSources: [1]")
+    );
+    assert!(grounded_answer("Force changes momentum", &[]).is_none());
+    assert_eq!(
+        grounded_answer(&"x".repeat(2_000), &evidence)
+            .unwrap()
+            .chars()
+            .count(),
+        1_800
     );
     assert_eq!(grounded_answer("Unsupported source [3]", &evidence), None);
     assert_eq!(
