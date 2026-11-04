@@ -459,8 +459,14 @@ test("recovery shell exposes FreeBSD, manual, file, and game behaviour", async (
   assert.equal(runtime.base.loginAddress(), "192.0.2.8");
   runtime.base.location.hostname = "uni.keysi.dev";
   assert.equal(runtime.base.loginAddress(), "198.51.100.42");
-  assert.match(runtime.base.shell.lines[0], /^Last login: .+ from 127\.0\.0\.1$/);
-  assert.equal(runtime.base.shell.lines.at(-1), "= Welcome to Koala's server =");
+  assert.match(
+    runtime.base.shell.lines[0],
+    /^Last login: .+ from 127\.0\.0\.1$/,
+  );
+  assert.equal(
+    runtime.base.shell.lines.at(-1),
+    "= Welcome to Koala's server =",
+  );
   assert.match(runtime.base.shell.lines.join("\n"), /o o/);
   assert.doesNotMatch(runtime.base.shell.lines.join("\n"), /EAIT/);
   runtime.get("terminal").handlers.get("pointerenter")?.();
