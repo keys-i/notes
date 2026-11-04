@@ -410,20 +410,30 @@ test("gameplay budgets keep generation, movement, and scenes brisk", () => {
   assert.ok(settings.play.ghost_interval_ms <= 280);
   assert.deepEqual(JSON.parse(JSON.stringify(game.SCENE_DURATIONS)), {
     ready: 4300,
-    vegemite: 1350,
-    dragon: 1150,
-    combined: 1850,
+    vegemite: 2200,
+    dragon: 3000,
+    combined: 2200,
+    weak: 2300,
+    ultra: 2500,
+    hakai: 2200,
   });
+  assert.ok(
+    Object.values(game.SCENE_DURATIONS).every(
+      (duration) => Number(duration) <= 4300,
+    ),
+  );
 });
 
 test("reset shows an idle attract screen before the introduction", () => {
   game.sceneTakes.set("vegemite", 2);
+  game.weakPowerups.add("banana");
   game.resetGame(false);
   assert.equal(game.gameScene, "attract");
   assert.equal(game.gameStarted, false);
   assert.equal(game.osElement.dataset.game, undefined);
   assert.equal(game.sceneTakes.has("vegemite"), false);
   assert.equal(game.sceneTakes.has("ready"), false);
+  assert.equal(game.weakPowerups.size, 0);
   assert.equal(game.board.dataset.scene, undefined);
   game.startGameScene("ready");
   assert.equal(game.gameScene, "ready");
@@ -459,7 +469,7 @@ test("seeded scene bags do not repeat at refill boundaries", () => {
   assert.deepEqual(draw(), first);
 });
 
-test("double power and Vegemite captures have explicit payoffs", () => {
+test("Saiyan paths follow pickup strength and keep explicit payoffs", () => {
   const template = fs.readFileSync(
     new URL("../site/theme/404.html", import.meta.url),
     "utf8",
@@ -468,6 +478,15 @@ test("double power and Vegemite captures have explicit payoffs", () => {
   assert.equal(game.nextPowerKind("vegemite", "dragon", 4), "combined");
   assert.equal(game.nextPowerKind("dragon", "vegemite", 4), "combined");
   assert.equal(game.nextPowerKind("combined", "dragon", 4), "combined");
+  assert.equal(game.nextPowerKind("hakai", "dragon", 4), "hakai");
+  assert.equal(game.boostSceneKind("dragon", 1), "dragon");
+  assert.equal(game.boostSceneKind("dragon", 2), "hakai");
+  assert.equal(game.bonusSceneKind("", 1), "weak");
+  assert.equal(game.bonusSceneKind("dragon", 1), "ultra");
+  assert.equal(game.bonusSceneKind("ultra", 2), "hakai");
+  assert.equal(game.bonusSceneKind("vegemite", 1), "");
+  assert.equal(game.sceneStageKind("hakai"), "dragon");
+  assert.equal(game.sceneStageKind("vegemite"), "vegemite");
   assert.equal(game.captureReaction("vegemite"), "pie-splat");
   assert.equal(game.captureReaction("combined"), "pie-splat");
   assert.equal(game.captureReaction("dragon"), "spark");
@@ -475,11 +494,16 @@ test("double power and Vegemite captures have explicit payoffs", () => {
     source,
     /devourPredator\(index, captureReaction\(powerAuraKind\)\)/,
   );
-  assert.match(template, />KAME · HAME · HAAAAA!</);
-  assert.match(template, />pfft</);
+  assert.match(template, /<span>KA<\/span><span>ME<\/span>/);
+  assert.match(template, /<span>HAAAAA!<\/span>/);
+  assert.doesNotMatch(template, /pfft|scene-dragon__puff/);
   assert.match(template, /scene-dragon__ground/);
   assert.match(template, /scene-dragon__aura/);
   assert.match(template, /scene-dragon__debris/);
+  assert.match(template, /SUPER SAIYAN 2 <b>100× BASE<\/b>/);
+  assert.match(template, /ULTRA INSTINCT <b>2× OMEN<\/b>/);
+  assert.match(template, /SUPER SAIYAN GOD <b>1,200× SSJ<\/b>/);
+  assert.match(template, /HAKAI <b>100×<\/b>/);
   assert.deepEqual(Array.from(game.AUSSIE_SLANG), [
     "Too easy",
     "Beauty",
@@ -1134,7 +1158,15 @@ test("Pac-Man foreground cues finish before music resumes and scenes lock it out
   h.audios.at(-1).onended();
   assert.equal(music.paused, false, "music resumes after the cue ends");
 
-  for (const kind of ["ready", "vegemite", "dragon", "combined"]) {
+  for (const kind of [
+    "ready",
+    "vegemite",
+    "dragon",
+    "combined",
+    "weak",
+    "ultra",
+    "hakai",
+  ]) {
     game.gameScene = kind;
     h.audio.sequence(kind === "ready" ? "boot" : "power");
     h.audio.start();
@@ -1236,6 +1268,9 @@ test("authored scenes run once while repeat powers stay on the board", () => {
   });
   runFunctions(context, [
     "clearGameScene",
+    "isPowerScene",
+    "sceneStageKind",
+    "powerSceneCallout",
     "populateSceneHunters",
     "showGameAttract",
     "handleGameSceneAction",
@@ -1281,7 +1316,14 @@ test("authored scenes run once while repeat powers stay on the board", () => {
   context.finishGameScene();
   delete context.matchMedia;
 
-  for (const kind of ["vegemite", "dragon", "combined"]) {
+  for (const kind of [
+    "vegemite",
+    "dragon",
+    "combined",
+    "weak",
+    "ultra",
+    "hakai",
+  ]) {
     assert.equal(context.triggerPowerScene(kind), true);
     assert.equal(context.gameScene, kind);
     assert.equal(scene.hidden, false);
@@ -1340,6 +1382,16 @@ test("authored scenes run once while repeat powers stay on the board", () => {
   assert.equal(timers.size, 1, "an old scene cannot finish its replacement");
   context.finishGameScene();
   assert.equal(context.board.dataset.scene, undefined);
+
+  context.startGameScene("ready");
+  const previousReady = [...timers.values()][0].fn;
+  context.startGameScene("ready");
+  previousReady();
+  assert.equal(context.gameScene, "ready");
+  assert.equal(context.board.dataset.scene, "ready");
+  assert.equal(scene.hidden, false);
+  assert.equal(timers.size, 1, "an old intro cannot finish a new intro");
+  context.finishGameScene();
 
   context.startGameScene("ready");
   const resetStale = [...timers.values()][0].fn;
