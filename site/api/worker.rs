@@ -18,6 +18,8 @@ const CACHE_TTL: u32 = 86_400;
 const MAX_ATTACHMENT_BYTES: usize = 2 * 1024 * 1024;
 const MAX_BODY_BYTES: usize = 2_900_000;
 const MAX_ANSWER_CHARS: usize = 4_500;
+const MAX_CONVERSATION_CHARS: usize = 2_000;
+const MAX_EVIDENCE_CHARS: usize = 1_800;
 const MAX_TRANSCRIPT_CHARS: usize = 2_000;
 const PROMPT_VERSION: &str = "pet-v17";
 const STUDY_SYSTEM_PROMPT: &str = concat!(
@@ -515,7 +517,7 @@ fn evidence_from_indices(input: &PetRequest, indices: &[usize]) -> Vec<Evidence>
             input.sections.get(*index).map(|section| Evidence {
                 heading: section.heading.clone(),
                 source: source + 1,
-                text: section.text.clone(),
+                text: section.text.chars().take(MAX_EVIDENCE_CHARS).collect(),
             })
         })
         .collect()
@@ -523,7 +525,8 @@ fn evidence_from_indices(input: &PetRequest, indices: &[usize]) -> Vec<Evidence>
 
 fn model_messages(input: &PetRequest, evidence: &[Evidence], kind: ReplyKind) -> Vec<ModelMessage> {
     let note = serde_json::to_string(evidence).unwrap_or_else(|_| "[]".into());
-    let conversation = serde_json::to_string(&input.messages).unwrap_or_else(|_| "[]".into());
+    let conversation =
+        serde_json::to_string(&bounded_conversation(input)).unwrap_or_else(|_| "[]".into());
     let task = match kind {
         ReplyKind::Note => format!(
             "Answer the latest student question using EVIDENCE_JSON only. Start directly with a cited fact, with no uncited introduction or repeated summary. Use close paraphrases or calculations from the evidence; do not add a mechanism, example, implication, mitigation or missing category unless it is explicitly present. Do not invent extra stages to satisfy a request for steps. Only when the question explicitly asks why, for a cause, a reason or a mechanism and the evidence states only an outcome, cite that outcome, then write the uncited sentence 'The note does not state the mechanism.' Never use that sentence for a definition, comparison, calculation or derivation. Do not add a relation or explanation. If the evidence is sparse, give only the supported points and stop. Put the supporting [n] immediately before the terminal punctuation of every factual sentence: {:?}",
@@ -551,6 +554,24 @@ fn model_messages(input: &PetRequest, evidence: &[Evidence], kind: ReplyKind) ->
             content: task,
         },
     ]
+}
+
+fn bounded_conversation(input: &PetRequest) -> Vec<Message> {
+    let mut remaining = MAX_CONVERSATION_CHARS;
+    let mut messages = Vec::new();
+    for message in input.messages.iter().rev() {
+        if remaining == 0 {
+            break;
+        }
+        let content = message.content.chars().take(remaining).collect::<String>();
+        remaining = remaining.saturating_sub(content.chars().count());
+        messages.push(Message {
+            role: message.role,
+            content,
+        });
+    }
+    messages.reverse();
+    messages
 }
 
 fn generation_request(input: &PetRequest, evidence: &[Evidence], kind: ReplyKind) -> AiRequest {
