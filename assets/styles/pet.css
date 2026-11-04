@@ -208,16 +208,22 @@
 
 .dock-pet__help {
   position: fixed;
+  right: auto;
+  bottom: 0.75rem;
+  left: 50%;
   z-index: 6;
   box-sizing: border-box;
-  width: min(20rem, calc(100vw - 1.5rem));
+  width: min(32rem, calc(100vw - 1.5rem));
+  max-height: min(70dvh, 36rem);
   padding: 1rem;
+  overflow: hidden;
   color: var(--md-default-fg-color);
   font: 0.72rem/1.4 var(--md-text-font-family);
-  background: var(--md-default-bg-color);
-  border: 0.12rem solid var(--md-default-fg-color--light);
-  border-radius: 1.1rem 1.1rem 1.1rem 0.35rem;
-  box-shadow: 0 0.65rem 1.8rem rgb(0 0 0 / 0.2);
+  background: var(--site-panel, var(--md-default-bg-color));
+  border: 1px solid var(--site-panel-border, var(--md-default-fg-color--light));
+  border-radius: 0.8rem;
+  box-shadow: 0 0.8rem 2.4rem rgb(0 0 0 / 0.24);
+  transform: translateX(-50%);
 }
 
 .dock-pet__help[hidden] {
@@ -283,7 +289,7 @@
 
 .dock-pet__thread {
   display: grid;
-  max-height: min(13rem, 38vh);
+  max-height: min(24rem, calc(70dvh - 6.6rem));
   padding: 0;
   margin: 0;
   overflow: auto;
@@ -301,7 +307,7 @@
   max-width: 88%;
   padding: 0.5rem 0.65rem;
   overflow-wrap: anywhere;
-  white-space: pre-wrap;
+  white-space: normal;
   background: var(--md-code-bg-color);
   border-radius: 0.8rem 0.8rem 0.8rem 0.25rem;
 }
@@ -311,12 +317,112 @@
   color: var(--md-primary-bg-color);
   background: var(--md-primary-fg-color);
   border-radius: 0.8rem 0.8rem 0.25rem;
+  white-space: pre-wrap;
 }
 
 .dock-pet__thread li[data-pending] {
   min-width: 2.2rem;
   color: var(--md-default-fg-color--light);
   font-variant-numeric: tabular-nums;
+}
+
+.dock-pet__thread :is(p, ul, ol, pre, .dock-pet__math) {
+  margin: 0.5rem 0 0;
+}
+
+.dock-pet__thread > li > :first-child {
+  margin-top: 0;
+}
+
+.dock-pet__thread h3 {
+  margin: 0.7rem 0 0.2rem;
+  font-size: 0.78rem;
+  line-height: 1.25;
+}
+
+.dock-pet__thread :is(ul, ol) {
+  padding-left: 1.15rem;
+}
+
+.dock-pet__thread pre {
+  position: relative;
+  max-width: 100%;
+  padding: 1.6rem 0.7rem 0.7rem;
+  overflow: auto;
+  color: #e8edf7;
+  font: 0.65rem/1.55 var(--md-code-font-family);
+  tab-size: 2;
+  background: #111624;
+  border: 1px solid rgb(216 224 255 / 0.16);
+  border-radius: 0.5rem;
+}
+
+.dock-pet__thread pre::before {
+  position: absolute;
+  top: 0.35rem;
+  left: 0.7rem;
+  color: #aeb8cd;
+  content: attr(data-language);
+  font: 0.55rem/1 var(--md-code-font-family);
+}
+
+.dock-pet__thread code {
+  font-family: var(--md-code-font-family);
+}
+
+.dock-pet__thread :not(pre) > code {
+  padding: 0.08rem 0.25rem;
+  background: var(--site-panel-hover, rgb(127 127 127 / 0.12));
+  border: 1px solid var(--site-panel-border, currentcolor);
+  border-radius: 0.25rem;
+}
+
+.dock-pet__token--comment {
+  color: #8994aa;
+}
+
+.dock-pet__token--keyword {
+  color: #b6a2ff;
+}
+
+.dock-pet__token--number {
+  color: #ffcb7a;
+}
+
+.dock-pet__token--string {
+  color: #92d192;
+}
+
+.dock-pet__math {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.dock-pet__math--display {
+  padding: 0.45rem;
+  text-align: center;
+  background: var(--site-paper, transparent);
+  border-radius: 0.4rem;
+}
+
+@media (min-width: 90em) {
+  html.pet-help-open .md-main__inner {
+    padding-right: 23rem;
+  }
+
+  .dock-pet__help {
+    top: 5.25rem;
+    right: 0.8rem;
+    bottom: auto;
+    left: auto;
+    width: 22rem;
+    max-height: calc(100dvh - 6.1rem);
+    transform: none;
+  }
+
+  .dock-pet__thread {
+    max-height: calc(100dvh - 12rem);
+  }
 }
 
 #dock-pet-listen[data-listening] {

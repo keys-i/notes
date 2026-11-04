@@ -2,7 +2,9 @@
   "use strict";
 
   var host = document.getElementById("comments-provider") as HTMLElement;
+  if (!host) return;
   var mode = host.dataset.mode;
+  var disclosure = host.closest("details") as HTMLDetailsElement | null;
 
   function theme() {
     var palette = document.querySelector<HTMLElement>(
@@ -64,16 +66,10 @@
     host.appendChild(script);
   }
 
-  if ("IntersectionObserver" in window) {
-    new IntersectionObserver(
-      function (entries, observer) {
-        if (entries[0].isIntersecting) {
-          observer.disconnect();
-          load();
-        }
-      },
-      { rootMargin: "200px" },
-    ).observe(document.getElementById("__comments") || host);
+  if (disclosure && !disclosure.open) {
+    disclosure.addEventListener("toggle", function () {
+      if (disclosure.open) load();
+    });
   } else {
     load();
   }
