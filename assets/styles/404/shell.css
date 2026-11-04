@@ -4,6 +4,7 @@
   background: #00020a;
   box-shadow: 0 0.35rem 1rem rgb(0 0 0 / 0.32);
   color: #b9cbd4;
+  color-scheme: dark;
   font:
     700 0.62rem/1.35 ui-monospace,
     SFMono-Regular,
@@ -87,17 +88,18 @@
 }
 
 .recovery-shell__log {
-  height: 5.4em;
+  height: min(16.5em, 38vh);
   overflow: auto;
   padding: 0.38rem 0.5rem;
+  background: #00020a;
 }
 
-.recovery-shell__log pre {
+.md-typeset .game__terminal .recovery-shell__log pre {
   margin: 0;
   color: inherit;
+  background: transparent;
   font: inherit;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
+  white-space: pre;
 }
 
 .shell-prompt {
@@ -124,6 +126,7 @@
   padding: 0.28rem 0.5rem;
   border-top: 1px solid rgb(107 220 255 / 0.48);
   color: #f2ff3d;
+  background: #00020a;
   cursor: text;
 }
 

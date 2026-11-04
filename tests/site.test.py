@@ -58,7 +58,10 @@ class SiteAssetTests(unittest.TestCase):
             r'manualUrl:\s*new URL\(\s*"\.\./\.\./man/freebsd\.json",'
             r"\s*(?:document\.currentScript\.src|shellScriptUrl),?\s*\)\.href",
         )
-        self.assertIn("fetch(shell.manualUrl)", script)
+        self.assertIn(
+            'fetch(shell.manualUrl, { cache: "force-cache" })',
+            script,
+        )
 
     def test_404_shell_uses_vendored_runtime(self):
         template = (ROOT / "site/theme/404.html").read_text(encoding="utf-8")

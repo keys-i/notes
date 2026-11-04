@@ -21,7 +21,7 @@
   will-change: transform;
 }
 
-.dock-pet[data-dragging] {
+.dock-pet:is([data-held], [data-dragging]) {
   cursor: grabbing;
 }
 
@@ -44,6 +44,7 @@
 .dock-pet__body {
   position: relative;
   display: block;
+  isolation: isolate;
   width: 100%;
   height: 100%;
   transform-origin: 50% 88%;
@@ -52,9 +53,15 @@
     filter 140ms ease;
 }
 
-.dock-pet[data-dragging] .dock-pet__body {
-  filter: drop-shadow(0 0.4rem 0.35rem rgb(0 0 0 / 0.24));
-  transform: translateY(-4px) scale(1.04);
+.dock-pet[data-held] .dock-pet__body {
+  filter: drop-shadow(0 0.85rem 0.5rem rgb(0 0 0 / 0.3))
+    drop-shadow(0 0.12rem 0.08rem rgb(255 255 255 / 0.22));
+  transform: translateY(-9px) rotate(var(--dock-pet-drag-tilt, 0deg));
+}
+
+.dock-pet[data-falling] .dock-pet__body {
+  filter: drop-shadow(0 0.7rem 0.38rem rgb(0 0 0 / 0.24));
+  transform: rotate(var(--dock-pet-fall-tilt, 0deg));
 }
 
 .dock-pet__art {
@@ -200,6 +207,8 @@
 }
 
 .dock-pet__character,
+.dock-pet__parachute,
+.dock-pet__harness,
 .dock-pet__face,
 .dock-pet__ears,
 .dock-pet__ear,
@@ -209,6 +218,43 @@
 .dock-pet__paw,
 .dock-pet__gumleaf {
   transform-box: fill-box;
+}
+
+.dock-pet__parachute,
+.dock-pet__harness {
+  pointer-events: none;
+  opacity: 0;
+}
+
+.dock-pet__parachute {
+  transform-origin: 50% 100%;
+}
+
+.dock-pet__canopy {
+  fill: #ce514c;
+  stroke: var(--dock-pet-fur-dark);
+  stroke-linejoin: round;
+  stroke-width: 3;
+}
+
+.dock-pet__canopy-panel,
+.dock-pet__harness-buckle {
+  fill: #f2c66d;
+  stroke: var(--dock-pet-fur-dark);
+  stroke-width: 2;
+}
+
+.dock-pet__shroud,
+.dock-pet__harness-strap {
+  fill: none;
+  stroke: var(--dock-pet-fur-dark);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.4;
+}
+
+.dock-pet[data-parachute] :is(.dock-pet__parachute, .dock-pet__harness) {
+  opacity: 1;
 }
 
 .dock-pet__character {
@@ -242,6 +288,10 @@
   transform-origin: 22% 76%;
 }
 
+.dock-pet__ears .dock-pet__ear:first-child {
+  transform-origin: 78% 76%;
+}
+
 .dock-pet__ear-inner {
   fill: #e9aaa8;
 }
@@ -263,6 +313,12 @@
   stroke: var(--dock-pet-fur-dark);
   stroke-width: 2.5;
   transform-origin: center;
+}
+
+.dock-pet__ear,
+.dock-pet__eye,
+.dock-pet__paw {
+  transition: transform 100ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .dock-pet__paw--back-far,
@@ -379,6 +435,67 @@
   stroke-width: 1.2;
 }
 
+.dock-pet[data-held] .dock-pet__ears .dock-pet__ear:first-child {
+  transform: rotate(calc(-7deg + var(--dock-pet-drag-vx, 0) * 0.2deg))
+    translateY(-1px);
+}
+
+.dock-pet[data-held] .dock-pet__ear--notched {
+  transform: rotate(calc(7deg + var(--dock-pet-drag-vx, 0) * 0.2deg))
+    translateY(-1px);
+}
+
+.dock-pet[data-held] .dock-pet__eye {
+  transform: translate(
+      calc(var(--dock-pet-drag-vx, 0) * 0.05px),
+      calc(var(--dock-pet-drag-vy, 0) * 0.04px)
+    )
+    scale(1.08, 1.14);
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.dock-pet[data-held] .dock-pet__character {
+  transform: translateY(var(--dock-pet-dangle, 0px))
+    rotate(calc(var(--dock-pet-drag-vx, 0) * 0.08deg));
+}
+
+.dock-pet[data-held] .dock-pet__paw--front-far {
+  transform: rotate(calc(-12deg + var(--dock-pet-drag-vx, 0) * 0.3deg))
+    translateY(var(--dock-pet-dangle, 0px));
+}
+
+.dock-pet[data-held] .dock-pet__paw--front-near {
+  transform: rotate(calc(12deg + var(--dock-pet-drag-vx, 0) * 0.3deg))
+    translateY(var(--dock-pet-dangle, 0px));
+}
+
+.dock-pet[data-held] .dock-pet__paw--back-far {
+  transform: rotate(calc(5deg - var(--dock-pet-drag-vx, 0) * 0.18deg))
+    translateY(var(--dock-pet-dangle, 0px));
+}
+
+.dock-pet[data-held] .dock-pet__paw--back-near {
+  transform: rotate(calc(-5deg - var(--dock-pet-drag-vx, 0) * 0.18deg))
+    translateY(var(--dock-pet-dangle, 0px));
+}
+
+.dock-pet[data-held] .dock-pet__gumleaf {
+  transform: rotate(calc(var(--dock-pet-drag-vx, 0) * -0.35deg))
+    translateY(calc(var(--dock-pet-drag-vy, 0) * 0.04px));
+}
+
+.dock-pet[data-held]
+  :is(
+    .dock-pet__character,
+    .dock-pet__paw,
+    .dock-pet__ear,
+    .dock-pet__eye,
+    .dock-pet__gumleaf
+  ) {
+  animation: none !important;
+}
+
 .dock-pet:is([data-state="sitting"], [data-behavior="sit"]) .dock-pet__rump {
   transform: translateY(3px) scale(1.04, 0.96);
 }
@@ -460,6 +577,24 @@ html.freebsd-shutting-down .dock-pet__status {
 
   .dock-pet[data-dropping] .dock-pet__body {
     animation: dock-pet-drop 180ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .dock-pet[data-falling] .dock-pet__character {
+    animation: dock-pet-fall-sway 420ms ease-in-out infinite;
+  }
+
+  .dock-pet[data-falling]
+    :is(.dock-pet__paw--front-far, .dock-pet__paw--back-near) {
+    animation: dock-pet-dangle-a 340ms ease-in-out infinite;
+  }
+
+  .dock-pet[data-falling]
+    :is(.dock-pet__paw--front-near, .dock-pet__paw--back-far) {
+    animation: dock-pet-dangle-b 340ms ease-in-out infinite;
+  }
+
+  .dock-pet[data-parachute] .dock-pet__parachute {
+    animation: dock-pet-canopy 760ms ease-in-out infinite;
   }
 
   .dock-pet[data-paused]
@@ -598,6 +733,50 @@ html.freebsd-shutting-down .dock-pet__status {
   }
 }
 
+@keyframes dock-pet-fall-sway {
+  0%,
+  100% {
+    transform: rotate(-1.5deg) translateY(1px);
+  }
+
+  50% {
+    transform: rotate(1.5deg) translateY(3px);
+  }
+}
+
+@keyframes dock-pet-dangle-a {
+  0%,
+  100% {
+    transform: rotate(-9deg) translateY(2px);
+  }
+
+  50% {
+    transform: rotate(7deg) translateY(4px);
+  }
+}
+
+@keyframes dock-pet-dangle-b {
+  0%,
+  100% {
+    transform: rotate(8deg) translateY(4px);
+  }
+
+  50% {
+    transform: rotate(-7deg) translateY(2px);
+  }
+}
+
+@keyframes dock-pet-canopy {
+  0%,
+  100% {
+    transform: rotate(-1.5deg) scale(1, 0.98);
+  }
+
+  50% {
+    transform: rotate(1.5deg) scale(0.98, 1);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .dock-pet__character,
   .dock-pet__ears,
@@ -606,6 +785,7 @@ html.freebsd-shutting-down .dock-pet__status {
   .dock-pet__rump,
   .dock-pet__belly,
   .dock-pet__paw,
+  .dock-pet__eye,
   .dock-pet__gumleaf {
     animation: none !important;
     transition: none !important;
@@ -613,6 +793,12 @@ html.freebsd-shutting-down .dock-pet__status {
   }
 
   .dock-pet__body {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .dock-pet__parachute,
+  .dock-pet__harness {
     animation: none !important;
     transition: none !important;
   }
