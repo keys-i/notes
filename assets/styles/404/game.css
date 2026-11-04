@@ -4153,13 +4153,11 @@ body.routing-snap {
   }
 
   .game-scene[data-kind="ready"] .scene-ready__sign-front {
-    animation: scene-ready-sign-front var(--scene-duration) steps(1, jump-none)
-      both;
+    animation: scene-ready-sign-front var(--scene-duration) linear both;
   }
 
   .game-scene[data-kind="ready"] .scene-ready__sign-back {
-    animation: scene-ready-sign-back var(--scene-duration) steps(1, jump-none)
-      both;
+    animation: scene-ready-sign-back var(--scene-duration) linear both;
   }
 
   .game-scene[data-kind="ready"] .scene-ready__snacks {
