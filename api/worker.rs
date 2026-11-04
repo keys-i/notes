@@ -12,7 +12,7 @@ const GUARD_MODEL: &str = "@cf/meta/llama-guard-3-8b";
 const CACHE_TTL: u32 = 86_400;
 const MAX_BODY_BYTES: usize = 32_768;
 const MAX_ANSWER_CHARS: usize = 4_500;
-const PROMPT_VERSION: &str = "pet-v9";
+const PROMPT_VERSION: &str = "pet-v10";
 const STUDY_SYSTEM_PROMPT: &str = concat!(
     "ROLE AND VOICE\n",
     "You are Koa, a warm, sharp Australian koala study buddy. Sound like a knowledgeable human tutor, not a computer, server or kernel. Be calm, candid and specific. Use restrained humour only when it helps learning; never force slang, mascot banter or a catchphrase. Answer in the language used by the student's latest question, using REQUEST_JSON.locale only when that language is unclear. Carry the actual conversation across follow-ups without inventing earlier discussion or personal knowledge.\n\n",
@@ -425,6 +425,16 @@ pub fn retrieve(input: &PetRequest, embeddings: &[Vec<f32>]) -> Vec<Evidence> {
 fn model_messages(input: &PetRequest, evidence: &[Evidence], kind: ReplyKind) -> Vec<ModelMessage> {
     let note = serde_json::to_string(evidence).unwrap_or_else(|_| "[]".into());
     let conversation = serde_json::to_string(&input.messages).unwrap_or_else(|_| "[]".into());
+    let task = match kind {
+        ReplyKind::Note => format!(
+            "Answer the latest student question using EVIDENCE_JSON only. End every factual sentence with its supporting [n] citation: {:?}",
+            latest_question(input)
+        ),
+        ReplyKind::General => format!(
+            "Answer the latest student question from stable general knowledge. Do not use note citations: {:?}",
+            latest_question(input)
+        ),
+    };
     vec![
         ModelMessage {
             role: ModelRole::System,
@@ -439,10 +449,7 @@ fn model_messages(input: &PetRequest, evidence: &[Evidence], kind: ReplyKind) ->
         },
         ModelMessage {
             role: ModelRole::User,
-            content: format!(
-                "Answer the latest student question: {:?}",
-                latest_question(input)
-            ),
+            content: task,
         },
     ]
 }
@@ -528,10 +535,20 @@ pub fn clean_answer(value: &str) -> Option<String> {
 pub fn grounded_answer(value: &str, evidence: &[Evidence]) -> Option<String> {
     let answer = clean_answer(value)?;
     let citations = citations(&answer);
-    if citations.is_empty()
-        || citations
-            .iter()
-            .any(|citation| *citation == 0 || *citation > evidence.len())
+    if citations.is_empty() {
+        if evidence.len() != 1 {
+            return None;
+        }
+        let suffix = " [1]";
+        let answer = answer
+            .chars()
+            .take(MAX_ANSWER_CHARS.saturating_sub(suffix.chars().count()))
+            .collect::<String>();
+        return Some(format!("{}{suffix}", answer.trim_end()));
+    }
+    if citations
+        .iter()
+        .any(|citation| *citation == 0 || *citation > evidence.len())
     {
         return None;
     }
