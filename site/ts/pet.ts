@@ -1221,7 +1221,23 @@ function dockPetStudyError(code, timedOut?) {
       if (activeStudy === task && requestId === studyRequest) {
         var code = String((error as any)?.code || "");
         var aborted = Boolean((error as any)?.name === "AbortError");
-        finishStudy(task, dockPetStudyError(code, timedOut || aborted));
+        var unavailable =
+          !code ||
+          timedOut ||
+          aborted ||
+          [
+            "model_unavailable",
+            "retrieval_unavailable",
+            "service_unavailable",
+          ].includes(code);
+        finishStudy(
+          task,
+          !selectedAttachment && unavailable
+            ? reply.key.startsWith("absent:")
+              ? "There isn’t enough page context to answer that here"
+              : reply.text
+            : dockPetStudyError(code, timedOut || aborted),
+        );
       }
     }
   }
