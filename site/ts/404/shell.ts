@@ -1,6 +1,91 @@
 "use strict";
 
 var shellScriptUrl = (document.currentScript as HTMLScriptElement).src;
+
+function loginTime(value) {
+  var days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  var months = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
+  var clock = [value.getHours(), value.getMinutes(), value.getSeconds()]
+    .map(function (part) {
+      return String(part).padStart(2, "0");
+    })
+    .join(":");
+  return (
+    days[value.getDay()] +
+    " " +
+    months[value.getMonth()] +
+    " " +
+    String(value.getDate()).padStart(2, " ") +
+    " " +
+    clock +
+    " " +
+    value.getFullYear()
+  );
+}
+
+function loginAddress() {
+  if (location.hostname === "localhost") return "127.0.0.1";
+  if (/^(?:\d{1,3}\.){3}\d{1,3}$/.test(location.hostname))
+    return location.hostname;
+  // Browsers do not expose client IPs; use a documentation address without third-party tracking
+  return "198.51.100.42";
+}
+
+function loginLines(value, address?) {
+  return [
+    "Last login: " + loginTime(value) + " from " + (address || loginAddress()),
+    "",
+    '          .-"""-.       .-"""-.',
+    "         /  .-.  \\_____/  .-.  \\",
+    "        /  /   \\           /   \\  \\",
+    '        | |      .-"""-.      | |',
+    "        \\  \\    /  o o  \\    /  /",
+    "         '._'._|    ^    |_.'_.",
+    "             \\  \\  '-'  /  /",
+    "              '._'-----'_.",
+    "                 /|   |\\",
+    "                /_|___|_\\",
+    "",
+    "= Welcome to Koala's server =",
+  ];
+}
+
+function renderLogin(address?) {
+  shell.lines = loginLines(new Date(), address);
+  shell.output.textContent = shell.lines.join("\n");
+}
+
+async function refreshLogin() {
+  if (shell.DEBUG) return;
+  try {
+    var response = await fetch("/cdn-cgi/trace", {
+      cache: "no-store",
+      credentials: "omit",
+    });
+    if (!response.ok) return;
+    var match = (await response.text()).match(/(?:^|\n)ip=([^\n]+)/);
+    var address = match && match[1].trim();
+    if (!address || address.length > 45 || !/^[0-9a-f:.]+$/i.test(address))
+      return;
+    renderLogin(address);
+  } catch (_error) {
+    return;
+  }
+}
+
 var shell: any = {
   DEBUG: ["localhost", "127.0.0.1", "[::1]"].includes(location.hostname),
   commands: [
@@ -67,7 +152,7 @@ var shell: any = {
   form: document.getElementById("shell"),
   history: [],
   input: document.getElementById("shell-input"),
-  lines: ["KoalaBSD rescue shell ready · type help"],
+  lines: loginLines(new Date()),
   manuals: null,
   manualUrl: new URL("../../man/freebsd.json", shellScriptUrl).href,
   mode: "sh",
@@ -97,6 +182,9 @@ var shell: any = {
     "kern.module_path": "/boot/kernel;/boot/modules",
   },
 };
+
+renderLogin();
+void refreshLogin();
 
 shell.engine = ShellJS.createShell({
   commands: {
@@ -202,7 +290,7 @@ function kldstat() {
 function loadManuals() {
   return (
     shell.manuals ||
-    (shell.manuals = fetch(shell.manualUrl)
+    (shell.manuals = fetch(shell.manualUrl, { cache: "force-cache" })
       .then(function (response) {
         if (!response.ok) throw new Error(String(response.status));
         return response.json();
@@ -212,6 +300,17 @@ function loadManuals() {
         throw new Error("manual database unavailable");
       }))
   );
+}
+
+var terminal = document.getElementById("terminal");
+if (terminal) {
+  ["pointerenter", "focusin", "toggle"].forEach(function (eventName) {
+    terminal.addEventListener(eventName, function () {
+      void loadManuals().catch(function () {
+        return;
+      });
+    });
+  });
 }
 
 function manualDescription(name, page) {

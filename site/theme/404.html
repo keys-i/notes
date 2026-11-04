@@ -224,6 +224,27 @@ Dumping 404 out of 404 MB</pre>
           <span>EAGLE.SYS</span>
         </span>
         <div class="game-scene" id="game-scene" hidden>
+          <div class="scene-stage scene-stage--attract" aria-hidden="true">
+            <strong class="scene-attract__title">LONG WAY HOME</strong>
+            <div class="scene-attract__route">
+              <span class="scene-attract__bag">
+                <span>V</span><span>★</span><span>●</span>
+              </span>
+              <span class="scene-attract__pellets">· · · · · · · ·</span>
+              <span class="scene-attract__tunnel">
+                <span class="scene-attract__sign">HOME&nbsp; →</span>
+                <span class="scene-attract__hunters" data-scene-hunters></span>
+              </span>
+              <img
+                class="scene-attract__home"
+                src="{{ site_root }}{{ game.assets.goal }}"
+                width="512"
+                height="512"
+                alt=""
+              />
+            </div>
+          </div>
+
           <div class="scene-stage scene-stage--ready" aria-hidden="true">
             <div class="scene-ready__tunnel">
               <span class="scene-ready__sign">
@@ -239,11 +260,10 @@ Dumping 404 out of 404 MB</pre>
                 >●</span
               >
             </div>
+            <span class="scene-ready__impact"></span>
             <div class="scene-ready__hunters" data-scene-hunters></div>
+            <span class="scene-ready__pickup"></span>
             <div class="scene-ready__pellets">· · · · · · · ·</div>
-            <div class="scene-ready__moves">
-              <span>W</span><span>A S D</span><span>↑</span><span>← ↓ →</span>
-            </div>
             <img
               class="scene-ready__home"
               src="{{ site_root }}{{ game.assets.goal }}"
@@ -271,6 +291,11 @@ Dumping 404 out of 404 MB</pre>
           </div>
 
           <div class="scene-stage scene-stage--dragon" aria-hidden="true">
+            <span class="scene-dragon__ground"></span>
+            <span class="scene-dragon__aura"></span>
+            <span class="scene-dragon__debris">
+              <span></span><span></span><span></span><span></span>
+            </span>
             <span class="scene-dragon__orb"></span>
             <span class="scene-dragon__beam"></span>
             <span class="scene-dragon__puff">pfft</span>
@@ -292,7 +317,13 @@ Dumping 404 out of 404 MB</pre>
             <span class="game-scene__hardhat"></span>
             <span class="game-scene__vest"></span>
           </div>
-          <button class="game-scene__skip" type="button">Play now</button>
+          <button
+            class="game-scene__skip"
+            type="button"
+            aria-label="Play Long Way Home"
+          >
+            Play
+          </button>
         </div>
       </div>
 
@@ -339,7 +370,7 @@ Dumping 404 out of 404 MB</pre>
         </button>
       </div>
 
-      <details class="game__terminal">
+      <details class="game__terminal" id="terminal">
         <summary>&gt;_ Terminal</summary>
         <form
           class="recovery-shell"
@@ -353,7 +384,21 @@ Dumping 404 out of 404 MB</pre>
             aria-live="polite"
             aria-relevant="additions text"
           >
-            <pre id="shell-output">KoalaBSD rescue shell ready · type help</pre>
+            <pre id="shell-output">
+Last login: current session from 198.51.100.42
+
+          .-&quot;&quot;&quot;-.       .-&quot;&quot;&quot;-.
+         /  .-.  \_____/  .-.  \
+        /  /   \           /   \  \
+        | |      .-&quot;&quot;&quot;-.      | |
+        \  \    /  o o  \    /  /
+         '._'._|    ^    |_.'_.
+             \  \  '-'  /  /
+              '._'-----'_.
+                 /|   |\
+                /_|___|_\
+
+= Welcome to Koala's server =</pre>
           </div>
           <label class="recovery-shell__line">
             <span id="shell-prompt" aria-hidden="true">rad@recv #</span>
