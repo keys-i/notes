@@ -276,6 +276,7 @@ class SiteAssetTests(unittest.TestCase):
         self.assertNotIn("eval(", script)
 
     def test_dock_pet_integration(self):
+        config = (ROOT / "site/mkdocs.yml").read_text(encoding="utf-8")
         main = (ROOT / "site/theme/main.html").read_text(encoding="utf-8")
         artwork = (ROOT / "site/theme/partials/koala.html").read_text(encoding="utf-8")
         not_found = (ROOT / "site/theme/404.html").read_text(encoding="utf-8")
@@ -285,7 +286,10 @@ class SiteAssetTests(unittest.TestCase):
         self.assertIn("assets/js/pet.min.js", main)
         self.assertIn('aria-label="Ask the koala study buddy"', main)
         self.assertIn('data-endpoint="/api/pet"', main)
-        self.assertIn('href="https://uni.keysi.dev/mini/"', main)
+        self.assertNotIn('href="https://uni.keysi.dev/mini/"', main)
+        self.assertNotIn('aria-label="Close study helper"', main)
+        self.assertIn("link: https://uni.keysi.dev/mini/", config)
+        self.assertIn("name: Minis", config)
         self.assertIn('id="dock-pet-thread"', main)
         self.assertIn('class="dock-pet__status"', main)
         self.assertNotIn("dock-pet", not_found)
