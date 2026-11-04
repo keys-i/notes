@@ -2,7 +2,7 @@ use notes_pet::{
     InputClass, Message, ModelRoute, PetReply, PetRequest, Role, Scope, Section, authorize_scope,
     cache_key, cited_headings, classify_input, clean_answer, grounded_answer, guard_allows,
     model_prompt, retrieve, select_model, semantic_cache_keys, semantic_match, semantic_record,
-    shared_cacheable, validate,
+    shared_cacheable, validate, verification_allows,
 };
 
 fn request() -> PetRequest {
@@ -131,9 +131,18 @@ fn prompt_keeps_evidence_and_conversation_as_untrusted_data() {
     assert_eq!(messages[0].0, "system");
     assert!(messages[0].1.contains("untrusted reference data"));
     assert!(messages[0].1.contains("latest student question"));
-    assert!(messages[1].1.starts_with("EVIDENCE_JSON"));
+    assert!(messages[1].1.starts_with("REQUEST_JSON"));
+    assert!(messages[1].1.contains("EVIDENCE_JSON"));
     assert!(messages[1].1.contains("CONVERSATION_JSON"));
     assert_eq!(messages[2].0, "user");
+
+    let mut another_note = input.clone();
+    another_note.title = "Mécanique".into();
+    another_note.locale = "fr-FR".into();
+    let another = model_prompt(&another_note, &evidence);
+    assert_eq!(messages[0], another[0]);
+    assert_ne!(messages[1], another[1]);
+    assert!(another[1].1.contains("fr-FR"));
 }
 
 #[test]
@@ -178,6 +187,12 @@ fn semantic_cache_is_versioned_scoped_and_similarity_checked() {
     assert_ne!(
         semantic_cache_keys(&input, "public", &embedding),
         semantic_cache_keys(&changed_note, "public", &embedding)
+    );
+    let mut deep_route = input.clone();
+    deep_route.messages[0].content = "Derive momentum step by step".into();
+    assert_ne!(
+        semantic_cache_keys(&input, "public", &embedding),
+        semantic_cache_keys(&deep_route, "public", &embedding)
     );
     assert!(!semantic_cache_keys(&input, "public", &embedding)[0].contains("momentum"));
 }
@@ -254,4 +269,14 @@ fn output_must_be_plain_bounded_and_cited_to_available_evidence() {
         ),
         ["Momentum", "Impulse"]
     );
+}
+
+#[test]
+fn verifier_accepts_a_supported_verdict_without_accepting_unsupported_text() {
+    assert!(verification_allows("SUPPORTED"));
+    assert!(verification_allows("SUPPORTED."));
+    assert!(verification_allows("**SUPPORTED**\n"));
+    assert!(!verification_allows("UNSUPPORTED"));
+    assert!(!verification_allows("not supported"));
+    assert!(!verification_allows("Verdict: SUPPORTED"));
 }
