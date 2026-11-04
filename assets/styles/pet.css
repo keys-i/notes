@@ -671,6 +671,18 @@
   transform: none;
 }
 
+.dock-pet[data-grip] .dock-pet__character {
+  transform: translateX(-18px);
+}
+
+.dock-pet[data-rope][data-direction="left"] .dock-pet__body {
+  transform: rotate(7deg);
+}
+
+.dock-pet[data-rope][data-direction="right"] .dock-pet__body {
+  transform: rotate(-7deg);
+}
+
 .dock-pet[data-grip] .dock-pet__paw {
   display: none;
 }
@@ -1068,11 +1080,11 @@ html.freebsd-shutting-down .dock-pet__status {
 @keyframes dock-pet-wall-weight {
   0%,
   100% {
-    transform: translateY(-1px);
+    transform: translate(-18px, -1px);
   }
 
   50% {
-    transform: translateY(1px);
+    transform: translate(-18px, 1px);
   }
 }
 
@@ -1101,11 +1113,11 @@ html.freebsd-shutting-down .dock-pet__status {
 @keyframes dock-pet-rope-hang {
   0%,
   100% {
-    transform: translateY(-1px) rotate(-1deg);
+    transform: translate(-18px, -1px) rotate(-1deg);
   }
 
   50% {
-    transform: translateY(1px) rotate(1deg);
+    transform: translate(-18px, 1px) rotate(1deg);
   }
 }
 
@@ -1254,6 +1266,10 @@ html.freebsd-shutting-down .dock-pet__status {
   .dock-pet__body {
     animation: none !important;
     transition: none !important;
+  }
+
+  .dock-pet[data-grip] .dock-pet__character {
+    transform: translateX(-18px) !important;
   }
 
   .dock-pet__parachute,
