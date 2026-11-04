@@ -177,6 +177,8 @@ fn prompt_keeps_evidence_and_conversation_as_untrusted_data() {
     assert!(messages[1].1.contains("EVIDENCE_JSON"));
     assert!(messages[1].1.contains("CONVERSATION_JSON"));
     assert_eq!(messages[2].0, "user");
+    assert!(messages[2].1.contains("EVIDENCE_JSON only"));
+    assert!(messages[2].1.contains("every factual sentence"));
 
     let mut another_note = input.clone();
     another_note.title = "Mécanique".into();
@@ -185,6 +187,12 @@ fn prompt_keeps_evidence_and_conversation_as_untrusted_data() {
     assert_eq!(messages[0], another[0]);
     assert_ne!(messages[1], another[1]);
     assert!(another[1].1.contains("fr-FR"));
+
+    let mut general = input.clone();
+    general.messages[0].content = "How should I plan a short study break?".into();
+    let general = model_prompt(&general, &evidence);
+    assert!(general[2].1.contains("stable general knowledge"));
+    assert!(general[2].1.contains("Do not use note citations"));
 }
 
 #[test]
@@ -352,6 +360,10 @@ fn output_is_bounded_and_cited_to_available_evidence() {
     assert_eq!(
         grounded_answer("Force changes momentum", &evidence).as_deref(),
         None
+    );
+    assert_eq!(
+        grounded_answer("Force changes momentum", &evidence[..1]).as_deref(),
+        Some("Force changes momentum [1]")
     );
     assert!(grounded_answer("Force changes momentum", &[]).is_none());
     let long_grounded = format!("[1] {}", "x".repeat(5_000));
