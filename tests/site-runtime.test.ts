@@ -128,6 +128,12 @@ class RuntimeElement {
     return child;
   }
 
+  matches(selector: string) {
+    return selector.startsWith(".")
+      ? this.classList.contains(selector.slice(1))
+      : this.tagName.toLowerCase() === selector.toLowerCase();
+  }
+
   querySelector(selector: string): RuntimeElement | null {
     if (selector === "script") {
       return this.children.find((child) => child.tagName === "SCRIPT") || null;
@@ -274,7 +280,9 @@ test("math rendering typesets equations inserted after page load", async () => {
   message.append(equation);
 
   const pending = runtime.window.notesMath(message);
+  const sameLoad = runtime.window.notesMath(message);
   const script: any = runtime.head.children[0];
+  assert.equal(runtime.head.children.length, 1);
   const cleared: any[] = [];
   const typeset: any[] = [];
   runtime.window.MathJax.typesetClear = (roots: any[]) => cleared.push(roots);
@@ -282,10 +290,12 @@ test("math rendering typesets equations inserted after page load", async () => {
     typeset.push(roots);
   };
   script.dispatch("load");
-  await pending;
+  await Promise.all([pending, sameLoad]);
 
   assert.equal(cleared[0][0], message);
   assert.equal(typeset[0][0], message);
+  await runtime.window.notesMath(equation);
+  assert.equal(typeset.at(-1)[0], equation);
 });
 
 function commentHarness(mode: "giscus" | "utterances", observed: boolean) {
