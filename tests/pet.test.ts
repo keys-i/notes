@@ -235,6 +235,22 @@ test("gaze and cloud helpers stay bounded", () => {
   assert.equal(pure.dockPetThemeRadius({ x: 920, y: 32 }, 1000, 800), 1199);
 });
 
+test("media helpers accept browser-decodable formats and explain failures", () => {
+  assert.equal(pure.dockPetAttachmentKind("image/avif"), "image");
+  assert.equal(pure.dockPetAttachmentKind("image/gif"), "image");
+  assert.equal(pure.dockPetAttachmentKind("image/svg+xml"), "");
+  assert.equal(pure.dockPetAttachmentKind("audio/flac"), "audio");
+  assert.equal(pure.dockPetAttachmentKind("video/quicktime"), "video");
+  assert.equal(pure.dockPetAttachmentKind("application/pdf"), "");
+  assert.equal(
+    pure.dockPetAttachmentQuestion("video"),
+    "What should I notice in this video frame?",
+  );
+  assert.match(pure.dockPetStudyError("rate_limited"), /breather/);
+  assert.match(pure.dockPetStudyError("grounding_failed"), /verify/);
+  assert.match(pure.dockPetStudyError("", true), /longer than expected/);
+});
+
 test("the koala is squat, asymmetric, and free of a skeletal rig", () => {
   assert.equal(
     (template.match(/class="dock-pet__paw(?: |")/g) || []).length,
@@ -272,13 +288,14 @@ test("the koala is squat, asymmetric, and free of a skeletal rig", () => {
       `class="dock-pet__wall-paw dock-pet__wall-paw--${paw}"[\\s\\S]*?d="([^"]+)"`,
     ).exec(template);
     assert.ok(wallPaw);
-    assert.match(wallPaw[1], /L18 /);
+    assert.match(wallPaw[1], /L1[6-8] /);
     assert.doesNotMatch(wallPaw[1], /M(?:79|85) /);
   });
+  assert.equal((template.match(/dock-pet__wall-shoulder/g) || []).length, 4);
   assert.match(style, /data-grip[\s\S]*dock-pet__paw[\s\S]*display: none/);
   assert.match(
     style,
-    /prefers-reduced-motion: reduce[\s\S]*data-grip[\s\S]*translateX\(-18px\) !important/,
+    /prefers-reduced-motion: reduce[\s\S]*data-grip[\s\S]*translateX\(-12px\) rotate\(-6deg\) !important/,
   );
   assert.match(style, /dock-pet-wall-step-a/);
   assert.match(style, /dock-pet-wall-step-b/);
@@ -337,8 +354,9 @@ test("site chrome exposes progress and authored footer motion safely", () => {
   );
   assert.match(mainTemplate, /<details class="note-comments" id="__comments">/);
   assert.match(mainTemplate, /Discuss this note/);
-  assert.match(style, /width: min\(32rem, calc\(100vw - 1\.5rem\)\)/);
-  assert.match(style, /html\.pet-help-open \.md-main__inner/);
+  assert.match(style, /width: min\(26rem, calc\(100vw - 1\.5rem\)\)/);
+  assert.match(style, /dock-pet__help\[data-placement="above"\]::after/);
+  assert.doesNotMatch(style, /html\.pet-help-open \.md-main__inner/);
   assert.match(style, /dock-pet__token--keyword/);
   assert.match(style, /dock-pet__math--display/);
   assert.doesNotMatch(mainTemplate, /lang\.t|data-lang|giscus/);
@@ -359,7 +377,7 @@ test("personality is local and event-driven", () => {
   );
   assert.match(
     mainTemplate,
-    /placeholder="Explain, quiz, follow up, or ask in any language…"/,
+    /placeholder="Explain, quiz, attach media, or ask in any language…"/,
   );
   assert.doesNotMatch(mainTemplate, /dock-pet__help-(?:close|minis)/);
   assert.doesNotMatch(mainTemplate, /Save spot|Resume spot/);
@@ -408,6 +426,9 @@ function createRuntime({
   const documentHandlers: Record<string, any> = {};
   const formHandlers: Record<string, any> = {};
   const helpHandlers: Record<string, any> = {};
+  const attachHandlers: Record<string, any> = {};
+  const attachmentRemoveHandlers: Record<string, any> = {};
+  const fileHandlers: Record<string, any> = {};
   const windowHandlers: Record<string, any> = {};
   const scrollCalls: any[] = [];
   const capturedPointers: number[] = [];
@@ -474,10 +495,15 @@ function createRuntime({
   };
   const status = { textContent: "" };
   const help: any = {
+    dataset: {},
     hidden: true,
     offsetHeight: 190,
     offsetWidth: 320,
-    style: {},
+    style: {
+      setProperty(name, value) {
+        this[name] = value;
+      },
+    },
     addEventListener(name, handler) {
       helpHandlers[name] = handler;
     },
@@ -505,6 +531,33 @@ function createRuntime({
     hidden: true,
     addEventListener(name, handler) {
       listenHandlers[name] = handler;
+    },
+  };
+  const attachmentPanel: any = {
+    dataset: {},
+    hidden: true,
+  };
+  const attachmentName: any = { textContent: "" };
+  const attachmentRemove: any = {
+    addEventListener(name, handler) {
+      attachmentRemoveHandlers[name] = handler;
+    },
+  };
+  const fileInput: any = {
+    clicked: false,
+    files: [],
+    value: "",
+    addEventListener(name, handler) {
+      fileHandlers[name] = handler;
+    },
+    click() {
+      this.clicked = true;
+    },
+  };
+  const attachButton: any = {
+    disabled: false,
+    addEventListener(name, handler) {
+      attachHandlers[name] = handler;
     },
   };
   const threadItems: any[] = [];
@@ -710,6 +763,11 @@ function createRuntime({
       if (id === "dock-pet-help-form") return helpForm;
       if (id === "dock-pet-question") return question;
       if (id === "dock-pet-listen") return listenButton;
+      if (id === "dock-pet-attachment") return attachmentPanel;
+      if (id === "dock-pet-attachment-name") return attachmentName;
+      if (id === "dock-pet-attachment-remove") return attachmentRemove;
+      if (id === "dock-pet-file") return fileInput;
+      if (id === "dock-pet-attach") return attachButton;
       if (id === "dock-pet-thread") return thread;
       return null;
     },
@@ -950,6 +1008,20 @@ function createRuntime({
         this.type = type;
       }
     },
+    FileReader: class {
+      onerror;
+      onload;
+      result = "";
+
+      readAsDataURL(file) {
+        if (file.readError) {
+          this.onerror?.();
+          return;
+        }
+        this.result = file.dataUrl;
+        this.onload?.();
+      }
+    },
     Math,
     Object,
     clearTimeout(id) {
@@ -975,6 +1047,11 @@ function createRuntime({
 
   return {
     aborts,
+    attachButton,
+    attachHandlers,
+    attachmentName,
+    attachmentPanel,
+    attachmentRemoveHandlers,
     advance(milliseconds) {
       clock += milliseconds;
     },
@@ -990,6 +1067,8 @@ function createRuntime({
     bodyStyle,
     footerClasses,
     footerIntersection: () => footerIntersection,
+    fileHandlers,
+    fileInput,
     formHandlers,
     fetchCalls,
     frames,
@@ -1084,6 +1163,101 @@ test("click opens grounded study help and keeps follow-up context", async () => 
   assert.match(runtime.threadItems[3].textContent, /“Dynamics”/);
   await flushStudy();
   assert.equal(runtime.threadItems[3].dataset.pending, undefined);
+});
+
+test("study help stays anchored and clamped without reflowing the page", () => {
+  const desktop = createRuntime();
+  desktop.petHandlers.click();
+  assert.equal(desktop.help.dataset.placement, "above");
+  assert.ok(Number.parseFloat(desktop.help.style.left) >= 12);
+  assert.ok(Number.parseFloat(desktop.help.style.top) >= 12);
+  assert.ok(
+    Number.parseFloat(desktop.help.style.left) + desktop.help.offsetWidth <=
+      988,
+  );
+  assert.equal(desktop.rootClasses.has("pet-help-open"), false);
+
+  const mobile = createRuntime({ viewportHeight: 568, viewportWidth: 320 });
+  mobile.petHandlers.click();
+  assert.equal(mobile.help.style.left, "12px");
+  assert.ok(Number.parseFloat(mobile.help.style.top) >= 12);
+});
+
+test("one ephemeral media attachment is sent without entering chat caches", async () => {
+  const runtime = createRuntime({
+    fetchResponse: {
+      answer: "The recording asks about force and motion",
+      grounded: false,
+      kind: "general",
+    },
+    sessionCache: {},
+  });
+  runtime.petHandlers.click();
+  runtime.attachHandlers.click();
+  assert.equal(runtime.fileInput.clicked, true);
+
+  runtime.fileInput.files = [
+    {
+      dataUrl: "data:audio/wav;base64,UklGRgAAAABXQVZF",
+      name: "lecture.wav",
+      size: 12,
+      type: "audio/wav",
+    },
+  ];
+  await runtime.fileHandlers.change();
+  assert.equal(runtime.attachmentPanel.hidden, false);
+  assert.match(runtime.attachmentName.textContent, /lecture\.wav/);
+  assert.equal(runtime.attachButton.disabled, false);
+
+  runtime.formHandlers.submit({ preventDefault() {} });
+  await flushStudy();
+  assert.equal(runtime.fetchCalls.length, 1);
+  assert.equal(
+    runtime.fetchCalls[0].payload.messages[0].content,
+    "Please explain this recording",
+  );
+  assert.deepEqual(runtime.fetchCalls[0].payload.attachment, {
+    data_url: "data:audio/wav;base64,UklGRgAAAABXQVZF",
+    kind: "audio",
+  });
+  assert.doesNotMatch(runtime.threadItems[0].textContent, /data:audio/);
+  assert.equal(runtime.attachmentPanel.hidden, true);
+  assert.deepEqual(runtime.sessionWrites, []);
+});
+
+test("attachment removal and unsafe file types recover in place", async () => {
+  const runtime = createRuntime({ fetchResponse: { answer: "unused" } });
+  runtime.petHandlers.click();
+  runtime.fileInput.files = [
+    {
+      dataUrl: "data:audio/wav;base64,UklGRgAAAABXQVZF",
+      name: "question.wav",
+      size: 12,
+      type: "audio/wav",
+    },
+  ];
+  await runtime.fileHandlers.change();
+  runtime.attachmentRemoveHandlers.click();
+  assert.equal(runtime.attachmentPanel.hidden, true);
+  assert.equal(runtime.question.focused, true);
+  runtime.formHandlers.submit({ preventDefault() {} });
+  assert.equal(runtime.fetchCalls.length, 0);
+
+  runtime.fileInput.files = [
+    {
+      dataUrl: "data:image/svg+xml;base64,PHN2Zz4=",
+      name: "unsafe.svg",
+      size: 12,
+      type: "image/svg+xml",
+    },
+  ];
+  await runtime.fileHandlers.change();
+  assert.equal(runtime.attachmentPanel.dataset.error, "true");
+  assert.match(
+    runtime.attachmentName.textContent,
+    /image, audio file or video/,
+  );
+  assert.equal(runtime.attachButton.disabled, false);
 });
 
 test("hosted study replies enhance immediate fallback with safe rich sources", async () => {
@@ -1287,7 +1461,7 @@ test("a slow hosted study request is aborted at its deadline", async () => {
   runtime.formHandlers.submit({ preventDefault() {} });
   await flushStudy();
   assert.equal(runtime.fetchCalls.length, 1);
-  runtime.runTimer(15000);
+  runtime.runTimer(30000);
   assert.equal(runtime.aborts[0].aborted, true);
 
   releaseFetch();
