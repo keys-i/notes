@@ -250,6 +250,59 @@ fn local_bm25_retrieval_is_deterministic_without_a_term_match() {
 }
 
 #[test]
+fn free_tier_prompt_keeps_bounded_evidence_and_recent_context() {
+    let mut input = request();
+    input.sections = (1..=3)
+        .map(|index| Section {
+            heading: format!("Section {index}"),
+            text: format!("momentum {}", "x".repeat(3_880)),
+        })
+        .collect();
+    input.messages = vec![
+        Message {
+            role: Role::User,
+            content: "u".repeat(600),
+        },
+        Message {
+            role: Role::Assistant,
+            content: "a".repeat(4_500),
+        },
+        Message {
+            role: Role::User,
+            content: "u".repeat(600),
+        },
+        Message {
+            role: Role::Assistant,
+            content: "a".repeat(4_500),
+        },
+        Message {
+            role: Role::User,
+            content: "u".repeat(600),
+        },
+        Message {
+            role: Role::Assistant,
+            content: "a".repeat(4_500),
+        },
+        Message {
+            role: Role::User,
+            content: "Explain momentum".into(),
+        },
+    ];
+    assert!(validate(input.clone()).is_ok());
+    let evidence = retrieve(&input);
+    assert!(
+        evidence
+            .iter()
+            .all(|item| item.text.chars().count() <= 1_800)
+    );
+    let prompt_chars = model_prompt(&input, &evidence)
+        .iter()
+        .map(|(_, content)| content.chars().count())
+        .sum::<usize>();
+    assert!(prompt_chars <= 24_000);
+}
+
+#[test]
 fn prompt_keeps_evidence_and_conversation_as_untrusted_data() {
     let input = request();
     let evidence = retrieve(&input);
