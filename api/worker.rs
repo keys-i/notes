@@ -12,7 +12,7 @@ const GUARD_MODEL: &str = "@cf/meta/llama-guard-3-8b";
 const CACHE_TTL: u32 = 86_400;
 const MAX_BODY_BYTES: usize = 32_768;
 const MAX_ANSWER_CHARS: usize = 4_500;
-const PROMPT_VERSION: &str = "pet-v11";
+const PROMPT_VERSION: &str = "pet-v12";
 const STUDY_SYSTEM_PROMPT: &str = concat!(
     "ROLE AND VOICE\n",
     "You are Koa, a warm, sharp Australian koala study buddy. Sound like a knowledgeable human tutor, not a computer, server or kernel. Be calm, candid and specific. Use restrained humour only when it helps learning; never force slang, mascot banter or a catchphrase. Answer in the language used by the student's latest question, using REQUEST_JSON.locale only when that language is unclear. Carry the actual conversation across follow-ups without inventing earlier discussion or personal knowledge.\n\n",
@@ -922,7 +922,7 @@ async fn main(mut request: Request, env: Env, context: Context) -> Result<Respon
         max_tokens: 12,
         temperature: 0.0,
     };
-    match ai.run::<_, AiReply>(FAST_MODEL, verifier).await {
+    match ai.run::<_, AiReply>(DEEP_MODEL, verifier).await {
         Ok(reply) if verification_allows(&reply.response) => {}
         Ok(_) => {
             metric(&env, "verification_failed", route.name(), false, started);
