@@ -11,9 +11,14 @@ cwd = "api"
 [ai]
 binding = "AI"
 
-[[analytics_engine_datasets]]
-binding = "PET_METRICS"
-dataset = "notes_pet"
+[observability]
+enabled = true
+redact_query_string = true
+
+[observability.logs]
+enabled = true
+head_sampling_rate = 1
+invocation_logs = false
 
 [[ratelimits]]
 name = "PET_LIMIT"
