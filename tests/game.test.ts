@@ -409,23 +409,39 @@ test("gameplay budgets keep generation, movement, and scenes brisk", () => {
   assert.ok(settings.play.player_interval_ms <= 84);
   assert.ok(settings.play.ghost_interval_ms <= 280);
   assert.deepEqual(JSON.parse(JSON.stringify(game.SCENE_DURATIONS)), {
-    ready: 3200,
+    ready: 4300,
     vegemite: 1350,
     dragon: 1150,
     combined: 1850,
   });
 });
 
-test("reset shows the briefing before the first movement", () => {
+test("reset shows an idle attract screen before the introduction", () => {
   game.sceneTakes.set("vegemite", 2);
   game.resetGame(false);
+  assert.equal(game.gameScene, "attract");
+  assert.equal(game.gameStarted, false);
+  assert.equal(game.osElement.dataset.game, undefined);
+  assert.equal(game.sceneTakes.has("vegemite"), false);
+  assert.equal(game.sceneTakes.has("ready"), false);
+  assert.equal(game.board.dataset.scene, undefined);
+  game.startGameScene("ready");
   assert.equal(game.gameScene, "ready");
   assert.equal(game.gameStarted, true);
-  assert.equal(game.sceneTakes.has("vegemite"), false);
-  assert.equal(game.sceneTakes.get("ready"), 1);
+  assert.equal(game.board.dataset.scene, "ready");
+  assert.equal(game.osElement.dataset.game, "playing");
+  game.resetGame(false);
+  assert.equal(game.gameScene, "attract");
+  assert.equal(game.gameStarted, false);
+  assert.equal(game.board.dataset.scene, undefined);
+  assert.equal(game.osElement.dataset.game, undefined);
+  game.handleGameSceneAction();
+  assert.equal(game.gameScene, "ready");
+  assert.equal(game.board.dataset.scene, "ready");
   game.finishGameScene();
   assert.equal(game.gameScene, "");
   assert.equal(game.gameStarted, true);
+  assert.equal(game.board.dataset.scene, undefined);
 });
 
 test("seeded scene bags do not repeat at refill boundaries", () => {
@@ -461,6 +477,9 @@ test("double power and Vegemite captures have explicit payoffs", () => {
   );
   assert.match(template, />KAME · HAME · HAAAAA!</);
   assert.match(template, />pfft</);
+  assert.match(template, /scene-dragon__ground/);
+  assert.match(template, /scene-dragon__aura/);
+  assert.match(template, /scene-dragon__debris/);
   assert.deepEqual(Array.from(game.AUSSIE_SLANG), [
     "Too easy",
     "Beauty",
@@ -477,13 +496,32 @@ test("404 chrome keeps the game primary and the terminal optional", () => {
     new URL("../assets/styles/404/game.css", import.meta.url),
     "utf8",
   );
-  assert.match(template, /<details class="game__terminal">/);
+  const panicStyles = fs.readFileSync(
+    new URL("../assets/styles/404/panic.css", import.meta.url),
+    "utf8",
+  );
+  assert.match(template, /<details class="game__terminal" id="terminal">/);
   assert.match(template, /<summary>&gt;_ Terminal<\/summary>/);
-  assert.match(template, /KoalaBSD rescue shell ready · type help/);
+  assert.doesNotMatch(template, /KoalaBSD rescue shell ready · type help/);
+  assert.match(template, /Last login: current session from 198\.51\.100\.42/);
+  assert.match(template, /= Welcome to Koala's server =/);
+  assert.doesNotMatch(template, /EAIT Student Server/);
+  assert.doesNotMatch(template, /scene-attract__score/);
+  assert.match(template, /scene-attract__bag/);
+  assert.match(template, /scene-attract__tunnel/);
+  assert.match(template, /scene-attract__home/);
+  assert.match(template, /scene-ready__impact/);
+  assert.match(template, /scene-ready__pickup/);
+  assert.doesNotMatch(template, /scene-ready__moves/);
   assert.match(template, /aria-describedby="game-objective status"/);
-  assert.match(template, />Play now<\/button>/);
+  assert.match(template, />\s*Play\s*<\/button>/);
   assert.match(template, /Right\. Long way home\./);
+  assert.doesNotMatch(template, /SHORTCUT\?|STOLEN\.|Collect\. Escape/);
   assert.match(styles, /\.game-scene\[hidden\]\s*{\s*display:\s*none;/);
+  assert.match(
+    panicStyles,
+    /\.os\[data-game="playing"\] \.trace\s*{\s*display:\s*flex;/,
+  );
   assert.doesNotMatch(template, /id="music"|Music off|game__dialogue/);
   assert.doesNotMatch(
     template,
@@ -1121,6 +1159,7 @@ test("authored scenes run once while repeat powers stay on the board", () => {
   const timers = new Map();
   let timerId = 0;
   let stopped = 0;
+  let started = 0;
   const cues = [];
   const effects = [];
   const hunters = {
@@ -1148,8 +1187,8 @@ test("authored scenes run once while repeat powers stay on the board", () => {
   };
   const scene = {
     hidden: true,
-    dataset: {},
-    style: { setProperty() {} },
+    dataset: {} as Record<string, string>,
+    style: { removeProperty() {}, setProperty() {} },
     contains: () => false,
     querySelector: (selector) =>
       selector.includes("[data-scene-hunters]") ? hunters : sceneNode(selector),
@@ -1175,10 +1214,13 @@ test("authored scenes run once while repeat powers stay on the board", () => {
     })),
     playerElement: { querySelector: () => ({ src: "/koala.webp" }) },
     board: { dataset: {}, focus() {} },
-    osElement: { classList: { remove() {}, toggle() {} } },
+    osElement: {
+      dataset: {},
+      classList: { remove() {}, toggle() {} },
+    },
     gameAudio: {
       stop: () => stopped++,
-      start() {},
+      start: () => started++,
       sequence: (cue) => cues.push(cue),
       play: (cue) => effects.push(cue),
     },
@@ -1194,6 +1236,9 @@ test("authored scenes run once while repeat powers stay on the board", () => {
   });
   runFunctions(context, [
     "clearGameScene",
+    "populateSceneHunters",
+    "showGameAttract",
+    "handleGameSceneAction",
     "flashGameReaction",
     "shuffle",
     "takeFromBag",
@@ -1204,11 +1249,31 @@ test("authored scenes run once while repeat powers stay on the board", () => {
     "moveGhosts",
   ]);
 
-  context.startGameScene("ready");
+  context.showGameAttract();
+  assert.equal(context.gameScene, "attract");
+  assert.equal(context.gameStarted, false);
+  assert.equal(scene.hidden, false);
+  assert.equal(scene.dataset.kind, "attract");
+  assert.equal(context.board.dataset.scene, undefined);
+  assert.equal(sceneNode(".game-scene__skip").textContent, "Play");
+  assert.equal(
+    sceneNode(".game-scene__skip").attributes.get("aria-label"),
+    "Play Long Way Home",
+  );
+
+  context.handleGameSceneAction();
   assert.equal(context.gameScene, "ready");
-  assert.equal(sceneNode(".game-scene__skip").textContent, "Play now");
-  assert.equal([...timers.values()][0].ms, 3200);
+  assert.equal(context.gameStarted, true);
+  assert.equal(started, 1);
+  assert.equal(context.board.dataset.scene, "ready");
+  assert.equal(sceneNode(".game-scene__skip").textContent, "Skip");
+  assert.equal(
+    sceneNode(".game-scene__skip").attributes.get("aria-label"),
+    "Skip introduction",
+  );
+  assert.equal([...timers.values()][0].ms, 4300);
   context.finishGameScene();
+  assert.equal(context.board.dataset.scene, undefined);
 
   context.matchMedia = () => ({ matches: true });
   context.startGameScene("ready");
@@ -1227,7 +1292,7 @@ test("authored scenes run once while repeat powers stay on the board", () => {
       "each scene gets exactly two hunters",
     );
     assert.equal([...timers.values()][0].ms, context.SCENE_DURATIONS[kind]);
-    assert.equal(sceneNode(".game-scene__skip").textContent, "▶");
+    assert.equal(sceneNode(".game-scene__skip").textContent, "Skip");
     assert.equal(
       sceneNode(".game-scene__skip").attributes.get("aria-label"),
       "Skip power-up",
@@ -1270,9 +1335,21 @@ test("authored scenes run once while repeat powers stay on the board", () => {
   context.startGameScene("vegemite");
   replaced();
   assert.equal(context.gameScene, "vegemite");
+  assert.equal(context.board.dataset.scene, "vegemite");
   assert.equal(scene.hidden, false);
   assert.equal(timers.size, 1, "an old scene cannot finish its replacement");
   context.finishGameScene();
+  assert.equal(context.board.dataset.scene, undefined);
+
+  context.startGameScene("ready");
+  const resetStale = [...timers.values()][0].fn;
+  context.clearGameScene();
+  context.showGameAttract();
+  assert.equal(context.gameScene, "attract");
+  assert.equal(context.board.dataset.scene, undefined);
+  resetStale();
+  assert.equal(context.gameScene, "attract");
+  assert.equal(context.board.dataset.scene, undefined);
 
   let focusReturned = false;
   scene.contains = () => true;
