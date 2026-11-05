@@ -525,6 +525,7 @@ class PlotCoverageTests(unittest.TestCase):
                 self.assertIn("A &lt; B", html)
                 self.assertIn("Force &quot;history&quot;", html)
                 self.assertIn('data-state="idle"', html)
+                self.assertNotIn("note-plot__control", html)
 
 
 class SiteCoverageTests(unittest.TestCase):

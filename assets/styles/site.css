@@ -130,11 +130,8 @@
     var(--color-primary-700) 7%,
     transparent
   );
-  --site-rule: color-mix(
-    in srgb,
-    var(--color-primary-700) 16%,
-    transparent
-  );
+  --site-plot-ink: var(--color-neutral-cool-950);
+  --site-rule: color-mix(in srgb, var(--color-primary-700) 16%, transparent);
   --site-surface: var(--color-neutral-cool-100);
   --site-status-error: var(--color-error-600);
   --site-status-success: var(--color-success-700);
@@ -159,6 +156,7 @@
     var(--color-neutral-cool-200) 7%,
     transparent
   );
+  --site-plot-ink: var(--color-neutral-cool-100);
   --site-rule: color-mix(
     in srgb,
     var(--color-neutral-cool-200) 16%,
@@ -328,16 +326,8 @@ body {
 }
 
 .md-header__button:is(:hover, :focus-visible) {
-  border-color: color-mix(
-    in srgb,
-    var(--color-accent-300) 48%,
-    transparent
-  );
-  background: color-mix(
-    in srgb,
-    var(--color-neutral-warm-50) 10%,
-    transparent
-  );
+  border-color: color-mix(in srgb, var(--color-accent-300) 48%, transparent);
+  background: color-mix(in srgb, var(--color-neutral-warm-50) 10%, transparent);
 }
 
 .md-header__button.md-logo {
@@ -346,11 +336,7 @@ body {
   height: 2.65rem;
   padding: 0.18rem;
   place-items: center;
-  background: color-mix(
-    in srgb,
-    var(--color-neutral-warm-50) 96%,
-    transparent
-  );
+  background: color-mix(in srgb, var(--color-neutral-warm-50) 96%, transparent);
 }
 
 .md-header__button.md-logo :is(img, svg) {
@@ -404,19 +390,11 @@ body {
   border: 1px solid
     color-mix(in srgb, var(--color-neutral-warm-50) 18%, transparent);
   border-radius: 0.5rem;
-  background: color-mix(
-    in srgb,
-    var(--color-primary-950) 34%,
-    transparent
-  );
+  background: color-mix(in srgb, var(--color-primary-950) 34%, transparent);
 }
 
 .md-search__form:is(:focus-within, :hover) {
-  border-color: color-mix(
-    in srgb,
-    var(--color-accent-300) 42%,
-    transparent
-  );
+  border-color: color-mix(in srgb, var(--color-accent-300) 42%, transparent);
 }
 
 .md-nav__link {
@@ -529,10 +507,12 @@ body {
 @media (min-width: 76.25em) {
   .md-main__inner {
     display: block;
+    max-width: none;
+    padding-inline: 1.5rem;
   }
 
   .md-content {
-    width: min(100%, 72rem);
+    width: min(100%, 116rem);
     margin-inline: auto;
   }
 
@@ -702,6 +682,14 @@ body {
   white-space: nowrap;
 }
 
+.site-footer-owner__heart {
+  width: 0.7rem;
+  height: 0.7rem;
+  margin-inline: 0.12rem;
+  color: var(--color-secondary-300);
+  vertical-align: -0.08rem;
+}
+
 .site-footer-owner__name {
   position: relative;
   display: inline-block;
@@ -753,11 +741,7 @@ body {
   border: 1px solid
     color-mix(in srgb, var(--color-neutral-warm-50) 18%, transparent);
   border-radius: 0.55rem;
-  background: color-mix(
-    in srgb,
-    var(--color-neutral-warm-50) 6%,
-    transparent
-  );
+  background: color-mix(in srgb, var(--color-neutral-warm-50) 6%, transparent);
 }
 
 .site-footer-network__link--primary {
@@ -773,11 +757,7 @@ body {
   flex: 0 0 auto;
   isolation: isolate;
   border-color: transparent;
-  background: color-mix(
-    in srgb,
-    var(--color-secondary-300) 8%,
-    transparent
-  );
+  background: color-mix(in srgb, var(--color-secondary-300) 8%, transparent);
 }
 
 .site-footer-network__link--secondary::before {
@@ -803,16 +783,8 @@ body {
 
 .site-footer-network__link:is(:hover, :focus-visible) {
   color: var(--color-neutral-warm-50);
-  border-color: color-mix(
-    in srgb,
-    var(--color-secondary-300) 62%,
-    transparent
-  );
-  background: color-mix(
-    in srgb,
-    var(--color-secondary-300) 12%,
-    transparent
-  );
+  border-color: color-mix(in srgb, var(--color-secondary-300) 62%, transparent);
+  background: color-mix(in srgb, var(--color-secondary-300) 12%, transparent);
   outline: none;
 }
 
@@ -910,8 +882,7 @@ body {
     z-index: 2;
     animation: theme-wave-reveal 1200ms cubic-bezier(0.55, 0.04, 0.24, 1) both;
     filter: drop-shadow(
-      0 0 7px
-        color-mix(in srgb, var(--color-secondary-300) 18%, transparent)
+      0 0 7px color-mix(in srgb, var(--color-secondary-300) 18%, transparent)
     );
     mask-image: radial-gradient(
       circle at var(--theme-x) var(--theme-y),

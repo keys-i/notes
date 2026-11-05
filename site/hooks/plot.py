@@ -84,10 +84,7 @@ def format_plot(source, language, class_name, options, md, **kwargs):
     return (
         f'<figure class="note-plot note-plot--{dimension}" data-plot="{encoded}" '
         f'data-state="idle" aria-label="{description}" tabindex="0">'
-        '<div class="note-plot__canvas" role="img" aria-hidden="true">'
-        "Interactive graph loading on view"
-        "</div>"
-        '<button class="note-plot__reset" type="button" hidden>Reset view</button>'
+        '<div class="note-plot__canvas" role="img" aria-hidden="true"></div>'
         f"<figcaption><strong>{title}</strong><span>{description}</span></figcaption>"
         "</figure>"
     )

@@ -12,3 +12,25 @@ through differential equations, optimisation, and computational engineering.
 1. [Lecture notes](Lectures/index.md)
 2. [Tutorials](Tutorial/index.md)
 3. [Assignments](Assignment/index.md)
+
+## Interactive plotter
+
+```plot
+{
+  "title": "Damped response",
+  "description": "Displacement decreases towards equilibrium over five seconds",
+  "data": [
+    {
+      "type": "scatter",
+      "mode": "lines+markers",
+      "name": "displacement",
+      "x": [0, 1, 2, 3, 4, 5],
+      "y": [1, -0.5, 0.25, -0.125, 0.0625, -0.03125]
+    }
+  ],
+  "layout": {
+    "xaxis": {"title": "time (s)"},
+    "yaxis": {"title": "displacement"}
+  }
+}
+```

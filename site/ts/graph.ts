@@ -49,6 +49,7 @@ var graphGlitchTimers = {};
 var graphHoverFrames = 19;
 var graphResetFrames = 12;
 var graphTextFrameDelay = 45;
+var graphLabelBaseSize = 18;
 var graphTimelineNodes = [];
 var graphTimelineLinks = [];
 var graphTimelineFrame = 0;
@@ -104,15 +105,15 @@ function graph_label_element(chart, dataIndex) {
   return element && element.getTextContent ? element.getTextContent() : null;
 }
 
-function paint_graph_label(chart, dataIndex, text, neon?) {
+function paint_graph_label(chart, dataIndex, text) {
   // Repaint one text element without restarting graph layout
-  var glow = neon ? graph_accent_color() : null;
-  graph_label_element(chart, dataIndex)?.setStyle({
+  var label = graph_label_element(chart, dataIndex);
+  label?.setStyle({
     text: text,
-    stroke: glow,
-    lineWidth: neon ? 2 : 0,
-    shadowBlur: neon ? 9 : 0,
-    shadowColor: glow || "transparent",
+    stroke: "transparent",
+    lineWidth: 0,
+    shadowBlur: 0,
+    shadowColor: "transparent",
   });
 }
 
@@ -128,7 +129,7 @@ function glitch_graph_node(chart, node, dataIndex) {
   clearTimeout(graphGlitchTimers[timerKey]);
   delete graphGlitchTimers[timerKey];
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-    paint_graph_label(chart, dataIndex, node.fullName, true);
+    paint_graph_label(chart, dataIndex, node.fullName);
     return;
   }
 
@@ -152,7 +153,6 @@ function glitch_graph_node(chart, node, dataIndex) {
               frame,
             ) +
             suffixes[frame % suffixes.length],
-      true,
     );
     if (frame === graphHoverFrames) {
       delete graphGlitchTimers[timerKey];
@@ -173,7 +173,7 @@ function reset_graph_node(chart, node, dataIndex) {
   clearTimeout(graphGlitchTimers[timerKey]);
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
     delete graphGlitchTimers[timerKey];
-    paint_graph_label(chart, dataIndex, node.name, false);
+    paint_graph_label(chart, dataIndex, node.name);
     return;
   }
 
@@ -186,7 +186,6 @@ function reset_graph_node(chart, node, dataIndex) {
       chart,
       dataIndex,
       graph_reset_text(fromText, node.name, frame),
-      frame !== graphResetFrames,
     );
     if (frame === graphResetFrames) {
       delete graphGlitchTimers[timerKey];
@@ -212,6 +211,13 @@ function graph_visible_links(links, visibleIds) {
 
 function graph_node_size(edgeCount, depth) {
   return 5.5 + (edgeCount * 3) / (depth + 1);
+}
+
+function graph_label_size(distance) {
+  return Math.max(
+    12,
+    graphLabelBaseSize / Math.sqrt(1 + Math.max(0, distance) / 4),
+  );
 }
 
 function graph_timeline_nodes(nodes, links, appearingIds, popScale?) {
@@ -535,6 +541,7 @@ function graph_colours() {
     hub: colour("--graph-hub-color", "#0b7180"),
     leaf: colour("--graph-leaf-color", "#4263c7"),
     root: colour("--graph-root-color", "#0719aa"),
+    text: colour("--md-default-fg-color", "#111827"),
   };
 }
 
@@ -551,10 +558,13 @@ function request_graph_resize() {
 window.addEventListener("resize", request_graph_resize);
 
 function graph_label_data(_expanded, activeIndex?) {
+  var textColour = graph_colours().text;
   return graphTimelineNodes.map(function (node, index) {
     var active = index === activeIndex;
     return Object.assign({}, node, {
       label: {
+        color: textColour,
+        fontSize: graph_label_size(node.graphDepth),
         formatter: active ? node.fullName : node.name,
         show: true,
       },
@@ -585,6 +595,7 @@ function style_graph_nodes() {
       },
       label: {
         color: colour,
+        fontSize: graph_label_size(node.graphDepth),
         textBorderWidth: 0,
         textShadowBlur: 0,
       },
@@ -727,12 +738,12 @@ function fit_graph(chart) {
     largestNode = Math.max(largestNode, Number(node.finalSymbolSize) || 0);
     widestPinnedLabel = Math.max(
       widestPinnedLabel,
-      String(node.name || "").length * 7,
+      String(node.name || "").length * graph_label_size(node.graphDepth) * 0.6,
     );
   });
   if (!Number.isFinite(minX)) return null;
   var nodeInset = Math.max(12, largestNode / 2);
-  var labelInset = Math.min(180, Math.max(44, widestPinnedLabel));
+  var labelInset = Math.min(220, Math.max(44, widestPinnedLabel));
   var left = 36 + nodeInset;
   var right = left + labelInset;
   var top = 40 + nodeInset;
@@ -969,7 +980,7 @@ function prepare_graph(graph) {
           overflow: "truncate",
           textBorderWidth: 0,
           textShadowBlur: 0,
-          width: 180,
+          width: 220,
         },
         emphasis: {
           focus: "adjacency",
@@ -997,7 +1008,7 @@ function prepare_graph(graph) {
             textBorderWidth: 0,
             textShadowBlur: 0,
             overflow: "truncate",
-            width: 180,
+            width: 220,
           },
         },
         blur: {
@@ -1006,7 +1017,8 @@ function prepare_graph(graph) {
           label: { opacity: 0.2 },
         },
         labelLayout: {
-          hideOverlap: false,
+          hideOverlap: true,
+          moveOverlap: "shiftY",
         },
         scaleLimit: {
           min: 0.01,
