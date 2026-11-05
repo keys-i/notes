@@ -104,14 +104,15 @@ function graph_label_element(chart, dataIndex) {
   return element && element.getTextContent ? element.getTextContent() : null;
 }
 
-function paint_graph_label(chart, dataIndex, text) {
+function paint_graph_label(chart, dataIndex, text, neon?) {
   // Repaint one text element without restarting graph layout
+  var glow = neon ? graph_accent_color() : null;
   graph_label_element(chart, dataIndex)?.setStyle({
     text: text,
-    stroke: null,
-    lineWidth: 0,
-    shadowBlur: 0,
-    shadowColor: "transparent",
+    stroke: glow,
+    lineWidth: neon ? 2 : 0,
+    shadowBlur: neon ? 9 : 0,
+    shadowColor: glow || "transparent",
   });
 }
 
@@ -127,7 +128,7 @@ function glitch_graph_node(chart, node, dataIndex) {
   clearTimeout(graphGlitchTimers[timerKey]);
   delete graphGlitchTimers[timerKey];
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-    paint_graph_label(chart, dataIndex, node.fullName);
+    paint_graph_label(chart, dataIndex, node.fullName, true);
     return;
   }
 
@@ -151,6 +152,7 @@ function glitch_graph_node(chart, node, dataIndex) {
               frame,
             ) +
             suffixes[frame % suffixes.length],
+      true,
     );
     if (frame === graphHoverFrames) {
       delete graphGlitchTimers[timerKey];
@@ -171,7 +173,7 @@ function reset_graph_node(chart, node, dataIndex) {
   clearTimeout(graphGlitchTimers[timerKey]);
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
     delete graphGlitchTimers[timerKey];
-    paint_graph_label(chart, dataIndex, node.name);
+    paint_graph_label(chart, dataIndex, node.name, false);
     return;
   }
 
@@ -184,6 +186,7 @@ function reset_graph_node(chart, node, dataIndex) {
       chart,
       dataIndex,
       graph_reset_text(fromText, node.name, frame),
+      frame !== graphResetFrames,
     );
     if (frame === graphResetFrames) {
       delete graphGlitchTimers[timerKey];
@@ -287,6 +290,23 @@ function graph_timeline_steps(nodes) {
   return steps;
 }
 
+function graph_timeline_beats(nodes) {
+  var steps = graph_timeline_steps(nodes);
+  return steps.map(function (shown, index) {
+    var current = Date.parse(nodes[shown - 1].created);
+    var nextShown = steps[index + 1];
+    var next = nextShown ? Date.parse(nodes[nextShown - 1].created) : NaN;
+    var gapDays = (next - current) / 86400000;
+    return {
+      duration:
+        Number.isFinite(gapDays) && gapDays > 0
+          ? Math.min(900, 420 + Math.log2(gapDays + 1) * 90)
+          : 620,
+      shown: shown,
+    };
+  });
+}
+
 function finish_graph_timelapse() {
   if (graphTimelineFrame) cancelAnimationFrame(graphTimelineFrame);
   graphTimelineFrame = 0;
@@ -327,11 +347,10 @@ function replay_graph_growth(chart) {
     return;
   }
 
-  var steps = graph_timeline_steps(graphTimelineNodes);
+  var beats = graph_timeline_beats(graphTimelineNodes);
   var started = 0;
   var renderedBeat = -1;
   var renderedPhase = -1;
-  var beatDuration = 620;
   chart.setOption({ series: [{ data: [], links: [] }] });
 
   function reveal_nodes(now) {
@@ -341,13 +360,21 @@ function replay_graph_growth(chart) {
     }
     if (!started) started = now;
     var elapsed = now - started;
-    var beat = Math.min(steps.length - 1, Math.floor(elapsed / beatDuration));
-    var beatElapsed = elapsed - beat * beatDuration;
-    var phase = beatElapsed >= 400 ? 2 : beatElapsed >= 90 ? 1 : 0;
+    var beat = 0;
+    var beatStarted = 0;
+    while (
+      beat < beats.length - 1 &&
+      elapsed >= beatStarted + beats[beat].duration
+    ) {
+      beatStarted += beats[beat].duration;
+      beat += 1;
+    }
+    var progress = (elapsed - beatStarted) / beats[beat].duration;
+    var phase = progress >= 0.65 ? 2 : progress >= 0.15 ? 1 : 0;
 
     if (beat !== renderedBeat || phase !== renderedPhase) {
-      var previousShown = beat === 0 ? 0 : steps[beat - 1];
-      var nodes = graphTimelineNodes.slice(0, steps[beat]);
+      var previousShown = beat === 0 ? 0 : beats[beat - 1].shown;
+      var nodes = graphTimelineNodes.slice(0, beats[beat].shown);
       var visibleLinks = graph_visible_links(
         graphTimelineLinks,
         new Set(
@@ -378,7 +405,7 @@ function replay_graph_growth(chart) {
       renderedPhase = phase;
     }
 
-    if (beat === steps.length - 1 && phase === 2) {
+    if (beat === beats.length - 1 && phase === 2) {
       chart.setOption({
         series: [{ data: graphTimelineNodes, links: graphTimelineLinks }],
       });
@@ -715,7 +742,7 @@ function fit_graph(chart) {
   var zoom = Math.max(
     0.01,
     Math.min(
-      2.8,
+      1,
       width / Math.max(1, maxX - minX),
       height / Math.max(1, maxY - minY),
     ),

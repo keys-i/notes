@@ -151,8 +151,8 @@
     bannerEl.textContent =
       options.banner ||
       (mode === "shutdown"
-        ? "FreeBSD/amd64 · shutdown -r now"
-        : "FreeBSD/amd64 · booting");
+        ? "FreeBSD/amd64 — shutdown -r now"
+        : "FreeBSD/amd64 — booting");
     var lines = options.lines || bootLines();
     var shown = [];
     var index = 0;
@@ -166,8 +166,8 @@
       bannerEl.textContent =
         options.doneBanner ||
         (mode === "shutdown"
-          ? "FreeBSD/amd64 · rebooting"
-          : "FreeBSD/amd64 · multiuser");
+          ? "FreeBSD/amd64 — rebooting"
+          : "FreeBSD/amd64 — multiuser");
       layer.classList.add("is-ready");
       schedule(
         function () {
@@ -254,8 +254,8 @@
     var uptime = options.uptime || "4m00s";
     options.mode = "shutdown";
     options.lines = options.lines || shutdownLines(uptime);
-    options.banner = options.banner || "FreeBSD/amd64 · shutdown -r now";
-    options.doneBanner = options.doneBanner || "FreeBSD/amd64 · rebooting";
+    options.banner = options.banner || "FreeBSD/amd64 — shutdown -r now";
+    options.doneBanner = options.doneBanner || "FreeBSD/amd64 — rebooting";
     options.holdMs = options.holdMs != null ? options.holdMs : 1100;
     return playConsole(options);
   }

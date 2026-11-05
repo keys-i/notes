@@ -1,6 +1,6 @@
 {% extends "main.html" %} {% set site_root = config.site_url.rstrip('/') ~ '/'
 %} {% set game = config.extra.game %} {% block htmltitle %}
-<title>404 · Page not found · {{ config.site_name }}</title>
+<title>404 — Page not found — {{ config.site_name }}</title>
 {% endblock %} {% block extrahead %}
 <meta name="robots" content="noindex,follow" />
 <meta name="theme-color" content="#0719aa" />
@@ -49,8 +49,8 @@ endblock %} {% block content %}
 <section class="os" id="os" data-damage="0" aria-labelledby="404-title">
   <header class="os__bar">
     <span class="os__signal">KoalaBSD 14.2-RECOVERY</span>
-    <span><span id="kernel-phase">KDB</span> · maze0</span>
-    <span id="kernel-clock">cpu0 · t+00:00.000</span>
+    <span><span id="kernel-phase">KDB</span> / maze0</span>
+    <span id="kernel-clock">cpu0 / t+00:00.000</span>
   </header>
 
   <div class="os__grid">
@@ -91,7 +91,7 @@ Dumping 404 out of 404 MB</pre>
     <div class="game">
       <div class="game__heading">
         <div>
-          <span class="game__eyebrow">ttyv0 · single-user · /rescue/sh</span>
+          <span class="game__eyebrow">ttyv0 / single-user / /rescue/sh</span>
           <h1 id="404-title" data-text="404" aria-label="404 — Page not found">
             404
           </h1>
@@ -230,7 +230,7 @@ Dumping 404 out of 404 MB</pre>
               <span class="scene-attract__bag">
                 <span>V</span><span>★</span><span>●</span>
               </span>
-              <span class="scene-attract__pellets">· · · · · · · ·</span>
+            <span class="scene-attract__pellets">● ● ● ● ● ● ● ●</span>
               <span class="scene-attract__tunnel">
                 <span class="scene-attract__sign">HOME&nbsp; →</span>
                 <span class="scene-attract__hunters" data-scene-hunters></span>
@@ -263,7 +263,7 @@ Dumping 404 out of 404 MB</pre>
             <span class="scene-ready__impact"></span>
             <div class="scene-ready__hunters" data-scene-hunters></div>
             <span class="scene-ready__pickup"></span>
-            <div class="scene-ready__pellets">· · · · · · · ·</div>
+            <div class="scene-ready__pellets">● ● ● ● ● ● ● ●</div>
             <img
               class="scene-ready__home"
               src="{{ site_root }}{{ game.assets.goal }}"
@@ -336,7 +336,7 @@ Dumping 404 out of 404 MB</pre>
             <span class="scene-combined__pie scene-combined__pie--c">×</span>
             <span class="scene-combined__charge"></span>
             <span class="scene-combined__beam"></span>
-            <strong class="scene-combined__chant">KAME · HAME · HAAAAA!</strong>
+            <strong class="scene-combined__chant">KAME HAME HAAAAA!</strong>
             <div class="scene-combined__hunters" data-scene-hunters></div>
           </div>
 
@@ -505,7 +505,7 @@ ff69bc28 80115f67 80115f67 ff7b2600 - eagle.sys @11,07 RUN</pre>
     <strong>&gt; VFS LOOKUP FAILED: ENOENT (404)</strong>
     <span>&gt; VMCORE RECOVERY: <strong id="dump">0%</strong></span>
     <a class="reboot" href="{{ site_root }}" id="shutdown" data-shutdown="1"
-      >&gt; shutdown -r now · REBOOT HOME</a
+      >&gt; shutdown -r now — REBOOT HOME</a
     >
   </footer>
 </section>

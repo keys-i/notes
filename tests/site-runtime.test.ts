@@ -817,6 +817,17 @@ test("graph helpers preserve routes, ordering, labels, and timeline state", asyn
     ),
     [2, 3],
   );
+  assert.deepEqual(
+    JSON.parse(
+      call(
+        "JSON.stringify(graph_timeline_beats([{created:'2024-01-01'},{created:'2024-01-01'},{created:'2024-01-02'}]))",
+      ),
+    ),
+    [
+      { duration: 510, shown: 2 },
+      { duration: 620, shown: 3 },
+    ],
+  );
   assert.equal(
     call(
       "find_graph_node_path_prefix([{value:'/notes/'},{value:'/notes/week/'}])",
@@ -924,7 +935,7 @@ test("graph helpers preserve routes, ordering, labels, and timeline state", asyn
     .at(-1).series[0];
   assert.ok(fitted.center[0] > 5);
   assert.equal(fitted.center[1], 10);
-  assert.equal(fitted.zoom, 2.8);
+  assert.equal(fitted.zoom, 1);
   assert.equal(call("graphSitePath"), "");
   assert.equal(call("graphNodePathPrefix"), "/notes");
   const canvas = graph.elements.get("graph")!;
@@ -1124,7 +1135,7 @@ test("graph hover decodes full names and cancels every text timer", async () => 
   await call("graphModalPromise");
   [...graph.timers.values()][0].callback();
   call(
-    "painted=[]; paint_graph_label=function(chart,index,text){painted.push(text)}",
+    "painted=[]; neon=[]; paint_graph_label=function(chart,index,text,boundary){painted.push(text);neon.push(boundary)}",
   );
   const node = { fullName: "Full title", id: "1", name: "Week" };
 
@@ -1132,6 +1143,7 @@ test("graph hover decodes full names and cancels every text timer", async () => 
   assert.equal(graph.timers.size, 1);
   assert.equal([...graph.timers.values()][0].delay, 45);
   assert.match(call("painted[0]"), /^(▓▓|\/\/|ERR|░▒|<>|404)/);
+  assert.equal(call("neon[0]"), true);
   const decodedFrom = call("painted.length");
   while (graph.timers.size) [...graph.timers.values()][0].callback();
   assert.equal(call("painted.length") - decodedFrom, 19);
@@ -1145,6 +1157,7 @@ test("graph hover decodes full names and cancels every text timer", async () => 
   while (graph.timers.size) [...graph.timers.values()][0].callback();
   assert.equal(call("painted.length") - resetFrom, 12);
   assert.equal(call("painted.at(-1)"), "Week");
+  assert.equal(call("neon.at(-1)"), false);
   assert.equal(call("Object.keys(graphGlitchTimers).length"), 0);
 
   graph.window.matchMedia = () => ({ matches: true });
@@ -1152,6 +1165,8 @@ test("graph hover decodes full names and cancels every text timer", async () => 
   graph.chartHandlers.mouseout({ data: node, dataIndex: 1, dataType: "node" });
   assert.equal(call("painted.at(-2)"), "Full title");
   assert.equal(call("painted.at(-1)"), "Week");
+  assert.equal(call("neon.at(-2)"), true);
+  assert.equal(call("neon.at(-1)"), false);
   assert.equal(graph.timers.size, 0);
 
   graph.window.matchMedia = () => ({ matches: false });
@@ -1236,25 +1251,25 @@ test("graph replay is one cancellable frame loop and data failures retry", async
     chart.options.at(-1).series[0].data.map((node: any) => node.symbolSize),
     [1, 1],
   );
-  frames[2](91);
+  frames[2](80);
   assert.ok(
     chart.options
       .at(-1)
       .series[0].data.every((node: any) => node.symbolSize >= 16),
   );
-  frames[3](401);
+  frames[3](340);
   assert.ok(
     chart.options
       .at(-1)
       .series[0].data.every((node: any) => node.symbolSize < 16),
   );
-  frames[4](621);
+  frames[4](511);
   assert.equal(chart.options.at(-1).series[0].data.length, 3);
   assert.equal(chart.options.at(-1).series[0].links.length, 2);
   assert.equal(chart.options.at(-1).series[0].data.at(-1).symbolSize, 1);
-  frames[5](711);
+  frames[5](604);
   assert.ok(chart.options.at(-1).series[0].data.at(-1).symbolSize >= 16);
-  frames[6](1021);
+  frames[6](914);
   assert.equal(chart.options.at(-1).series[0].data.length, 3);
   assert.equal(graph.replay.classList.contains("is-playing"), false);
   assert.equal(call("graphTimelineFrame"), 0);
