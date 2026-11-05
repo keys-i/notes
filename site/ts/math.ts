@@ -30,7 +30,7 @@
     loading = new Promise(function (resolve, reject) {
       var script = document.createElement("script");
       script.src =
-        "https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js";
+        "https://fastly.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js";
       script.integrity =
         "sha384-Wuix6BuhrWbjDBs24bXrjf4ZQ5aFeFWBuKkFekO2t8xFU0iNaLQfp2K6/1Nxveei";
       script.crossOrigin = "anonymous";

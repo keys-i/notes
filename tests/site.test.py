@@ -161,6 +161,7 @@ class SiteAssetTests(unittest.TestCase):
         self.assertIn("prefers-reduced-motion: reduce", theme)
         self.assertIn('[data-md-color-scheme="default"]', theme)
         self.assertIn('[data-md-color-scheme="slate"]', theme)
+        self.assertIn("width: min(100%, 116rem)", theme)
         self.assertIn("text: IBM Plex Sans", config)
         self.assertIn("code: IBM Plex Mono", config)
         self.assertNotIn("language:", config)
@@ -228,7 +229,7 @@ class SiteAssetTests(unittest.TestCase):
                 self.assertEqual(decoded["data"], data)
                 self.assertIn(f"note-plot--{dimension}", rendered)
                 self.assertIn('tabindex="0"', rendered)
-                self.assertIn("Reset view", rendered)
+                self.assertNotIn("note-plot__control", rendered)
 
     def test_plot_fences_reject_malformed_data(self):
         valid = {
@@ -268,6 +269,7 @@ class SiteAssetTests(unittest.TestCase):
         config = (ROOT / "site/mkdocs.yml").read_text(encoding="utf-8")
         main = (ROOT / "site/theme/main.html").read_text(encoding="utf-8")
         script = (ROOT / "site/ts/plot.ts").read_text(encoding="utf-8")
+        style = (ROOT / "assets/styles/plot.css").read_text(encoding="utf-8")
 
         self.assertIn("hooks.plot.format_plot", config)
         self.assertIn("assets/js/plot.js", config)
@@ -280,6 +282,13 @@ class SiteAssetTests(unittest.TestCase):
         self.assertIn("script.integrity = PLOTLY_INTEGRITY", script)
         self.assertIn("prefers-reduced-motion: reduce", script)
         self.assertIn('console.error("Interactive graph failed", error)', script)
+        self.assertIn("margin: { b: 44, l: 52, pad: 0, r: 16, t: 16 }", script)
+        self.assertIn("width: 100%", style)
+        self.assertIn(".md-typeset > .note-plot", style)
+        self.assertIn("max-width: 100%", style)
+        self.assertIn("height: 24rem", style)
+        self.assertIn(".note-plot .modebar-btn", style)
+        self.assertNotIn("min-height: 24rem", style)
         self.assertNotIn("eval(", script)
 
     def test_dock_pet_integration(self):

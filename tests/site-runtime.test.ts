@@ -257,7 +257,7 @@ test("math rendering loads only for equations and fails visibly", () => {
   const script: any = math.head.children[0];
   assert.equal(
     script.src,
-    "https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js",
+    "https://fastly.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js",
   );
   assert.match(script.integrity, /^sha384-/);
   assert.equal(script.crossOrigin, "anonymous");
@@ -425,7 +425,7 @@ function plotHarness({
     document,
     getComputedStyle: () => ({
       getPropertyValue: (name: string) =>
-        name === "--site-rule" ? " #dde " : " #112 ",
+        name === "--site-rule" ? " #dde " : " #eef ",
     }),
     window,
   };
@@ -447,45 +447,56 @@ function plotHarness({
 
 function plotFigure(valid = true) {
   const figure = new RuntimeElement();
+  figure.className = "note-plot note-plot--2d";
   figure.dataset.state = "idle";
   if (valid) {
     figure.dataset.plot = Buffer.from(
       JSON.stringify({
         data: [{ x: [1], y: [2] }],
         description: "plot",
-        layout: { title: "Test" },
+        layout: {
+          title: "Test",
+          xaxis: { title: "x" },
+          yaxis: { rangemode: "tozero" },
+        },
         title: "Test",
       }),
     ).toString("base64");
   }
   const canvas = new RuntimeElement();
   canvas.className = "note-plot__canvas";
-  const reset = new RuntimeElement();
-  reset.className = "note-plot__reset";
-  reset.hidden = true;
-  figure.append(canvas, reset);
-  return { canvas, figure, reset };
+  figure.append(canvas);
+  return { canvas, figure };
 }
 
 test("plots load lazily, render accessibly, reset, and expose failures", async () => {
   const rendered: any[] = [];
-  const relayouts: any[] = [];
   const api = {
     newPlot: async (...args: any[]) => rendered.push(args),
-    relayout: async (...args: any[]) => relayouts.push(args),
   };
   const success = plotFigure();
   const ready = plotHarness({ api, figure: success.figure });
   await settle();
   assert.equal(success.figure.dataset.state, "ready");
   assert.equal(success.canvas.attributes["aria-hidden"], "false");
-  assert.equal(success.reset.hidden, false);
   assert.equal(rendered[0][2].transition.duration, 180);
   assert.equal(rendered[0][2].title, "Test");
-  success.reset.dispatch("click");
+  assert.equal(rendered[0][2].dragmode, "pan");
+  assert.equal(rendered[0][2].xaxis.title, "x");
+  assert.equal(rendered[0][2].xaxis.tickfont.color, "#eef");
+  assert.equal(rendered[0][2].xaxis.showline, true);
+  assert.equal(rendered[0][2].xaxis.linewidth, 2);
+  assert.equal(rendered[0][2].yaxis.rangemode, "tozero");
+  assert.equal(rendered[0][2].yaxis.tickwidth, 2);
+  assert.equal(rendered[0][3].displayModeBar, true);
+  assert.equal(rendered[0][3].doubleClick, "reset+autosize");
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(rendered[0][3].modeBarButtonsToRemove)),
+    ["autoScale2d", "lasso2d", "select2d", "zoom2d"],
+  );
+  assert.equal(rendered[0][3].scrollZoom, false);
   success.figure.dispatch("focusin");
   success.figure.dispatch("pointerenter");
-  assert.equal(relayouts.length, 1);
   await vm.runInContext(
     "renderPlot(document.querySelectorAll()[0])",
     ready.context,
@@ -543,6 +554,7 @@ function graphHarness() {
     "--graph-leaf-color": " #47c ",
     "--graph-root-color": " #116 ",
     "--md-accent-fg-color": " #fc0 ",
+    "--md-default-fg-color": " #fff ",
   };
   const search = new RuntimeElement();
   let launcherHtml = "";
@@ -766,6 +778,9 @@ test("graph helpers preserve routes, ordering, labels, and timeline state", asyn
   assert.match(graph.launcherHtml(), /aria-label="Open graph"/);
   assert.doesNotMatch(graph.launcherHtml(), />Graph<\/span>/);
   assert.equal(call("graph_node_size(3, 2)"), 8.5);
+  assert.equal(call("graph_label_size(0)"), 18);
+  assert.ok(call("graph_label_size(4)") < 18);
+  assert.equal(call("graph_label_size(20)"), 12);
   assert.deepEqual(
     JSON.parse(
       call(
@@ -834,6 +849,24 @@ test("graph helpers preserve routes, ordering, labels, and timeline state", asyn
     ),
     "/notes",
   );
+  assert.equal(call("graph_colour_hue([])"), 0);
+  assert.ok(
+    call(
+      "graph_colour_hue([{created:'not-a-date',value:'fallback\\u0000'}])",
+    ) >= 0,
+  );
+  call(
+    "graphTimelineNodes=[{graphRoot:true},{graphHub:true},{}]; style_graph_nodes()",
+  );
+  assert.deepEqual(
+    JSON.parse(
+      call(
+        "JSON.stringify(graphTimelineNodes.map(node=>node.itemStyle.color))",
+      ),
+    ),
+    ["#116", "#088", "#47c"],
+  );
+  assert.equal(call("graphTimelineNodes[0].emphasis.label.color"), "#116");
   assert.equal(
     call("graph_pathname({toString(){throw new Error('bad path')}})"),
     "",
@@ -864,8 +897,15 @@ test("graph helpers preserve routes, ordering, labels, and timeline state", asyn
   assert.notEqual(rootColour, leafColour);
   assert.equal(call("option.series[0].data[0].label.show"), true);
   assert.equal(call("option.series[0].data[1].label.show"), true);
+  assert.equal(call("option.series[0].data[0].label.color"), "#fff");
+  assert.equal(call("option.series[0].data[1].label.color"), "#fff");
+  assert.equal(
+    call("option.series[0].data[0].emphasis.label.color"),
+    rootColour,
+  );
   assert.equal(call("option.series[0].label.show"), true);
-  assert.equal(call("option.series[0].labelLayout.hideOverlap"), false);
+  assert.equal(call("option.series[0].labelLayout.hideOverlap"), true);
+  assert.equal(call("option.series[0].labelLayout.moveOverlap"), "shiftY");
   assert.equal(call("option.tooltip.show"), false);
   assert.equal(call("option.tooltip.triggerOn"), "none");
   assert.equal(call("option.series[0].nodeScaleRatio"), 0.01);
@@ -964,16 +1004,25 @@ test("graph helpers preserve routes, ordering, labels, and timeline state", asyn
   assert.equal(prevented, 7);
   graph.chartHandlers.graphroam({ zoom: 2 });
   assert.equal(graph.chart.options.at(-1).series[0].data[1].label.show, true);
+  assert.equal(
+    graph.chart.options.at(-1).series[0].data[1].label.color,
+    "#fff",
+  );
   graph.chartHandlers.click({ dataType: "edge" });
   graph.chartHandlers.click({ dataType: "node", value: "/notes/week/" });
   assert.equal(new URL(graph.window.location.href).pathname, "/week/");
   call("open_graph()");
   const currentRootColour = call("option.series[0].data[0].itemStyle.color");
   graph.colours["--graph-glow-color"] = " #abc ";
+  graph.colours["--md-default-fg-color"] = " #111 ";
   graph.palette.dispatch("change");
   assert.equal(
     graph.chart.options.at(-1).series[0].data[0].itemStyle.color,
     currentRootColour,
+  );
+  assert.equal(
+    graph.chart.options.at(-1).series[0].data[0].label.color,
+    "#111",
   );
   assert.equal(
     graph.chart.options.at(-1).series[0].emphasis.itemStyle.shadowColor,
@@ -1134,8 +1183,12 @@ test("graph hover decodes full names and cancels every text timer", async () => 
   call("open_graph()");
   await call("graphModalPromise");
   [...graph.timers.values()][0].callback();
+  call(`paintedStyle=null; labelElement={style:{fill:'#41d17d'},setStyle(value){paintedStyle=value}};
+    paint_graph_label({isDisposed:()=>false,getModel:()=>({getSeriesByIndex:()=>({getData:()=>({getItemGraphicEl:()=>({getSymbolPath(){return this},getTextContent:()=>labelElement})})})})},1,'Full title')`);
+  assert.equal(call("paintedStyle.stroke"), "transparent");
+  assert.equal(call("paintedStyle.shadowBlur"), 0);
   call(
-    "painted=[]; neon=[]; paint_graph_label=function(chart,index,text,boundary){painted.push(text);neon.push(boundary)}",
+    "painted=[]; paint_graph_label=function(chart,index,text){painted.push(text)}",
   );
   const node = { fullName: "Full title", id: "1", name: "Week" };
 
@@ -1143,7 +1196,6 @@ test("graph hover decodes full names and cancels every text timer", async () => 
   assert.equal(graph.timers.size, 1);
   assert.equal([...graph.timers.values()][0].delay, 45);
   assert.match(call("painted[0]"), /^(▓▓|\/\/|ERR|░▒|<>|404)/);
-  assert.equal(call("neon[0]"), true);
   const decodedFrom = call("painted.length");
   while (graph.timers.size) [...graph.timers.values()][0].callback();
   assert.equal(call("painted.length") - decodedFrom, 19);
@@ -1157,7 +1209,6 @@ test("graph hover decodes full names and cancels every text timer", async () => 
   while (graph.timers.size) [...graph.timers.values()][0].callback();
   assert.equal(call("painted.length") - resetFrom, 12);
   assert.equal(call("painted.at(-1)"), "Week");
-  assert.equal(call("neon.at(-1)"), false);
   assert.equal(call("Object.keys(graphGlitchTimers).length"), 0);
 
   graph.window.matchMedia = () => ({ matches: true });
@@ -1165,8 +1216,6 @@ test("graph hover decodes full names and cancels every text timer", async () => 
   graph.chartHandlers.mouseout({ data: node, dataIndex: 1, dataType: "node" });
   assert.equal(call("painted.at(-2)"), "Full title");
   assert.equal(call("painted.at(-1)"), "Week");
-  assert.equal(call("neon.at(-2)"), true);
-  assert.equal(call("neon.at(-1)"), false);
   assert.equal(graph.timers.size, 0);
 
   graph.window.matchMedia = () => ({ matches: false });
