@@ -854,7 +854,8 @@ function dockPetStudyError(code, timedOut?) {
       maximum: maximum,
       minimum: minimum,
       visible: rect.top < window.innerHeight && rect.bottom > 0,
-      y: desktop.matches ? rect.top - pet.offsetHeight * 0.91 : rect.top + 8,
+      // The painted koala ends one pixel above its square SVG box
+      y: Math.max(8, rect.top - pet.offsetHeight + 1),
     };
   }
 
@@ -1556,7 +1557,7 @@ function dockPetStudyError(code, timedOut?) {
     manualPosition = onFooter ? null : point;
     setPosition(point);
     dropFeedback();
-    announce(onFooter ? "Koala landed on the footer" : "Koala landed");
+    announce(onFooter ? "Koala landed on top of the footer" : "Koala landed");
   }
 
   function scheduleFall() {
@@ -1666,11 +1667,11 @@ function dockPetStudyError(code, timedOut?) {
     setPosition({ x: fall.x, y: target.y });
     announce(
       edge
-        ? "Koala climbing down the " + edge + " side towards the footer"
+        ? "Koala climbing down the " + edge + " side towards the footer edge"
         : rope
-          ? "Koala rappelling from the " + rope + " side towards the footer"
+          ? "Koala rappelling from the " + rope + " side towards the footer edge"
           : parachute
-            ? "Parachute open; scrolling towards the footer"
+            ? "Parachute open; scrolling towards the footer edge"
             : "Koala falling towards the nearest ground",
     );
     if (reducedMotion.matches) {

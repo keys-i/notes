@@ -5,7 +5,8 @@
   border: 1px solid var(--site-rule);
   border-radius: 0.65rem;
   background: var(--site-surface);
-  box-shadow: 0 0.45rem 1.4rem rgb(6 18 115 / 0.08);
+  box-shadow: 0 0.45rem 1.4rem
+    color-mix(in srgb, var(--color-primary-900) 8%, transparent);
   contain: layout paint;
 }
 

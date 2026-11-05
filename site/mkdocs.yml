@@ -37,7 +37,9 @@ theme:
       toggle:
         icon: material/weather-night
         name: Switch to light mode
-  font: false
+  font:
+    text: IBM Plex Sans
+    code: IBM Plex Mono
   features:
     - content.action.view # View action on content
     - content.code.annotate # Allows code annotations
@@ -57,8 +59,7 @@ extra:
   owner_url: https://keysi.dev
   twitter: keys_i
   social:
-    - icon: fontawesome/solid/globe
-      link: https://keysi.dev
+    - link: https://keysi.dev
       name: Radhesh Goel's website
       label: Keysi.dev
       featured: primary
@@ -70,11 +71,9 @@ extra:
     - icon: fontawesome/brands/linkedin
       link: https://linkedin.com/in/radhesh-g
       name: Radhesh Goel on LinkedIn
-      label: LinkedIn
     - icon: fontawesome/brands/github
       link: https://github.com/keys-i
       name: Radhesh Goel on GitHub
-      label: GitHub
   analytics:
     provider: google
     property: G-7WSKK5Y761
