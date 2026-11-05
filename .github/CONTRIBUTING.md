@@ -24,7 +24,7 @@ clarity, navigation, or presentation of the existing notes
 
 By contributing, you confirm that you may share the material and agree that
 it will be distributed under this repository's
-[GNU GPL v2 licence](../LICENSE)
+[MIT License](../LICENSE)
 
 ## Editing notes
 
