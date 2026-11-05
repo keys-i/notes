@@ -287,25 +287,25 @@ test("the koala is squat, asymmetric, and free of a skeletal rig", () => {
   assert.match(template, /dock-pet__shroud/);
   assert.match(template, /dock-pet__harness-strap/);
   assert.match(template, /dock-pet__harness-buckle/);
-  ["front-far", "front-near", "back-far", "back-near"].forEach((paw) => {
-    const wallPaw = new RegExp(
-      `class="dock-pet__wall-paw dock-pet__wall-paw--${paw}"[\\s\\S]*?d="([^"]+)"`,
-    ).exec(template);
-    assert.ok(wallPaw);
-    assert.match(wallPaw[1], /L1[6-8] /);
-    assert.doesNotMatch(wallPaw[1], /M(?:79|85) /);
-  });
-  assert.equal((template.match(/dock-pet__wall-shoulder/g) || []).length, 4);
-  assert.match(style, /data-grip[\s\S]*dock-pet__paw[\s\S]*display: none/);
-  assert.match(
-    style,
-    /prefers-reduced-motion: reduce[\s\S]*data-grip[\s\S]*translateX\(-12px\) rotate\(-6deg\) !important/,
+  assert.doesNotMatch(template, /dock-pet__wall-paw/);
+  assert.match(mainTemplate, /dock-pet__rope/);
+  assert.match(mainTemplate, /dock-pet__hook/);
+  assert.doesNotMatch(style, /data-grip/);
+  assert.doesNotMatch(style, /dock-pet__wall-paw/);
+  assert.match(style, /--dock-pet-climb-angle/);
+  assert.match(style, /dock-pet-climb-grip/);
+  assert.match(style, /--dock-pet-rappel-angle/);
+  assert.match(style, /dock-pet-rappel-brace/);
+  assert.match(style, /data-falling[\s\S]*z-index: 25/);
+  const descentMotion = style.slice(
+    style.indexOf("@keyframes dock-pet-climb-body"),
+    style.indexOf("@keyframes dock-pet-joint-a"),
   );
-  assert.match(style, /dock-pet-wall-step-a/);
-  assert.match(style, /dock-pet-wall-step-b/);
-  assert.match(style, /dock-pet-rope-search-a/);
-  assert.match(style, /dock-pet-rope-search-b/);
-  assert.match(style, /dock-pet__rope[\s\S]*top: 77%[\s\S]*left: 50%/);
+  assert.doesNotMatch(descentMotion, /translateY|translate\([^)]*,/);
+  assert.match(style, /data-rope[\s\S]*dock-pet__harness[\s\S]*opacity: 1/);
+  assert.match(style, /data-wandering[\s\S]*--dock-pet-walk-duration/);
+  assert.match(style, /data-wandering[\s\S]*dock-pet__face/);
+  assert.match(style, /data-climbing[\s\S]*dock-pet__face/);
   assert.match(style, /data-held[\s\S]*dock-pet__ear[\s\S]*--dock-pet-drag-vx/);
   assert.match(style, /data-held[\s\S]*dock-pet__eye[\s\S]*--dock-pet-drag-vy/);
   ["front-far", "front-near", "back-far", "back-near"].forEach((paw) => {
@@ -347,6 +347,10 @@ test("site chrome exposes progress and authored footer motion safely", () => {
   assert.match(siteStyle, /html\.theme-wave::view-transition-new\(root\)/);
   assert.match(siteStyle, /mask-image: radial-gradient/);
   assert.match(siteStyle, /animation: theme-fallback 220ms/);
+  assert.match(siteStyle, /@media \(min-width: 76\.25em\)/);
+  assert.match(siteStyle, /\.md-sidebar:is\(:hover, :focus-within\)/);
+  assert.match(siteStyle, /\.md-sidebar--primary[\s\S]*left: 0\.75rem/);
+  assert.match(siteStyle, /\.md-sidebar--secondary[\s\S]*right: 0\.75rem/);
   assert.doesNotMatch(
     siteStyle,
     /repeating-radial-gradient|160vmax|backdrop-filter|filter: blur/,
@@ -1448,7 +1452,7 @@ test("hosted study replies enhance immediate fallback with safe rich sources", a
   assert.equal(runtime.fetchCalls[0].payload.messages.length, 1);
   assert.equal(
     runtime.threadItems[1].textContent,
-    "Force changes motion when the net force is non-zero Sources: Dynamics note · <b>Lecture 2</b>",
+    "Force changes motion when the net force is non-zero Sources: Dynamics note; <b>Lecture 2</b>",
   );
   assert.equal(runtime.threadItems[1].dataset.pending, undefined);
 
@@ -1727,17 +1731,6 @@ test("pointer pickup keeps the click threshold, capture, and cancellation", () =
   lost.petHandlers.lostpointercapture({ pointerId: 10 });
   assert.equal(lost.pet.dataset.held, undefined);
   assert.equal(lost.pet.dataset.dock, "footer");
-
-  const gripped = createRuntime();
-  gripped.pet.dataset.grip = "left";
-  gripped.petHandlers.pointerdown({
-    button: 0,
-    clientX: 0,
-    clientY: 640,
-    pointerId: 11,
-  });
-  gripped.petHandlers.pointerup({ pointerId: 11 });
-  assert.equal(gripped.pet.dataset.grip, "left");
 });
 
 test("normal release falls under gravity and lands on the footer", () => {
@@ -1833,188 +1826,59 @@ test("high release opens a readable parachute and can be re-grabbed", () => {
   assert.equal(regrab.pet.dataset.dropping, undefined);
 });
 
-test("an edge drop grips the boundary and climbs to the footer", () => {
-  const runtime = createRuntime({
-    footerTop: 1400,
+test("edge drops climb or rappel fully inside the viewport", () => {
+  const wall = createRuntime({
     emitScrollEvents: true,
+    footerTop: 1400,
     moveFooterWithScroll: true,
     scrollHeight: 2400,
   });
-  runtime.petHandlers.pointerdown({
+  wall.petHandlers.pointerdown({
     button: 0,
-    clientX: 904,
+    clientX: 920,
     clientY: 696,
-    pointerId: 15,
+    pointerId: 30,
   });
-  runtime.petHandlers.pointermove({
-    clientX: 912,
+  wall.petHandlers.pointermove({
+    clientX: 0,
     clientY: 430,
-    pointerId: 15,
+    pointerId: 30,
     preventDefault() {},
   });
-  runtime.runAnimationFrames();
-  runtime.petHandlers.pointerup({ pointerId: 15 });
-  assert.equal(runtime.pet.dataset.parachute, undefined);
-  assert.equal(runtime.pet.dataset.climbing, "right");
-  assert.equal(runtime.pet.dataset.grip, "right");
-  assert.equal(runtime.pet.dataset.rope, undefined);
-  assert.equal(runtime.pet.dataset.direction, "right");
-  assert.equal(runtime.pet.dataset.state, "climbing");
-  assert.equal(runtime.pet.style.left, "920px");
-  assert.match(runtime.status.textContent, /climbing down the right edge/);
-  runFrames(runtime, 320);
-  assert.ok(runtime.scrollCalls.length > 20);
-  assert.ok(runtime.window.scrollY > 0);
-  assert.equal(runtime.pet.dataset.paused, undefined);
-  assert.equal(runtime.pet.dataset.climbing, undefined);
-  assert.equal(runtime.pet.dataset.dock, "footer");
-  assert.equal(runtime.status.textContent, "Koala landed on the footer");
-});
+  wall.runAnimationFrames();
+  wall.petHandlers.pointerup({ pointerId: 30 });
+  assert.equal(wall.pet.dataset.state, "climbing");
+  assert.equal(wall.pet.dataset.climbing, "left");
+  assert.equal(wall.pet.dataset.rope, undefined);
+  assert.equal(wall.pet.dataset.grip, undefined);
+  assert.equal(wall.pet.style.left, "10px");
+  assert.match(wall.status.textContent, /climbing down the left side/);
+  runFrames(wall, 340);
+  assert.equal(wall.pet.dataset.dock, "footer");
+  assert.equal(wall.pet.dataset.climbing, undefined);
 
-test("edge-band drops use an anchored rope and never grip mid-air", () => {
   const rope = createRuntime({ footerTop: 1400, scrollHeight: 2400 });
   rope.petHandlers.pointerdown({
     button: 0,
     clientX: 920,
     clientY: 696,
-    pointerId: 17,
+    pointerId: 31,
   });
   rope.petHandlers.pointermove({
     clientX: 70,
     clientY: 430,
-    pointerId: 17,
+    pointerId: 31,
     preventDefault() {},
   });
   rope.runAnimationFrames();
-  rope.petHandlers.pointerup({ pointerId: 17 });
-  assert.equal(rope.pet.dataset.rope, "left");
+  rope.petHandlers.pointerup({ pointerId: 31 });
+  assert.equal(rope.pet.dataset.state, "climbing");
   assert.equal(rope.pet.dataset.climbing, "left");
-  assert.equal(rope.pet.dataset.grip, "left");
-  assert.equal(rope.pet.dataset.parachute, undefined);
-  assert.equal(rope.pet.style.left, "0px");
-  assert.equal(rope.pet.style["--dock-pet-hook-x"], "0px");
-  assert.notEqual(rope.pet.style["--dock-pet-rope-length"], "0px");
-  assert.match(rope.status.textContent, /Hook set on the left edge/);
-  assert.match(style, /data-rope[\s\S]*dock-pet__harness[\s\S]*opacity: 1/);
-
-  const left = createRuntime({ footerTop: 1400 });
-  left.petHandlers.pointerdown({
-    button: 0,
-    clientX: 920,
-    clientY: 696,
-    pointerId: 19,
-  });
-  left.petHandlers.pointermove({
-    clientX: 0,
-    clientY: 430,
-    pointerId: 19,
-    preventDefault() {},
-  });
-  left.runAnimationFrames();
-  left.petHandlers.pointerup({ pointerId: 19 });
-  assert.equal(left.pet.dataset.climbing, "left");
-  assert.equal(left.pet.dataset.grip, "left");
-  assert.equal(left.pet.dataset.rope, undefined);
-  assert.equal(left.pet.dataset.direction, "left");
-  assert.equal(left.pet.style.left, "0px");
-
-  const rightRope = createRuntime({ footerTop: 1400 });
-  rightRope.petHandlers.pointerdown({
-    button: 0,
-    clientX: 920,
-    clientY: 696,
-    pointerId: 20,
-  });
-  rightRope.petHandlers.pointermove({
-    clientX: 912,
-    clientY: 430,
-    pointerId: 20,
-    preventDefault() {},
-  });
-  rightRope.runAnimationFrames();
-  rightRope.petHandlers.pointerup({ pointerId: 20 });
-  assert.equal(rightRope.pet.dataset.rope, "right");
-  assert.equal(rightRope.pet.dataset.grip, "right");
-  assert.equal(rightRope.pet.style.left, "920px");
-  assert.equal(rightRope.pet.style["--dock-pet-hook-x"], "80px");
-
-  const free = createRuntime({ footerTop: 1400 });
-  free.petHandlers.pointerdown({
-    button: 0,
-    clientX: 920,
-    clientY: 696,
-    pointerId: 18,
-  });
-  free.petHandlers.pointermove({
-    clientX: 300,
-    clientY: 430,
-    pointerId: 18,
-    preventDefault() {},
-  });
-  free.runAnimationFrames();
-  free.petHandlers.pointerup({ pointerId: 18 });
-  assert.equal(free.pet.dataset.climbing, undefined);
-  assert.equal(free.pet.dataset.grip, undefined);
-  assert.equal(free.pet.dataset.rope, undefined);
-  assert.equal(free.pet.dataset.state, "falling");
-});
-
-test("wall and rope descents release cleanly when re-grabbed", () => {
-  const wall = createRuntime({ footerTop: 1400 });
-  wall.petHandlers.pointerdown({
-    button: 0,
-    clientX: 904,
-    clientY: 696,
-    pointerId: 31,
-  });
-  wall.petHandlers.pointermove({
-    clientX: 912,
-    clientY: 430,
-    pointerId: 31,
-    preventDefault() {},
-  });
-  wall.runAnimationFrames();
-  wall.petHandlers.pointerup({ pointerId: 31 });
-  assert.equal(wall.pet.dataset.grip, "right");
-  wall.petHandlers.pointerdown({
-    button: 0,
-    clientX: 920,
-    clientY: 430,
-    pointerId: 32,
-  });
-  assert.equal(wall.pet.dataset.grip, undefined);
-  assert.equal(wall.pet.dataset.climbing, undefined);
-  assert.equal(wall.pet.dataset.falling, undefined);
-  wall.petHandlers.pointercancel({ pointerId: 32 });
-  assert.equal(wall.pet.dataset.dock, "manual");
-
-  const rope = createRuntime({ footerTop: 1400 });
-  rope.petHandlers.pointerdown({
-    button: 0,
-    clientX: 920,
-    clientY: 696,
-    pointerId: 33,
-  });
-  rope.petHandlers.pointermove({
-    clientX: 70,
-    clientY: 430,
-    pointerId: 33,
-    preventDefault() {},
-  });
-  rope.runAnimationFrames();
-  rope.petHandlers.pointerup({ pointerId: 33 });
   assert.equal(rope.pet.dataset.rope, "left");
-  rope.petHandlers.pointerdown({
-    button: 0,
-    clientX: 70,
-    clientY: 430,
-    pointerId: 34,
-  });
-  assert.equal(rope.pet.dataset.rope, undefined);
-  assert.equal(rope.pet.style["--dock-pet-hook-x"], undefined);
-  assert.equal(rope.pet.style["--dock-pet-rope-length"], undefined);
-  rope.petHandlers.pointercancel({ pointerId: 34 });
-  assert.equal(rope.pet.dataset.dock, "manual");
+  assert.equal(rope.pet.dataset.grip, undefined);
+  assert.equal(rope.pet.style.left, "8px");
+  assert.notEqual(rope.pet.style["--dock-pet-rope-length"], "0px");
+  assert.match(rope.status.textContent, /rappelling from the left side/);
 });
 
 test("focused arrows place the pet and Escape restores automatic docking", () => {
@@ -2057,15 +1921,14 @@ test("focused arrows place the pet and Escape restores automatic docking", () =>
   assert.equal(prevented, 3);
 });
 
-test("the study buddy grips the edge while the footer is off-screen", () => {
+test("the study buddy stays fully on the floor while the footer is off-screen", () => {
   const runtime = createRuntime({ footerTop: 900 });
   assert.equal(runtime.pet.hidden, false);
-  assert.equal(runtime.pet.dataset.dock, "edge");
-  assert.equal(runtime.pet.dataset.state, "clinging");
-  assert.equal(runtime.pet.dataset.grip, "right");
-  assert.equal(runtime.pet.dataset.direction, "right");
-  assert.equal(runtime.pet.style.left, "920px");
-  assert.equal(runtime.pet.style.top, "696px");
+  assert.equal(runtime.pet.dataset.dock, "floor");
+  assert.equal(runtime.pet.dataset.state, "perched");
+  assert.equal(runtime.pet.dataset.grip, undefined);
+  assert.equal(runtime.pet.style.left, "912px");
+  assert.equal(runtime.pet.style.top, "712px");
 });
 
 test("voice input is optional and uses the same grounded answer path", async () => {
@@ -2219,9 +2082,9 @@ test("visibility and media changes cancel work and settle live movement", async 
   assert.ok(Number.parseFloat(manual.pet.style.top) <= 552);
 });
 
-test("scroll entry steps onto the footer and returns to the edge", () => {
+test("scroll entry steps onto the footer and returns to the floor", () => {
   const runtime = createRuntime({ footerTop: 900 });
-  assert.equal(runtime.pet.dataset.dock, "edge");
+  assert.equal(runtime.pet.dataset.dock, "floor");
   runtime.setFooterTop(700);
   runtime.windowHandlers.scroll();
   assert.equal(runtime.pet.dataset.paused, "true");
@@ -2238,8 +2101,8 @@ test("scroll entry steps onto the footer and returns to the edge", () => {
   runtime.windowHandlers.scroll();
   runtime.runAnimationFrames();
   runtime.runTimer(160);
-  assert.equal(runtime.pet.dataset.dock, "edge");
-  assert.equal(runtime.pet.dataset.state, "clinging");
+  assert.equal(runtime.pet.dataset.dock, "floor");
+  assert.equal(runtime.pet.dataset.state, "perched");
 });
 
 test("halfway and completion guidance is gated by real progress", () => {
@@ -2248,7 +2111,7 @@ test("halfway and completion guidance is gated by real progress", () => {
   assert.equal(runtime.bubble.hidden, false);
   assert.equal(
     runtime.bubbleText.textContent,
-    "You’re halfway through · Current section: “Dynamics”",
+    "You’re halfway through: Current section: “Dynamics”",
   );
 
   runtime.advance(31000);
@@ -2260,7 +2123,7 @@ test("halfway and completion guidance is gated by real progress", () => {
   assert.equal(runtime.rootStyle["--reading-progress"], "1.0000");
   assert.equal(
     runtime.bubbleText.textContent,
-    "Page complete · Use the page navigation to choose the next topic",
+    "Page complete: Use the page navigation to choose the next topic",
   );
 });
 
@@ -2268,7 +2131,7 @@ test("reduced motion suppresses reactions and resolves drops immediately", () =>
   const runtime = createRuntime({ footerTop: 900, reduced: true });
   assert.equal(runtime.pet.dataset.behavior, undefined);
   assert.equal(runtime.pet.dataset.wink, undefined);
-  assert.equal(runtime.pet.dataset.grip, "right");
+  assert.equal(runtime.pet.dataset.grip, undefined);
   assert.equal(
     [...runtime.timers.values()].some((entry) => entry.delay >= 45000),
     false,
@@ -2292,7 +2155,6 @@ test("reduced motion suppresses reactions and resolves drops immediately", () =>
   assert.equal(drop.pet.dataset.falling, undefined);
   assert.equal(drop.pet.dataset.parachute, undefined);
   assert.equal(drop.pet.dataset.grip, undefined);
-  assert.equal(drop.pet.dataset.rope, undefined);
   assert.equal(drop.pet.dataset.dock, "footer");
   assert.equal(drop.status.textContent, "Koala landed on the footer");
   assert.match(
@@ -2301,8 +2163,9 @@ test("reduced motion suppresses reactions and resolves drops immediately", () =>
   );
   assert.match(
     style,
-    /prefers-reduced-motion: reduce[\s\S]*?dock-pet__wall-paw,[\s\S]*?animation: none !important/,
+    /prefers-reduced-motion: reduce[\s\S]*data-climbing[\s\S]*--dock-pet-climb-angle/,
   );
+  assert.doesNotMatch(style, /data-grip/);
 });
 
 test("one bounded idle scheduler animates expressions and pauses when hidden", () => {
@@ -2327,6 +2190,60 @@ test("one bounded idle scheduler animates expressions and pauses when hidden", (
   runtime.documentHandlers.visibilitychange();
   assert.equal(
     [...runtime.timers.values()].some((entry) => entry.delay >= 45000),
+    false,
+  );
+});
+
+test("automatic docking wanders on bounded ground and yields to people", () => {
+  const runtime = createRuntime({ footerTop: 900 });
+  const nextWalk = [...runtime.timers.values()].find(
+    (entry) => entry.delay >= 12000 && entry.delay <= 24000,
+  );
+  assert.ok(nextWalk);
+  runtime.runTimer(nextWalk.delay);
+  assert.equal(runtime.pet.dataset.dock, "floor");
+  assert.equal(runtime.pet.dataset.state, "walking");
+  assert.equal(runtime.pet.dataset.wandering, "true");
+  assert.equal(runtime.pet.dataset.direction, "left");
+  assert.equal(runtime.pet.style.top, "712px");
+  assert.ok(Number.parseFloat(runtime.pet.style.left) >= 8);
+  assert.ok(Number.parseFloat(runtime.pet.style.left) <= 912);
+  const duration = Number.parseFloat(
+    runtime.pet.style["--dock-pet-walk-duration"],
+  );
+  assert.ok(duration >= 1600 && duration <= 4200);
+  runtime.runTimer(duration);
+  assert.equal(runtime.pet.dataset.state, "perched");
+  assert.equal(runtime.pet.dataset.wandering, undefined);
+
+  runtime.petHandlers.keydown({
+    key: "ArrowLeft",
+    preventDefault() {},
+    shiftKey: false,
+  });
+  assert.equal(runtime.pet.dataset.dock, "manual");
+  assert.equal(
+    [...runtime.timers.values()].some(
+      (entry) => entry.delay >= 12000 && entry.delay <= 24000,
+    ),
+    false,
+  );
+
+  const help = createRuntime({ footerTop: 900 });
+  help.petHandlers.click();
+  assert.equal(help.help.hidden, false);
+  assert.equal(
+    [...help.timers.values()].some(
+      (entry) => entry.delay >= 12000 && entry.delay <= 24000,
+    ),
+    false,
+  );
+
+  const reduced = createRuntime({ footerTop: 900, reduced: true });
+  assert.equal(
+    [...reduced.timers.values()].some(
+      (entry) => entry.delay >= 12000 && entry.delay <= 24000,
+    ),
     false,
   );
 });

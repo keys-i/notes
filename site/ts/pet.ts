@@ -533,6 +533,7 @@ function dockPetStudyError(code, timedOut?) {
   var dragFrame = 0;
   var fallFrame = 0;
   var idleTimer = 0;
+  var wanderTimer = 0;
   var pointer = null;
   var pointerUpdatedAt = 0;
   var eyeTime = 0;
@@ -879,10 +880,11 @@ function dockPetStudyError(code, timedOut?) {
 
   function withGuidance(message, event, section?) {
     var guidance = nextGuidance(event, section || currentHeading().heading);
-    return guidance ? message + " · " + guidance : message;
+    return guidance ? message + ": " + guidance : message;
   }
 
   function showBubble(message, duration) {
+    stopWander();
     bubbleText.textContent = message;
     var maximumWidth = Math.max(
       112,
@@ -901,6 +903,7 @@ function dockPetStudyError(code, timedOut?) {
           bubbleTimer = 0;
           bubble.hidden = true;
           scheduleIdle();
+          scheduleWander();
         }, duration)
       : 0;
   }
@@ -1214,7 +1217,7 @@ function dockPetStudyError(code, timedOut?) {
             .filter(Boolean)
             .slice(0, 3)
         : [];
-      if (citations.length) answer += "\nSources: " + citations.join(" · ");
+      if (citations.length) answer += "\nSources: " + citations.join("; ");
       if (activeStudy !== task || requestId !== studyRequest) return;
       finishStudy(task, answer, key || undefined);
     } catch (error) {
@@ -1271,6 +1274,7 @@ function dockPetStudyError(code, timedOut?) {
   }
 
   function setHelp(open) {
+    stopWander();
     helpOpen = open;
     help.hidden = !open;
     pet.setAttribute("aria-expanded", String(open));
@@ -1279,6 +1283,7 @@ function dockPetStudyError(code, timedOut?) {
       question?.blur();
       pet.focus?.();
       scheduleIdle();
+      scheduleWander();
       return;
     }
     bubble.hidden = true;
@@ -1355,6 +1360,79 @@ function dockPetStudyError(code, timedOut?) {
     scheduleIdle();
   }
 
+  function stopWander() {
+    clearTimeout(wanderTimer);
+    wanderTimer = 0;
+    delete pet.dataset.wandering;
+    pet.style.removeProperty("--dock-pet-walk-duration");
+    if (pet.dataset.state === "walking") pet.dataset.state = "perched";
+  }
+
+  function canWander() {
+    return !(
+      document.hidden ||
+      reducedMotion.matches ||
+      pet.hidden ||
+      helpOpen ||
+      manualPosition ||
+      drag ||
+      fall ||
+      !bubble.hidden ||
+      pet.dataset.paused
+    );
+  }
+
+  function scheduleWander() {
+    clearTimeout(wanderTimer);
+    wanderTimer = 0;
+    if (!canWander()) return;
+    wanderTimer = setTimeout(runWander, 12000 + randomIndex(12001));
+  }
+
+  function runWander() {
+    wanderTimer = 0;
+    if (!canWander()) {
+      scheduleWander();
+      return;
+    }
+    var ground = footerGeometry();
+    var minimum = ground.visible ? ground.minimum : 8;
+    var maximum = ground.visible
+      ? ground.maximum
+      : Math.max(8, document.documentElement.clientWidth - pet.offsetWidth - 8);
+    if (maximum - minimum < pet.offsetWidth) {
+      scheduleWander();
+      return;
+    }
+    var room = maximum - minimum;
+    var maximumStep = Math.min(280, room * 0.32);
+    var minimumStep = Math.min(80, maximumStep);
+    var step =
+      minimumStep + (randomIndex(1001) / 1000) * (maximumStep - minimumStep);
+    var direction = randomIndex(2) ? 1 : -1;
+    if (position.x - minimum < minimumStep) direction = 1;
+    if (maximum - position.x < minimumStep) direction = -1;
+    var target = clamp(position.x + direction * step, minimum, maximum);
+    var duration = clamp(Math.abs(target - position.x) * 14, 1600, 4200);
+    pet.dataset.direction = target > position.x ? "right" : "left";
+    pet.dataset.state = "walking";
+    pet.dataset.wandering = "true";
+    pet.style.setProperty("--dock-pet-walk-duration", duration + "ms");
+    setPosition({
+      x: target,
+      y: ground.visible
+        ? ground.y
+        : Math.max(8, window.innerHeight - pet.offsetHeight - 8),
+    });
+    wanderTimer = setTimeout(function () {
+      wanderTimer = 0;
+      delete pet.dataset.wandering;
+      pet.style.removeProperty("--dock-pet-walk-duration");
+      pet.dataset.state = "perched";
+      scheduleWander();
+    }, duration);
+  }
+
   function flushMilestone() {
     if (!pendingMilestone || pet.hidden || helpOpen) return;
     var event = pendingMilestone;
@@ -1367,9 +1445,9 @@ function dockPetStudyError(code, timedOut?) {
 
   function configure(settling?) {
     if (drag?.active || fall) return;
+    stopWander();
     var previousDock = pet.dataset.dock;
     pet.hidden = false;
-    delete pet.dataset.grip;
     if (manualPosition) {
       manualPosition = clampPosition(manualPosition);
       pet.dataset.dock = "manual";
@@ -1377,6 +1455,7 @@ function dockPetStudyError(code, timedOut?) {
       setPosition(manualPosition);
       flushMilestone();
       scheduleIdle();
+      scheduleWander();
       return;
     }
     var ground = footerGeometry();
@@ -1394,18 +1473,21 @@ function dockPetStudyError(code, timedOut?) {
       }
       flushMilestone();
       scheduleIdle();
+      scheduleWander();
       return;
     }
-    pet.dataset.dock = "edge";
-    pet.dataset.state = "clinging";
-    pet.dataset.direction = "right";
-    pet.dataset.grip = "right";
+    pet.dataset.dock = "floor";
+    pet.dataset.state = "perched";
     setPosition({
-      x: Math.max(0, document.documentElement.clientWidth - pet.offsetWidth),
-      y: Math.max(64, window.innerHeight - pet.offsetHeight - 24),
+      x: Math.max(
+        8,
+        document.documentElement.clientWidth - pet.offsetWidth - 8,
+      ),
+      y: Math.max(8, window.innerHeight - pet.offsetHeight - 8),
     });
     flushMilestone();
     scheduleIdle();
+    scheduleWander();
   }
 
   function scheduleDrag() {
@@ -1426,7 +1508,6 @@ function dockPetStudyError(code, timedOut?) {
     delete pet.dataset.falling;
     delete pet.dataset.parachute;
     delete pet.dataset.climbing;
-    delete pet.dataset.grip;
     delete pet.dataset.rope;
     pet.style.removeProperty("--dock-pet-fall-speed");
     pet.style.removeProperty("--dock-pet-fall-tilt");
@@ -1434,30 +1515,25 @@ function dockPetStudyError(code, timedOut?) {
     pet.style.removeProperty("--dock-pet-hook-x");
     pet.style.removeProperty("--dock-pet-hook-y");
     pet.style.removeProperty("--dock-pet-rope-angle");
-    pet.style.removeProperty("--dock-pet-rope-body-angle");
     pet.style.removeProperty("--dock-pet-rope-length");
   }
 
   function updateRope(point) {
     if (!fall?.rope) return;
     var startX = pet.offsetWidth * 0.5;
-    var startY = pet.offsetHeight * 0.77;
+    var startY = pet.offsetHeight * 0.72;
     var hookX = fall.rope === "left" ? 0 : document.documentElement.clientWidth;
-    var hookY = fall.hookY;
     var deltaX = hookX - (point.x + startX);
-    var deltaY = hookY - (point.y + startY);
-    var angle = (Math.atan2(deltaY, deltaX) * 180) / Math.PI;
+    var deltaY = fall.hookY - (point.y + startY);
     pet.style.setProperty("--dock-pet-hook-x", pixels(hookX - point.x));
-    pet.style.setProperty("--dock-pet-hook-y", pixels(hookY - point.y));
+    pet.style.setProperty("--dock-pet-hook-y", pixels(fall.hookY - point.y));
     pet.style.setProperty(
       "--dock-pet-hook-turn",
       fall.rope === "left" ? "90deg" : "-90deg",
     );
-    pet.style.setProperty("--dock-pet-rope-angle", angle.toFixed(2) + "deg");
     pet.style.setProperty(
-      "--dock-pet-rope-body-angle",
-      clamp(angle + (fall.rope === "left" ? 180 : 0), -12, 12).toFixed(2) +
-        "deg",
+      "--dock-pet-rope-angle",
+      ((Math.atan2(deltaY, deltaX) * 180) / Math.PI).toFixed(2) + "deg",
     );
     pet.style.setProperty(
       "--dock-pet-rope-length",
@@ -1499,7 +1575,7 @@ function dockPetStudyError(code, timedOut?) {
     fall.last = now;
     fall.velocity =
       fall.edge || fall.rope
-        ? 0.06
+        ? 0.1
         : Math.min(
             fall.parachute ? 0.22 : 1.5,
             fall.velocity + elapsed * (fall.parachute ? 0.0004 : 0.003),
@@ -1530,12 +1606,6 @@ function dockPetStudyError(code, timedOut?) {
     var viewportFloor = Math.max(8, window.innerHeight - pet.offsetHeight - 8);
     var footerReady = ground.visible && ground.y <= viewportFloor + 1;
     var floor = footerReady ? ground.y : viewportFloor;
-    if (fall.edge) {
-      fall.x =
-        fall.edge === "left"
-          ? 0
-          : Math.max(0, document.documentElement.clientWidth - pet.offsetWidth);
-    }
     fall.y = Math.min(fall.y, floor);
     setPosition({ x: fall.x, y: fall.y });
     var pageBottom = readScroll() >= maximumScroll - 1;
@@ -1550,37 +1620,33 @@ function dockPetStudyError(code, timedOut?) {
     var target = clampDropPosition(point);
     var viewportFloor = Math.max(8, window.innerHeight - pet.offsetHeight - 8);
     var viewportWidth = document.documentElement.clientWidth;
-    var maximumX = Math.max(0, viewportWidth - pet.offsetWidth);
+    var minimumX = 8;
+    var maximumX = Math.max(minimumX, viewportWidth - pet.offsetWidth - 8);
     var edge =
-      target.x <= 0.5 ? "left" : target.x >= maximumX - 0.5 ? "right" : "";
-    var leftGap = target.x;
-    var rightGap = viewportWidth - target.x - pet.offsetWidth;
+      target.x <= minimumX ? "left" : target.x >= maximumX ? "right" : "";
+    var leftGap = target.x - minimumX;
+    var rightGap = maximumX - target.x;
     var rope =
-      !edge && Math.min(leftGap, rightGap) <= 96
+      !edge && Math.min(leftGap, rightGap) <= 88
         ? leftGap < rightGap
           ? "left"
           : "right"
         : "";
     var climbing = edge || rope;
     var parachute = !climbing && target.y <= Math.min(280, viewportFloor - 160);
+    var side = edge || rope;
+    var climbX = side === "left" ? minimumX + 2 : maximumX - 2;
+    var rappelX = side === "left" ? minimumX : maximumX;
     manualPosition = null;
     fall = {
       edge: edge,
-      hookY: clamp(target.y - 22, 12, window.innerHeight - 12),
+      hookY: clamp(target.y - 28, 12, window.innerHeight - 12),
       last: 0,
       parachute: parachute,
       rope: rope,
       scroll: Boolean(climbing) || parachute,
-      velocity: climbing ? 0.06 : parachute ? 0.08 : 0.12,
-      x:
-        edge === "left" || rope === "left"
-          ? 0
-          : edge === "right" || rope === "right"
-            ? Math.max(
-                0,
-                document.documentElement.clientWidth - pet.offsetWidth,
-              )
-            : target.x,
+      velocity: climbing ? 0.1 : parachute ? 0.08 : 0.12,
+      x: edge ? climbX : rope ? rappelX : target.x,
       y: target.y,
     };
     pet.hidden = false;
@@ -1592,21 +1658,20 @@ function dockPetStudyError(code, timedOut?) {
         : "falling";
     pet.dataset.falling = "true";
     if (climbing) {
-      pet.dataset.climbing = climbing;
-      pet.dataset.direction = climbing;
-      pet.dataset.grip = climbing;
+      pet.dataset.climbing = side;
+      pet.dataset.direction = side;
     }
     if (rope) pet.dataset.rope = rope;
     if (parachute) pet.dataset.parachute = "true";
     setPosition({ x: fall.x, y: target.y });
     announce(
       edge
-        ? "Koala gripping and climbing down the " + edge + " edge"
+        ? "Koala climbing down the " + edge + " side towards the footer"
         : rope
-          ? "Hook set on the " + rope + " edge; koala braced against the wall"
+          ? "Koala rappelling from the " + rope + " side towards the footer"
           : parachute
             ? "Parachute open; scrolling towards the footer"
-            : "Koala falling towards the footer",
+            : "Koala falling towards the nearest ground",
     );
     if (reducedMotion.matches) {
       landFall();
@@ -1619,7 +1684,7 @@ function dockPetStudyError(code, timedOut?) {
     if (drag || (event.button !== undefined && event.button !== 0)) return;
     if (helpOpen) setHelp(false);
     noteActivity();
-    var previousGrip = fall ? "" : pet.dataset.grip;
+    stopWander();
     if (fall) {
       stopFall();
       manualPosition = clampPosition(position);
@@ -1629,7 +1694,6 @@ function dockPetStudyError(code, timedOut?) {
     clearTimeout(settleTimer);
     settleTimer = 0;
     delete pet.dataset.dropping;
-    delete pet.dataset.grip;
     suppressClick = false;
     pet.dataset.held = "true";
     pet.style.setProperty("--dock-pet-drag-tilt", "0deg");
@@ -1639,7 +1703,6 @@ function dockPetStudyError(code, timedOut?) {
       pointerId: event.pointerId,
       start: { x: event.clientX, y: event.clientY },
       last: { x: event.clientX, y: event.clientY },
-      grip: previousGrip,
       target: { x: position.x, y: position.y },
     };
     pet.setPointerCapture?.(event.pointerId);
@@ -1703,10 +1766,7 @@ function dockPetStudyError(code, timedOut?) {
       suppressClick = true;
       startFall(ended.target);
     } else if (moved) {
-      if (ended.grip) pet.dataset.grip = ended.grip;
       announce("Koala returned to its previous spot");
-    } else if (ended.grip) {
-      pet.dataset.grip = ended.grip;
     }
   }
 
@@ -1740,6 +1800,7 @@ function dockPetStudyError(code, timedOut?) {
     pet.dataset.dock = "manual";
     pet.dataset.state = "perched";
     setPosition(manualPosition);
+    stopWander();
     event.preventDefault();
   }
 
@@ -2012,15 +2073,18 @@ function dockPetStudyError(code, timedOut?) {
   document.addEventListener("visibilitychange", function () {
     if (!document.hidden) {
       scheduleIdle();
+      scheduleWander();
       return;
     }
     clearTimeout(idleTimer);
     idleTimer = 0;
+    stopWander();
     cancelStudy();
     recognition?.abort();
     (window as any).speechSynthesis?.cancel();
   });
   reducedMotion.addEventListener("change", function () {
+    stopWander();
     clearThemeEffect();
     clearTimeout(behaviorTimer);
     delete pet.dataset.behavior;
@@ -2029,6 +2093,7 @@ function dockPetStudyError(code, timedOut?) {
     configure();
     scheduleLook();
     scheduleIdle();
+    scheduleWander();
   });
   desktop.addEventListener("change", configure);
 
