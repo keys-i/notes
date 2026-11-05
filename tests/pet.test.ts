@@ -381,10 +381,10 @@ test("site chrome exposes progress and authored footer motion safely", () => {
   assert.match(siteConfig, /link: https:\/\/linkedin\.com\/in\/radhesh-g/);
   assert.match(headerTemplate, /class="md-header__button md-logo"/);
   assert.match(headerTemplate, /class="md-header__topic site-home-link"/);
-  assert.match(headerTemplate, /site-home-link__wordmark/);
+  assert.doesNotMatch(headerTemplate, /site-home-link__wordmark/);
   assert.match(footerTemplate, /site-footer-network__link--{{ social\.featured }}/);
   assert.match(footerTemplate, /{{ social\.label }}/);
-  assert.match(footerTemplate, /Made by[\s\S]*Radhesh/);
+  assert.match(footerTemplate, /Made with love by[\s\S]*Radhesh/);
   assert.match(footerTemplate, /site-footer-owner__rocket/);
   assert.match(footerTemplate, /site-footer-network__wordmark/);
   assert.match(footerTemplate, /site-footer-network__link--icon/);
@@ -404,13 +404,12 @@ test("site chrome exposes progress and authored footer motion safely", () => {
   assert.match(siteStyle, /\.site-footer-owner__name/);
   assert.match(
     siteStyle,
-    /\.site-home-link__wordmark,[\s\S]*?font-family: "IBM Plex Mono", monospace/,
+    /\.site-footer-network__wordmark[\s\S]*?font-family: "IBM Plex Sans", sans-serif/,
   );
   assert.match(
     siteStyle,
-    /\.site-footer-network__wordmark[\s\S]*?font-family: "IBM Plex Mono", monospace/,
+    /mask-image: repeating-linear-gradient\([\s\S]*?#000 0 2px,[\s\S]*?transparent 2px 3\.25px/,
   );
-  assert.match(siteStyle, /mask-image: repeating-linear-gradient\([\s\S]*?#000 0 1px/);
   assert.match(
     graphStyle,
     /width: min\(42rem, calc\(100% - 28rem\)\)/,

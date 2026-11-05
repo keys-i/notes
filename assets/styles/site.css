@@ -364,25 +364,20 @@ body {
   border-radius: 0.35rem;
 }
 
-.site-home-link__wordmark,
 .site-footer-network__wordmark {
-  font-family: "IBM Plex Mono", monospace;
-  font-weight: 700;
-  letter-spacing: 0.02em;
+  font-family: "IBM Plex Sans", sans-serif;
+  font-weight: 800;
+  letter-spacing: 0.03em;
   mask-image: repeating-linear-gradient(
     to bottom,
-    #000 0 1px,
-    transparent 1px 2px
+    #000 0 2px,
+    transparent 2px 3.25px
   );
   -webkit-mask-image: repeating-linear-gradient(
     to bottom,
-    #000 0 1px,
-    transparent 1px 2px
+    #000 0 2px,
+    transparent 2px 3.25px
   );
-}
-
-.site-home-link__wordmark {
-  display: block;
 }
 
 .site-home-link:is(:hover, :focus-visible) {
@@ -713,7 +708,6 @@ body {
   padding: 0.12rem 0.08rem;
   margin-left: 0.12rem;
   color: var(--color-neutral-warm-50);
-  font-family: "IBM Plex Mono", monospace;
   font-weight: 750;
   text-decoration: none;
   text-underline-offset: 0.14em;
@@ -865,7 +859,6 @@ body {
 }
 
 @media (forced-colors: active) {
-  .site-home-link__wordmark,
   .site-footer-network__wordmark {
     mask-image: none;
     -webkit-mask-image: none;
