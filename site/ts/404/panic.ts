@@ -269,7 +269,7 @@ function emitKernelLine() {
   telemetry.clock.textContent =
     "cpu" +
     ((player || { x: 0 }).x % 4) +
-    " · t+" +
+    " — t+" +
     ((performance.now() - telemetry.started) / 1000)
       .toFixed(3)
       .padStart(6, "0");
