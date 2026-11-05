@@ -16,7 +16,6 @@ interface PlotlyApi {
     layout: PlotRecord,
     config: PlotRecord,
   ): Promise<void>;
-  relayout(element: HTMLElement, update: PlotRecord): Promise<void>;
 }
 
 const PLOTLY_URL = "https://cdn.plot.ly/plotly-3.1.2.min.js";
@@ -55,45 +54,66 @@ async function renderPlot(figure: HTMLElement): Promise<void> {
   if (figure.dataset.state !== "idle") return;
   figure.dataset.state = "loading";
   const canvas = figure.querySelector<HTMLElement>(".note-plot__canvas");
-  const reset = figure.querySelector<HTMLButtonElement>(".note-plot__reset");
-  if (!canvas || !reset || !figure.dataset.plot) return;
+  if (!canvas || !figure.dataset.plot) return;
 
   try {
     const config = decodePlot(figure.dataset.plot);
     const api = await plotly();
+    canvas.textContent = "";
     const styles = getComputedStyle(figure);
-    const foreground = styles.getPropertyValue("--md-default-fg-color").trim();
+    const foreground = styles.getPropertyValue("--site-plot-ink").trim();
     const grid = styles.getPropertyValue("--site-rule").trim();
+    const twoDimensional = figure.classList.contains("note-plot--2d");
     const reduceMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
+    const axisStyle: PlotRecord = {
+      automargin: true,
+      gridcolor: grid,
+      linecolor: foreground,
+      linewidth: 2,
+      showline: true,
+      tickcolor: foreground,
+      tickfont: { color: foreground, size: 12 },
+      ticklen: 6,
+      ticks: "outside",
+      tickwidth: 2,
+      zerolinecolor: foreground,
+      zerolinewidth: 1.5,
+    };
     const layout: PlotRecord = {
       autosize: true,
-      margin: { b: 56, l: 64, r: 24, t: 28 },
+      ...(twoDimensional ? { dragmode: "pan" } : {}),
+      margin: { b: 44, l: 52, pad: 0, r: 16, t: 16 },
       paper_bgcolor: "rgba(0,0,0,0)",
       plot_bgcolor: "rgba(0,0,0,0)",
       font: { color: foreground },
       transition: { duration: reduceMotion ? 0 : 180 },
-      xaxis: { gridcolor: grid, zerolinecolor: grid },
-      yaxis: { gridcolor: grid, zerolinecolor: grid },
       ...config.layout,
+      ...(twoDimensional
+        ? {
+            xaxis: {
+              ...axisStyle,
+              ...(config.layout.xaxis as PlotRecord | undefined),
+            },
+            yaxis: {
+              ...axisStyle,
+              ...(config.layout.yaxis as PlotRecord | undefined),
+            },
+          }
+        : {}),
     };
     await api.newPlot(canvas, config.data, layout, {
+      displayModeBar: true,
       displaylogo: false,
+      doubleClick: "reset+autosize",
+      modeBarButtonsToRemove: twoDimensional
+        ? ["autoScale2d", "lasso2d", "select2d", "zoom2d"]
+        : ["hoverClosest3d", "resetCameraLastSave3d", "tableRotation"],
       responsive: true,
-      scrollZoom: true,
+      scrollZoom: false,
     });
     canvas.setAttribute("aria-hidden", "false");
-    reset.hidden = false;
-    reset.addEventListener("click", () => {
-      void api.relayout(canvas, {
-        "scene.xaxis.autorange": true,
-        "scene.yaxis.autorange": true,
-        "scene.zaxis.autorange": true,
-        "xaxis.autorange": true,
-        "yaxis.autorange": true,
-      });
-    });
     figure.dataset.state = "ready";
   } catch (error: unknown) {
     console.error("Interactive graph failed", error);

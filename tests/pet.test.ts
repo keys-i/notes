@@ -382,14 +382,21 @@ test("site chrome exposes progress and authored footer motion safely", () => {
   assert.match(headerTemplate, /class="md-header__button md-logo"/);
   assert.match(headerTemplate, /class="md-header__topic site-home-link"/);
   assert.doesNotMatch(headerTemplate, /site-home-link__wordmark/);
-  assert.match(footerTemplate, /site-footer-network__link--{{ social\.featured }}/);
+  assert.match(
+    footerTemplate,
+    /site-footer-network__link--{{ social\.featured }}/,
+  );
   assert.match(footerTemplate, /{{ social\.label }}/);
-  assert.match(footerTemplate, /Made with love by[\s\S]*Radhesh/);
+  assert.match(
+    footerTemplate,
+    /Made with[\s\S]*site-footer-owner__heart[\s\S]*aria-label="love"[\s\S]*by[\s\S]*Radhesh/,
+  );
   assert.match(footerTemplate, /site-footer-owner__rocket/);
   assert.match(footerTemplate, /site-footer-network__wordmark/);
   assert.match(footerTemplate, /site-footer-network__link--icon/);
   assert.match(footerTemplate, /social\.logo/);
-  assert.doesNotMatch(footerTemplate, /❤️|MIT licensed|social\.description/);
+  assert.doesNotMatch(footerTemplate, /❤️|❤|MIT licensed|social\.description/);
+  assert.match(siteStyle, /\.site-footer-owner__heart/);
   assert.match(logo, /Rad's Notes koala reading mark/);
   assert.doesNotMatch(logo, /Rad's Notes koala<\/title>|M45 8c9 2/);
   assert.match(siteStyle, /--reading-progress/);
@@ -410,10 +417,7 @@ test("site chrome exposes progress and authored footer motion safely", () => {
     siteStyle,
     /mask-image: repeating-linear-gradient\([\s\S]*?#000 0 2\.5px,[\s\S]*?transparent 2\.5px 4\.5px/,
   );
-  assert.match(
-    graphStyle,
-    /width: min\(42rem, calc\(100% - 28rem\)\)/,
-  );
+  assert.match(graphStyle, /width: min\(42rem, calc\(100% - 28rem\)\)/);
   assert.match(siteStyle, /@property --theme-reveal/);
   assert.match(siteStyle, /@keyframes theme-wave-reveal/);
   assert.match(siteStyle, /@keyframes theme-fallback/);
@@ -447,13 +451,13 @@ test("site chrome exposes progress and authored footer motion safely", () => {
   );
   assert.match(mainTemplate, /<details class="note-comments" id="__comments">/);
   assert.match(mainTemplate, /Discuss this note/);
-  assert.match(mainTemplate, /note-comments__icon[\s\S]*comment-text-outline\.svg/);
+  assert.match(
+    mainTemplate,
+    /note-comments__icon[\s\S]*comment-text-outline\.svg/,
+  );
   assert.doesNotMatch(mainTemplate, /icons\/material\/forum-outline\.svg/);
   assert.doesNotMatch(mainTemplate, /Questions and corrections stay/);
-  assert.match(
-    siteStyle,
-    /grid-template-columns: auto minmax\(0, 1fr\) auto/,
-  );
+  assert.match(siteStyle, /grid-template-columns: auto minmax\(0, 1fr\) auto/);
   assert.doesNotMatch(
     siteStyle,
     /\.note-comments > summary\s*\{[^}]*flex-direction: column/,
@@ -2347,6 +2351,44 @@ test("automatic docking wanders on bounded ground and yields to people", () => {
       (entry) => entry.delay >= 12000 && entry.delay <= 24000,
     ),
     false,
+  );
+
+  const hidden = createRuntime({ footerTop: 900 });
+  const hiddenWalk = [...hidden.timers.values()].find(
+    (entry) => entry.delay >= 12000 && entry.delay <= 24000,
+  );
+  assert.ok(hiddenWalk);
+  hidden.document.hidden = true;
+  hidden.runTimer(hiddenWalk.delay);
+  assert.notEqual(hidden.pet.dataset.state, "walking");
+
+  for (const block of [
+    (blocked) => (blocked.pet.hidden = true),
+    (blocked) => (blocked.bubble.hidden = false),
+    (blocked) => (blocked.pet.dataset.paused = "true"),
+  ]) {
+    const blocked = createRuntime({ footerTop: 900 });
+    const blockedWalk = [...blocked.timers.values()].find(
+      (entry) => entry.delay >= 12000 && entry.delay <= 24000,
+    );
+    assert.ok(blockedWalk);
+    block(blocked);
+    blocked.runTimer(blockedWalk.delay);
+    assert.notEqual(blocked.pet.dataset.state, "walking");
+  }
+
+  const narrow = createRuntime({ footerTop: 900, viewportWidth: 150 });
+  const narrowWalk = [...narrow.timers.values()].find(
+    (entry) => entry.delay >= 12000 && entry.delay <= 24000,
+  );
+  assert.ok(narrowWalk);
+  narrow.runTimer(narrowWalk.delay);
+  assert.notEqual(narrow.pet.dataset.state, "walking");
+  assert.equal(
+    [...narrow.timers.values()].some(
+      (entry) => entry.delay >= 12000 && entry.delay <= 24000,
+    ),
+    true,
   );
 });
 
