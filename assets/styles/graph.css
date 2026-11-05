@@ -232,7 +232,7 @@
   .md-header__title {
     flex: 1 1 auto;
     min-width: 0;
-    max-width: calc(50% - 17rem);
+    max-width: calc(50% - 23rem);
   }
 
   .md-header__button[for="__search"] {
@@ -243,7 +243,7 @@
     position: absolute;
     left: 0;
     right: 0;
-    width: min(24rem, calc(100% - 32rem));
+    width: min(42rem, calc(100% - 28rem));
     margin: 0 auto;
   }
 

@@ -4,7 +4,7 @@ site_url: https://uni.keysi.dev
 site_dir: ../public
 docs_dir: ../content
 site_description: COMP4403 compilers and interpreters notes covering grammars, parsing, semantics, execution, runtime systems, tutorials, and assignments.
-site_author: Keys
+site_author: Radhesh Goel
 
 repo_name: keys-i/notes
 repo_url: https://github.com/keys-i/notes
@@ -53,23 +53,28 @@ theme:
     - search.suggest # Provides search suggestions
   favicon: assets/images/favicon.ico
 
-copyright: A Radhesh Goel production
-
 extra:
+  owner_url: https://keysi.dev
   twitter: keys_i
   social:
     - icon: fontawesome/solid/globe
       link: https://keysi.dev
       name: Radhesh Goel's website
-    - icon: material/apps
+      label: Keysi.dev
+      featured: primary
+    - logo: assets/images/minis.svg
       link: https://uni.keysi.dev/mini/
       name: Minis
+      label: Minis
+      featured: secondary
     - icon: fontawesome/brands/linkedin
       link: https://linkedin.com/in/radhesh-g
       name: Radhesh Goel on LinkedIn
+      label: LinkedIn
     - icon: fontawesome/brands/github
       link: https://github.com/keys-i
       name: Radhesh Goel on GitHub
+      label: GitHub
   analytics:
     provider: google
     property: G-7WSKK5Y761
