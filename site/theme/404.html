@@ -1,0 +1,521 @@
+{% extends "main.html" %} {% set site_root = config.site_url.rstrip('/') ~ '/'
+%} {% set game = config.extra.game %} {% block htmltitle %}
+<title>404 · Page not found · {{ config.site_name }}</title>
+{% endblock %} {% block extrahead %}
+<meta name="robots" content="noindex,follow" />
+<meta name="theme-color" content="#0719aa" />
+<link
+  rel="stylesheet"
+  href="{{ site_root }}assets/styles/freebsd.boot.min.css"
+/>
+<link rel="stylesheet" href="{{ site_root }}assets/styles/404/panic.min.css" />
+<link rel="stylesheet" href="{{ site_root }}assets/styles/pet.min.css" />
+<link rel="stylesheet" href="{{ site_root }}assets/styles/404/game.min.css" />
+<link rel="stylesheet" href="{{ site_root }}assets/styles/404/shell.min.css" />
+<link
+  rel="preload"
+  as="image"
+  type="image/webp"
+  href="{{ site_root }}{{ game.assets.neutral }}"
+/>
+<link
+  rel="preload"
+  as="image"
+  type="image/webp"
+  href="{{ site_root }}{{ game.assets.scared }}"
+/>
+<link
+  rel="preload"
+  as="image"
+  type="image/webp"
+  href="{{ site_root }}{{ game.assets.happy }}"
+/>
+<link
+  rel="preload"
+  as="image"
+  type="image/webp"
+  href="{{ site_root }}{{ game.assets.dead }}"
+/>
+<link
+  rel="preload"
+  as="image"
+  type="image/webp"
+  href="{{ site_root }}{{ game.assets.goal }}"
+/>
+{% endblock %} {% block fonts %}{% endblock %} {% block analytics %}{% endblock
+%} {% block header %}{% endblock %} {% block site_nav %}{% endblock %} {% block
+footer %}{% endblock %} {% block config %}{% endblock %} {% block scripts %}{%
+endblock %} {% block content %}
+<section class="os" id="os" data-damage="0" aria-labelledby="404-title">
+  <header class="os__bar">
+    <span class="os__signal">KoalaBSD 14.2-RECOVERY</span>
+    <span><span id="kernel-phase">KDB</span> · maze0</span>
+    <span id="kernel-clock">cpu0 · t+00:00.000</span>
+  </header>
+
+  <div class="os__grid">
+    <aside
+      class="trace trace--kernel"
+      aria-label="Live FreeBSD kernel recovery trace"
+    >
+      <p class="trace__title">
+        <span id="kernel-dialect">FreeBSD/amd64</span>
+        <span>LIVE TRACE</span>
+      </p>
+      <pre
+        class="trace__dump trace__dump--kernel"
+        id="kernel-stream"
+        aria-hidden="true"
+      >
+Fatal trap 12: page fault while in kernel mode
+cpuid = 0; apic id = 00
+fault virtual address = 0xffffffff80404040
+fault code = supervisor read data, page not present
+instruction pointer = 0x20:0xffffffff80404a10
+current process = 404 (krad_recover)
+faulting module = kradkrnl.ko
+trap number = 12
+panic: page fault in maze0 route vnode
+KDB: debugger backends: ddb
+KDB: current backend: ddb
+KDB: enter: panic
+KDB: stack backtrace:
+db_trace_self_wrapper() at db_trace_self_wrapper+0x2b/frame 0xffffffff80404a10
+vpanic() at vpanic+0x17f/frame 0xffffffff80404b90
+panic() at panic+0x43/frame 0xffffffff80404c20
+krad_route_fault() at krad_route_fault+0x404 [kradkrnl.ko]
+Uptime: 4m4s
+Dumping 404 out of 404 MB</pre>
+    </aside>
+
+    <div class="game">
+      <div class="game__heading">
+        <div>
+          <span class="game__eyebrow">ttyv0 · single-user · /rescue/sh</span>
+          <h1 id="404-title" data-text="404" aria-label="404 — Page not found">
+            404
+          </h1>
+        </div>
+      </div>
+
+      <div class="score">
+        <span aria-live="polite">Score <strong id="score">0000</strong></span>
+        <span aria-live="polite">Moves <strong id="moves">000</strong></span>
+        <span aria-live="polite">Lives <strong id="lives">♥♥♥</strong></span>
+        <span class="score__audio">
+          <button
+            class="score__sound"
+            id="sound"
+            type="button"
+            aria-label="Mute game sound"
+            aria-pressed="false"
+            data-audio-root="{{ site_root }}"
+          >
+            <span aria-hidden="true">♪</span>
+          </button>
+          <input
+            class="score__volume"
+            id="volume"
+            type="range"
+            min="0"
+            max="1"
+            step="0.05"
+            value="0.8"
+            aria-label="Game sound volume"
+          />
+        </span>
+      </div>
+
+      <p class="game__objective" id="game-objective">
+        Collect every pellet, then guide the koala to the eucalyptus tree
+      </p>
+      <p class="game__status" id="status" aria-live="polite">
+        Recovery maze ready
+      </p>
+
+      <div
+        class="board"
+        id="board"
+        tabindex="0"
+        aria-describedby="game-objective status"
+        aria-label="Koala arcade maze with branching rounded neon walls and a compact 404 collision landmark. The zero is the predator regeneration pen. Some maps open a wraparound tunnel at the left and right edges. Collect the evenly spread Vegemite, Dragon Ball, and fruit, then reach the eucalyptus escape using arrow keys, W A S D, or the mobile controls."
+      >
+        <div
+          class="maze"
+          id="maze"
+          data-tree-src="{{ site_root }}{{ game.assets.goal }}"
+          aria-hidden="true"
+        ></div>
+        <a
+          class="actor player"
+          id="player"
+          role="button"
+          tabindex="0"
+          aria-disabled="true"
+          data-home-url="{{ site_root }}"
+          aria-label="The koala is looking for home. Reach the eucalyptus tree to unlock it."
+        >
+          <img
+            class="player__neutral"
+            src="{{ site_root }}{{ game.assets.neutral }}"
+            width="1254"
+            height="1254"
+            alt=""
+            aria-hidden="true"
+          />
+          <img
+            class="player__scared"
+            src="{{ site_root }}{{ game.assets.scared }}"
+            width="1254"
+            height="1254"
+            alt=""
+            aria-hidden="true"
+          />
+          <img
+            class="player__happy"
+            src="{{ site_root }}{{ game.assets.happy }}"
+            width="1254"
+            height="1254"
+            alt=""
+            aria-hidden="true"
+          />
+          <img
+            class="player__dead"
+            src="{{ site_root }}{{ game.assets.dead }}"
+            width="1254"
+            height="1254"
+            alt=""
+            aria-hidden="true"
+          />
+        </a>
+        <span class="actor ghost threat--dingo" aria-hidden="true">
+          <svg viewBox="0 0 64 64" focusable="false">
+            <path
+              class="threat__body"
+              d="M8 5 23 17q9-7 18 0L56 5l-5 24q7 9 1 21-8 11-20 11T12 50q-6-12 1-21Z"
+            />
+            <path
+              class="threat__muzzle"
+              d="M18 37q14-9 28 0l-5 16q-9 8-18 0Z"
+            />
+            <circle class="threat__eye" cx="23" cy="31" r="5" />
+            <circle class="threat__eye" cx="41" cy="31" r="5" />
+            <circle class="threat__pupil" cx="24" cy="32" r="2.2" />
+            <circle class="threat__pupil" cx="40" cy="32" r="2.2" />
+            <circle class="threat__nose" cx="32" cy="43" r="4" />
+            <path class="threat__mouth" d="M26 49q6 6 12 0" />
+          </svg>
+          <span>DINGO.EXE</span>
+        </span>
+        <span class="actor ghost threat--eagle" aria-hidden="true">
+          <svg viewBox="0 0 64 64" focusable="false">
+            <path
+              class="threat__body"
+              d="M3 20Q12 4 27 17l5-8 5 8Q52 4 61 20 49 20 44 33L38 48 32 59 26 48 20 33Q15 21 3 20Z"
+            />
+            <path class="threat__muzzle" d="M24 22q8-8 16 0l-3 17q-5 7-10 0Z" />
+            <circle class="threat__eye" cx="28" cy="28" r="4" />
+            <circle class="threat__eye" cx="36" cy="28" r="4" />
+            <circle class="threat__pupil" cx="29" cy="29" r="1.8" />
+            <circle class="threat__pupil" cx="35" cy="29" r="1.8" />
+            <path class="threat__beak" d="m32 31 7 5-7 5-7-5Z" />
+            <path class="threat__mouth" d="M28 44q4-4 8 0" />
+          </svg>
+          <span>EAGLE.SYS</span>
+        </span>
+        <div class="game-scene" id="game-scene" hidden>
+          <div class="scene-stage scene-stage--attract" aria-hidden="true">
+            <strong class="scene-attract__title">LONG WAY HOME</strong>
+            <div class="scene-attract__route">
+              <span class="scene-attract__bag">
+                <span>V</span><span>★</span><span>●</span>
+              </span>
+              <span class="scene-attract__pellets">· · · · · · · ·</span>
+              <span class="scene-attract__tunnel">
+                <span class="scene-attract__sign">HOME&nbsp; →</span>
+                <span class="scene-attract__hunters" data-scene-hunters></span>
+              </span>
+              <img
+                class="scene-attract__home"
+                src="{{ site_root }}{{ game.assets.goal }}"
+                width="512"
+                height="512"
+                alt=""
+              />
+            </div>
+          </div>
+
+          <div class="scene-stage scene-stage--ready" aria-hidden="true">
+            <div class="scene-ready__tunnel">
+              <span class="scene-ready__sign">
+                <span class="scene-ready__sign-front">HOME&nbsp; →</span>
+                <span class="scene-ready__sign-back">MAZE&nbsp; →</span>
+              </span>
+            </div>
+            <div class="scene-ready__snacks">
+              <span class="scene-ready__bag"></span>
+              <span class="scene-ready__snack scene-ready__snack--jar">V</span>
+              <span class="scene-ready__snack scene-ready__snack--ball">★</span>
+              <span class="scene-ready__snack scene-ready__snack--fruit"
+                >●</span
+              >
+            </div>
+            <span class="scene-ready__impact"></span>
+            <div class="scene-ready__hunters" data-scene-hunters></div>
+            <span class="scene-ready__pickup"></span>
+            <div class="scene-ready__pellets">· · · · · · · ·</div>
+            <img
+              class="scene-ready__home"
+              src="{{ site_root }}{{ game.assets.goal }}"
+              width="512"
+              height="512"
+              alt=""
+            />
+            <p class="scene-ready__line">Right. Long way home.</p>
+          </div>
+
+          <div class="scene-stage scene-stage--vegemite" aria-hidden="true">
+            <span
+              class="scene-vegemite__platform scene-vegemite__platform--a"
+            ></span>
+            <span
+              class="scene-vegemite__platform scene-vegemite__platform--b"
+            ></span>
+            <span class="scene-vegemite__jar">V</span>
+            <div class="scene-vegemite__hunters" data-scene-hunters></div>
+            <span class="scene-vegemite__pie scene-vegemite__pie--a">×</span>
+            <span class="scene-vegemite__pie scene-vegemite__pie--b">×</span>
+            <span class="scene-vegemite__pie scene-vegemite__pie--c">×</span>
+            <span class="scene-vegemite__splat"></span>
+            <strong class="scene-vegemite__slang">Too easy</strong>
+            <div class="scene-vegemite__forms">
+              <span>OZZARU <b>10× BASE</b></span>
+              <span>SUPER SAIYAN GOD <b>1,200× SSJ</b></span>
+            </div>
+          </div>
+
+          <div class="scene-stage scene-stage--dragon" aria-hidden="true">
+            <span class="scene-saiyan__moon"></span>
+            <span class="scene-dragon__ground"></span>
+            <span class="scene-dragon__aura"></span>
+            <span class="scene-saiyan__shock"></span>
+            <span class="scene-dragon__debris">
+              <span></span><span></span><span></span><span></span>
+            </span>
+            <div class="scene-saiyan__forms">
+              <span data-form="base">BASE <b>1×</b></span>
+              <span data-form="oozaru">OZZARU <b>10× BASE</b></span>
+              <span data-form="wrathful">WRATHFUL <b>15× BASE</b></span>
+              <span data-form="super">SUPER SAIYAN <b>50× BASE</b></span>
+              <span data-form="grade-two">SUPER SAIYAN 2 <b>100× BASE</b></span>
+              <span data-form="omen">ULTRA INSTINCT OMEN <b>50×</b></span>
+              <span data-form="ultra">ULTRA INSTINCT <b>2× OMEN</b></span>
+              <span data-form="mix">2 WEAK + STRONG</span>
+              <span data-form="hakai">HAKAI <b>100×</b></span>
+            </div>
+            <span class="scene-dragon__orb"></span>
+            <span class="scene-dragon__beam"></span>
+            <strong class="scene-dragon__chant">
+              <span>KA</span><span>ME</span><span>HA</span><span>ME</span
+              ><span>HAAAAA!</span>
+            </strong>
+            <strong class="scene-saiyan__fizzle">50×?</strong>
+            <strong class="scene-saiyan__hakai">HAKAI</strong>
+            <span
+              class="scene-saiyan__afterimage scene-saiyan__afterimage--a"
+            ></span>
+            <span
+              class="scene-saiyan__afterimage scene-saiyan__afterimage--b"
+            ></span>
+            <div class="scene-dragon__hunters" data-scene-hunters></div>
+          </div>
+
+          <div class="scene-stage scene-stage--combined" aria-hidden="true">
+            <span class="scene-combined__pie scene-combined__pie--a">×</span>
+            <span class="scene-combined__pie scene-combined__pie--b">×</span>
+            <span class="scene-combined__pie scene-combined__pie--c">×</span>
+            <span class="scene-combined__charge"></span>
+            <span class="scene-combined__beam"></span>
+            <strong class="scene-combined__chant">KAME · HAME · HAAAAA!</strong>
+            <div class="scene-combined__hunters" data-scene-hunters></div>
+          </div>
+
+          <div class="game-scene__koala" aria-hidden="true">
+            {% include "partials/koala.html" %}
+            <svg
+              class="game-scene__crest"
+              viewBox="0 0 120 120"
+              focusable="false"
+            >
+              <path
+                d="M29 35C31 26 37 20 44 18C43 10 47 5 53 13C55 5 60 2 63 13C69 5 75 8 74 18C82 19 88 26 90 35C82 31 75 30 67 32C61 27 56 27 51 32C43 30 36 31 29 35Z"
+              />
+            </svg>
+            <span class="game-scene__hardhat"></span>
+            <span class="game-scene__vest"></span>
+          </div>
+          <button
+            class="game-scene__skip"
+            type="button"
+            aria-label="Play Long Way Home"
+          >
+            Play
+          </button>
+        </div>
+      </div>
+
+      <div class="controls" role="group" aria-label="Maze controls">
+        <button
+          class="controls__up"
+          type="button"
+          data-move="0,-1"
+          aria-label="Move up"
+        >
+          ↑
+        </button>
+        <button
+          class="controls__left"
+          type="button"
+          data-move="-1,0"
+          aria-label="Move left"
+        >
+          ←
+        </button>
+        <button
+          class="controls__reset"
+          id="reset"
+          type="button"
+          aria-label="Restart game"
+        >
+          ↻
+        </button>
+        <button
+          class="controls__right"
+          type="button"
+          data-move="1,0"
+          aria-label="Move right"
+        >
+          →
+        </button>
+        <button
+          class="controls__down"
+          type="button"
+          data-move="0,1"
+          aria-label="Move down"
+        >
+          ↓
+        </button>
+      </div>
+
+      <details class="game__terminal" id="terminal">
+        <summary>&gt;_ Terminal</summary>
+        <form
+          class="recovery-shell"
+          id="shell"
+          autocomplete="off"
+          aria-label="BSD recovery shell"
+        >
+          <div
+            class="recovery-shell__log"
+            role="log"
+            aria-live="polite"
+            aria-relevant="additions text"
+          >
+            <pre id="shell-output">
+Last login: current session from 198.51.100.42
+
+          .-&quot;&quot;&quot;-.       .-&quot;&quot;&quot;-.
+         /  .-.  \_____/  .-.  \
+        /  /   \           /   \  \
+        | |      .-&quot;&quot;&quot;-.      | |
+        \  \    /  o o  \    /  /
+         '._'._|    ^    |_.'_.
+             \  \  '-'  /  /
+              '._'-----'_.
+                 /|   |\
+                /_|___|_\
+
+= Welcome to Koala's server =</pre>
+          </div>
+          <label class="recovery-shell__line">
+            <span id="shell-prompt" aria-hidden="true">rad@recv #</span>
+            <input
+              id="shell-input"
+              type="text"
+              maxlength="160"
+              autocapitalize="none"
+              autocorrect="off"
+              autocomplete="off"
+              enterkeyhint="send"
+              spellcheck="false"
+              aria-label="BSD recovery command"
+            />
+          </label>
+        </form>
+      </details>
+      <noscript>
+        The game needs JavaScript. Use the home link below to leave this page.
+      </noscript>
+    </div>
+
+    <aside
+      class="trace trace--nt"
+      aria-label="Live NT stop diagnostic derived from the maze state"
+    >
+      <p class="trace__title">
+        <span>NT POOL VERIFIER</span><span>STOP 0x19</span>
+      </p>
+      <pre
+        class="trace__dump trace__dump--nt"
+        id="stop-dump"
+        aria-hidden="true"
+      >
+*** STOP: 0x00000019 (0x00000003, 0xC00E0FF0,
+  0xFFFFEFD4, 0xC0000000)
+BAD_POOL_HEADER
+
+PROCESS_NAME: kradkrnl.ko  PID: 404
+maze0 cell=01,01 turn=000
+eax=ffdff13c ebx=80089a10 ecx=08000800
+edx=ff69bf60 esi=80088010 edi=8008b0f0
+eip=801b9da5 esp=ff69bb8c ebp=e10076c8 p4=0002
+nv up ei ng nz na po nc
+cr0=80050039 cr2=e1053002 cr3=00030000 cr4=00000000 irql:0
+efl=ff69bb84
+gdtr=80036000
+gdtl=03ff idtr=80036400 idtl=07ff tr=0028 ldtr=0000
+
+Dll Base  DateStmp - Name
+80100000  2c921d20 - kroskrnl.sys
+80010000  02360942 - atdisk.sys
+80200000  40400004 - dingo.exe
+80300000  40400005 - eagle.sys
+80400000  40400006 - koala.ko
+80500000  40400007 - kradkrnl.ko
+
+Address dword dump  Build [v1.528]
+- Name
+ff69bbb8 80121efa 80121efa ff7b6c50 - kradkrnl.ko @01,01
+ff69bc04 80115b00 80115b00 00000100 - dingo.exe @09,07 RUN
+ff69bc28 80115f67 80115f67 ff7b2600 - eagle.sys @11,07 RUN</pre>
+    </aside>
+  </div>
+
+  <footer class="os__footer">
+    <strong>&gt; VFS LOOKUP FAILED: ENOENT (404)</strong>
+    <span>&gt; VMCORE RECOVERY: <strong id="dump">0%</strong></span>
+    <a class="reboot" href="{{ site_root }}" id="shutdown" data-shutdown="1"
+      >&gt; shutdown -r now · REBOOT HOME</a
+    >
+  </footer>
+</section>
+
+<script id="map-config" type="application/json">
+  {{ game | tojson }}
+</script>
+<script src="{{ site_root }}assets/js/freebsd.boot.min.js" defer></script>
+<script src="{{ site_root }}assets/js/404/game.min.js" defer></script>
+<script src="{{ site_root }}assets/vendor/shell.js/shell.min.js" defer></script>
+<script src="{{ site_root }}assets/js/404/shell.min.js" defer></script>
+<script src="{{ site_root }}assets/js/404/panic.min.js" defer></script>
+{% endblock %}
