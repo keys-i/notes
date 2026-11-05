@@ -275,10 +275,10 @@ function powerSceneCallout(kind) {
     : kind === "weak"
       ? "50× … 15× … 10×"
       : kind === "ultra"
-        ? "ULTRA INSTINCT · 100×"
+        ? "ULTRA INSTINCT — 100×"
         : kind === "hakai"
-          ? "HAKAI · 100×"
-          : "KAME · HAME · HAAAAA!";
+          ? "HAKAI — 100×"
+          : "KAME HAME HAAAAA!";
 }
 
 function captureReaction(power) {
