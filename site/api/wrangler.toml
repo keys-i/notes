@@ -1,0 +1,23 @@
+name = "rads-notes-pet"
+main = "build/worker/shim.mjs"
+compatibility_date = "2026-11-04"
+workers_dev = false
+routes = [{ pattern = "uni.keysi.dev/api/pet", zone_name = "keysi.dev" }]
+
+[build]
+command = "cargo install -q worker-build@^0.8 && worker-build --release"
+cwd = "site/api"
+
+[observability]
+enabled = true
+redact_query_string = true
+
+[observability.logs]
+enabled = true
+head_sampling_rate = 1
+invocation_logs = false
+
+[[ratelimits]]
+name = "PET_LIMIT"
+namespace_id = "2700404"
+simple = { limit = 20, period = 60 }
