@@ -408,7 +408,7 @@ test("site chrome exposes progress and authored footer motion safely", () => {
   );
   assert.match(
     siteStyle,
-    /mask-image: repeating-linear-gradient\([\s\S]*?#000 0 2px,[\s\S]*?transparent 2px 3\.25px/,
+    /mask-image: repeating-linear-gradient\([\s\S]*?#000 0 2\.5px,[\s\S]*?transparent 2\.5px 4\.5px/,
   );
   assert.match(
     graphStyle,
