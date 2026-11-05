@@ -14,12 +14,28 @@ const mainTemplate = fs.readFileSync(
   new URL("../site/theme/main.html", import.meta.url),
   "utf8",
 );
+const headerTemplate = fs.readFileSync(
+  new URL("../site/theme/partials/header.html", import.meta.url),
+  "utf8",
+);
+const footerTemplate = fs.readFileSync(
+  new URL("../site/theme/partials/footer.html", import.meta.url),
+  "utf8",
+);
+const logo = fs.readFileSync(
+  new URL("../assets/images/logo.svg", import.meta.url),
+  "utf8",
+);
 const style = fs.readFileSync(
   new URL("../assets/styles/pet.css", import.meta.url),
   "utf8",
 );
 const siteStyle = fs.readFileSync(
   new URL("../assets/styles/site.css", import.meta.url),
+  "utf8",
+);
+const graphStyle = fs.readFileSync(
+  new URL("../assets/styles/graph.css", import.meta.url),
   "utf8",
 );
 const siteConfig = fs.readFileSync(
@@ -329,9 +345,18 @@ test("the koala is squat, asymmetric, and free of a skeletal rig", () => {
 });
 
 test("site chrome exposes progress and authored footer motion safely", () => {
-  assert.match(siteConfig, /copyright: A Radhesh Goel production/);
+  assert.match(siteConfig, /site_author: Radhesh Goel/);
   assert.match(siteConfig, /link: https:\/\/keysi\.dev/);
   assert.match(siteConfig, /link: https:\/\/linkedin\.com\/in\/radhesh-g/);
+  assert.match(headerTemplate, /class="md-header__button md-logo"/);
+  assert.match(headerTemplate, /class="md-header__topic site-home-link"/);
+  assert.match(footerTemplate, /site-footer-network__link--{{ social\.featured }}/);
+  assert.match(footerTemplate, /{{ social\.label }}/);
+  assert.match(footerTemplate, /Made with[\s\S]*❤️[\s\S]*Radhesh/);
+  assert.match(footerTemplate, /social\.logo/);
+  assert.doesNotMatch(footerTemplate, /MIT licensed|social\.description/);
+  assert.match(logo, /Rad's Notes koala reading mark/);
+  assert.doesNotMatch(logo, /Rad's Notes koala<\/title>|M45 8c9 2/);
   assert.match(siteStyle, /--reading-progress/);
   assert.match(siteStyle, /transform: scaleX\(var\(--reading-progress, 0\)\)/);
   assert.match(siteStyle, /@keyframes site-footer-rule/);
@@ -340,6 +365,12 @@ test("site chrome exposes progress and authored footer motion safely", () => {
   assert.match(siteStyle, /@supports not \(animation-timeline: view\(\)\)/);
   assert.match(siteStyle, /\.md-footer\.has-reveal\.is-visible/);
   assert.match(siteStyle, /\.md-header__button:is\(:hover, :focus-visible\)/);
+  assert.match(siteStyle, /\.site-footer-network__link--primary/);
+  assert.match(siteStyle, /\.site-footer-owner a/);
+  assert.match(
+    graphStyle,
+    /width: min\(42rem, calc\(100% - 28rem\)\)/,
+  );
   assert.match(siteStyle, /@property --theme-reveal/);
   assert.match(siteStyle, /@keyframes theme-wave-reveal/);
   assert.match(siteStyle, /@keyframes theme-fallback/);
@@ -362,6 +393,13 @@ test("site chrome exposes progress and authored footer motion safely", () => {
   );
   assert.match(mainTemplate, /<details class="note-comments" id="__comments">/);
   assert.match(mainTemplate, /Discuss this note/);
+  assert.doesNotMatch(mainTemplate, /icons\/material\/forum-outline\.svg/);
+  assert.doesNotMatch(mainTemplate, /Questions and corrections stay/);
+  assert.match(siteStyle, /grid-template-columns: minmax\(0, 1fr\) auto/);
+  assert.doesNotMatch(
+    siteStyle,
+    /\.note-comments > summary\s*\{[^}]*flex-direction: column/,
+  );
   assert.match(style, /width: min\(26rem, calc\(100vw - 1\.5rem\)\)/);
   assert.match(style, /dock-pet__help\[data-placement="above"\]::after/);
   assert.doesNotMatch(style, /html\.pet-help-open \.md-main__inner/);

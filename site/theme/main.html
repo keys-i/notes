@@ -144,16 +144,12 @@ page.meta.comments == false %}
 {% else %}
 <details class="note-comments" id="__comments">
   <summary>
-    <span>Discuss this note</span>
-    <small>GitHub sign-in optional</small>
+    <span class="note-comments__copy">
+      <span>Discuss this note</span>
+      <small>GitHub sign-in optional</small>
+    </span>
   </summary>
   <div class="note-comments__body">
-    <p>
-      Questions and corrections stay with this page in
-      <a href="{{ config.repo_url }}/{{ config.extra.comments.type }}"
-        >GitHub {{ config.extra.comments.type }}</a
-      >
-    </p>
     <div
       id="comments-provider"
       data-mode="utterances"
