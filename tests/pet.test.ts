@@ -344,17 +344,52 @@ test("the koala is squat, asymmetric, and free of a skeletal rig", () => {
   );
 });
 
+test("the site palette exposes complete semantic colour families", () => {
+  const families = [
+    "primary",
+    "secondary",
+    "tertiary",
+    "accent",
+    "neutral-cool",
+    "neutral-warm",
+    "error",
+    "success",
+    "warning",
+  ];
+  const steps = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950];
+
+  for (const family of families) {
+    for (const step of steps) {
+      assert.match(siteStyle, new RegExp(`--color-${family}-${step}:`));
+    }
+  }
+
+  assert.match(siteStyle, /--site-status-error: var\(--color-error-/);
+  assert.match(siteStyle, /--site-status-success: var\(--color-success-/);
+  assert.match(siteStyle, /--site-status-warning: var\(--color-warning-/);
+  assert.match(graphStyle, /--graph-hub-color: var\(--color-secondary-/);
+  assert.match(graphStyle, /--graph-leaf-color: var\(--color-tertiary-/);
+  assert.match(style, /color: var\(--color-warning-300\)/);
+  assert.match(style, /color: var\(--color-success-300\)/);
+});
+
 test("site chrome exposes progress and authored footer motion safely", () => {
   assert.match(siteConfig, /site_author: Radhesh Goel/);
+  assert.match(siteConfig, /text: IBM Plex Sans/);
+  assert.match(siteConfig, /code: IBM Plex Mono/);
   assert.match(siteConfig, /link: https:\/\/keysi\.dev/);
   assert.match(siteConfig, /link: https:\/\/linkedin\.com\/in\/radhesh-g/);
   assert.match(headerTemplate, /class="md-header__button md-logo"/);
   assert.match(headerTemplate, /class="md-header__topic site-home-link"/);
+  assert.match(headerTemplate, /site-home-link__wordmark/);
   assert.match(footerTemplate, /site-footer-network__link--{{ social\.featured }}/);
   assert.match(footerTemplate, /{{ social\.label }}/);
-  assert.match(footerTemplate, /Made with[\s\S]*❤️[\s\S]*Radhesh/);
+  assert.match(footerTemplate, /Made by[\s\S]*Radhesh/);
+  assert.match(footerTemplate, /site-footer-owner__rocket/);
+  assert.match(footerTemplate, /site-footer-network__wordmark/);
+  assert.match(footerTemplate, /site-footer-network__link--icon/);
   assert.match(footerTemplate, /social\.logo/);
-  assert.doesNotMatch(footerTemplate, /MIT licensed|social\.description/);
+  assert.doesNotMatch(footerTemplate, /❤️|MIT licensed|social\.description/);
   assert.match(logo, /Rad's Notes koala reading mark/);
   assert.doesNotMatch(logo, /Rad's Notes koala<\/title>|M45 8c9 2/);
   assert.match(siteStyle, /--reading-progress/);
@@ -366,7 +401,16 @@ test("site chrome exposes progress and authored footer motion safely", () => {
   assert.match(siteStyle, /\.md-footer\.has-reveal\.is-visible/);
   assert.match(siteStyle, /\.md-header__button:is\(:hover, :focus-visible\)/);
   assert.match(siteStyle, /\.site-footer-network__link--primary/);
-  assert.match(siteStyle, /\.site-footer-owner a/);
+  assert.match(siteStyle, /\.site-footer-owner__name/);
+  assert.match(
+    siteStyle,
+    /\.site-home-link__wordmark,[\s\S]*?font-family: "IBM Plex Mono", monospace/,
+  );
+  assert.match(
+    siteStyle,
+    /\.site-footer-network__wordmark[\s\S]*?font-family: "IBM Plex Mono", monospace/,
+  );
+  assert.match(siteStyle, /mask-image: repeating-linear-gradient\([\s\S]*?#000 0 1px/);
   assert.match(
     graphStyle,
     /width: min\(42rem, calc\(100% - 28rem\)\)/,
@@ -386,16 +430,31 @@ test("site chrome exposes progress and authored footer motion safely", () => {
     siteStyle,
     /repeating-radial-gradient|160vmax|backdrop-filter|filter: blur/,
   );
-  assert.match(siteStyle, /max-width: 59\.99em[\s\S]*?padding-right: 5\.75rem/);
+  assert.match(siteStyle, /\.site-footer-network[\s\S]*display: flex/);
+  assert.match(siteStyle, /\.site-footer-owner__rocket[\s\S]*width: 0\.5rem/);
+  assert.match(siteStyle, /offset-path: path\("M 10 7 C 16 -7 28 -7 35 5"\)/);
+  assert.match(siteStyle, /@keyframes site-owner-rocket/);
+  assert.match(siteStyle, /@keyframes site-minis-lift/);
+  assert.match(siteStyle, /@keyframes site-minis-halo/);
+  assert.doesNotMatch(siteStyle, /site-minis-pop|rotate\(10deg\)/);
+  assert.match(
+    siteStyle,
+    /\.site-footer-network__link--icon[\s\S]*border-color: transparent/,
+  );
+  assert.doesNotMatch(siteStyle, /padding-right: 5\.75rem/);
   assert.match(
     siteStyle,
     /prefers-reduced-motion: reduce[\s\S]*?\.md-header,[\s\S]*?\.md-footer,[\s\S]*?animation: none/,
   );
   assert.match(mainTemplate, /<details class="note-comments" id="__comments">/);
   assert.match(mainTemplate, /Discuss this note/);
+  assert.match(mainTemplate, /note-comments__icon[\s\S]*comment-text-outline\.svg/);
   assert.doesNotMatch(mainTemplate, /icons\/material\/forum-outline\.svg/);
   assert.doesNotMatch(mainTemplate, /Questions and corrections stay/);
-  assert.match(siteStyle, /grid-template-columns: minmax\(0, 1fr\) auto/);
+  assert.match(
+    siteStyle,
+    /grid-template-columns: auto minmax\(0, 1fr\) auto/,
+  );
   assert.doesNotMatch(
     siteStyle,
     /\.note-comments > summary\s*\{[^}]*flex-direction: column/,
@@ -405,6 +464,10 @@ test("site chrome exposes progress and authored footer motion safely", () => {
   assert.doesNotMatch(style, /html\.pet-help-open \.md-main__inner/);
   assert.match(style, /dock-pet__token--keyword/);
   assert.match(style, /dock-pet__math--display/);
+  assert.match(
+    style,
+    /#dock-pet-send\s*\{[\s\S]*?display: none[\s\S]*?max-width: 59\.99em[\s\S]*?#dock-pet-send\s*\{[\s\S]*?display: grid/,
+  );
   assert.doesNotMatch(mainTemplate, /lang\.t|data-lang|giscus/);
 });
 
@@ -1771,7 +1834,7 @@ test("pointer pickup keeps the click threshold, capture, and cancellation", () =
   assert.equal(lost.pet.dataset.dock, "footer");
 });
 
-test("normal release falls under gravity and lands on the footer", () => {
+test("normal release falls under gravity and lands on the footer top", () => {
   const runtime = createRuntime();
   let prevented = 0;
   runtime.petHandlers.pointerdown({
@@ -1801,9 +1864,9 @@ test("normal release falls under gravity and lands on the footer", () => {
   runFrames(runtime, 80);
   assert.equal(runtime.pet.dataset.falling, undefined);
   assert.equal(runtime.pet.dataset.dock, "footer");
-  assert.equal(runtime.pet.style.top, "627.2px");
+  assert.equal(runtime.pet.style.top, "621px");
   assert.equal(runtime.pet.dataset.dropping, "true");
-  assert.equal(runtime.status.textContent, "Koala landed on the footer");
+  assert.equal(runtime.status.textContent, "Koala landed on top of the footer");
   runtime.runTimer(180);
   assert.equal(runtime.pet.dataset.dropping, undefined);
 });
@@ -1828,7 +1891,7 @@ test("high release opens a readable parachute and can be re-grabbed", () => {
   assert.equal(landing.pet.dataset.state, "parachuting");
   assert.equal(
     landing.status.textContent,
-    "Parachute open; scrolling towards the footer",
+    "Parachute open; scrolling towards the footer edge",
   );
   runFrames(landing, 260);
   assert.equal(landing.pet.dataset.parachute, undefined);
@@ -1942,14 +2005,15 @@ test("focused arrows place the pet and Escape restores automatic docking", () =>
     preventDefault: () => (prevented += 1),
     shiftKey: true,
   });
-  assert.equal(runtime.pet.style.top, "603.2px");
+  assert.equal(runtime.pet.style.top, "597px");
   runtime.petHandlers.keydown({
     key: "Escape",
     preventDefault: () => (prevented += 1),
   });
   assert.equal(runtime.pet.dataset.dock, "footer");
   assert.equal(runtime.pet.style.left, "912px");
-  assert.equal(runtime.pet.style.top, "627.2px");
+  assert.equal(runtime.pet.style.top, "621px");
+  assert.equal(Number.parseFloat(runtime.pet.style.top) + 79, 700);
   runtime.petHandlers.keydown({
     key: "Enter",
     preventDefault: () => prevented++,
@@ -2120,7 +2184,7 @@ test("visibility and media changes cancel work and settle live movement", async 
   assert.ok(Number.parseFloat(manual.pet.style.top) <= 552);
 });
 
-test("scroll entry steps onto the footer and returns to the floor", () => {
+test("scroll entry meets the footer top and returns to the floor", () => {
   const runtime = createRuntime({ footerTop: 900 });
   assert.equal(runtime.pet.dataset.dock, "floor");
   runtime.setFooterTop(700);
@@ -2131,7 +2195,8 @@ test("scroll entry steps onto the footer and returns to the floor", () => {
   runtime.runTimer(160);
   assert.equal(runtime.pet.hidden, false);
   assert.equal(runtime.pet.dataset.state, "walking");
-  assert.equal(runtime.pet.style.top, "627.2px");
+  assert.equal(runtime.pet.style.top, "621px");
+  assert.equal(Number.parseFloat(runtime.pet.style.top) + 79, 700);
   runtime.runTimer(520);
   assert.equal(runtime.pet.dataset.state, "perched");
 
@@ -2194,7 +2259,7 @@ test("reduced motion suppresses reactions and resolves drops immediately", () =>
   assert.equal(drop.pet.dataset.parachute, undefined);
   assert.equal(drop.pet.dataset.grip, undefined);
   assert.equal(drop.pet.dataset.dock, "footer");
-  assert.equal(drop.status.textContent, "Koala landed on the footer");
+  assert.equal(drop.status.textContent, "Koala landed on top of the footer");
   assert.match(
     style,
     /prefers-reduced-motion: reduce[\s\S]*?dock-pet__parachute,[\s\S]*?animation: none !important/,
@@ -2380,9 +2445,9 @@ test("resize work coalesces into one layout frame", () => {
   assert.equal(runtime.frames.size, 0);
 });
 
-test("mobile footer docking stays stable and action labels remain explicit", () => {
+test("mobile docking meets the footer top and action labels remain explicit", () => {
   const runtime = createRuntime({ desktop: false });
-  assert.equal(runtime.pet.style.top, "708px");
+  assert.equal(runtime.pet.style.top, "621px");
   assert.equal(runtime.pet.dataset.state, "perched");
   assert.equal(runtime.pet.attributes["aria-controls"], "dock-pet-help");
   assert.equal(runtime.pet.attributes["aria-expanded"], "false");

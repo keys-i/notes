@@ -1,7 +1,7 @@
 .dock-pet {
-  --dock-pet-cloud-fill: #343940;
-  --dock-pet-cloud-stroke: #1f2328;
-  --dock-pet-cloud-text: #fff;
+  --dock-pet-cloud-fill: var(--color-neutral-cool-800);
+  --dock-pet-cloud-stroke: var(--color-neutral-cool-900);
+  --dock-pet-cloud-text: var(--color-neutral-warm-50);
 
   appearance: none;
   position: fixed;
@@ -35,9 +35,9 @@
 }
 
 [data-md-color-scheme="slate"] .dock-pet {
-  --dock-pet-cloud-fill: #fff;
-  --dock-pet-cloud-stroke: #d8dde3;
-  --dock-pet-cloud-text: #202124;
+  --dock-pet-cloud-fill: var(--color-neutral-warm-50);
+  --dock-pet-cloud-stroke: var(--color-neutral-cool-200);
+  --dock-pet-cloud-text: var(--color-neutral-cool-900);
 }
 
 .dock-pet[hidden] {
@@ -277,8 +277,23 @@
 
 .dock-pet__help-question {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) repeat(3, auto);
+  grid-template-columns: minmax(0, 1fr) repeat(2, auto);
   gap: 0.35rem;
+}
+
+#dock-pet-send {
+  display: none;
+}
+
+@media (max-width: 59.99em) {
+  .dock-pet__help-question {
+    grid-template-columns: minmax(0, 1fr) repeat(3, auto);
+  }
+
+  #dock-pet-send {
+    display: grid;
+    place-items: center;
+  }
 }
 
 .dock-pet__attachment {
@@ -432,11 +447,12 @@
   max-width: 100%;
   padding: 1.6rem 0.7rem 0.7rem;
   overflow: auto;
-  color: #e8edf7;
+  color: var(--color-neutral-cool-100);
   font: 0.65rem/1.55 var(--md-code-font-family);
   tab-size: 2;
-  background: #111624;
-  border: 1px solid rgb(216 224 255 / 0.16);
+  background: var(--color-neutral-cool-950);
+  border: 1px solid
+    color-mix(in srgb, var(--color-neutral-cool-200) 16%, transparent);
   border-radius: 0.5rem;
 }
 
@@ -444,7 +460,7 @@
   position: absolute;
   top: 0.35rem;
   left: 0.7rem;
-  color: #aeb8cd;
+  color: var(--color-neutral-cool-400);
   content: attr(data-language);
   font: 0.55rem/1 var(--md-code-font-family);
 }
@@ -461,19 +477,19 @@
 }
 
 .dock-pet__token--comment {
-  color: #8994aa;
+  color: var(--color-neutral-cool-500);
 }
 
 .dock-pet__token--keyword {
-  color: #b6a2ff;
+  color: var(--color-tertiary-300);
 }
 
 .dock-pet__token--number {
-  color: #ffcb7a;
+  color: var(--color-warning-300);
 }
 
 .dock-pet__token--string {
-  color: #92d192;
+  color: var(--color-success-300);
 }
 
 .dock-pet__math {

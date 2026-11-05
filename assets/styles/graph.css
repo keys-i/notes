@@ -12,21 +12,37 @@
 }
 
 [data-md-color-scheme="default"] {
-  --graph-bg-color: #f3f5fb;
-  --graph-grid-color: rgb(23 57 183 / 0.055);
-  --graph-glow-color: rgb(23 57 183 / 0.48);
-  --graph-hub-color: #0b7180;
-  --graph-leaf-color: #4263c7;
-  --graph-root-color: #0719aa;
+  --graph-bg-color: var(--color-neutral-cool-100);
+  --graph-grid-color: color-mix(
+    in srgb,
+    var(--color-primary-600) 5.5%,
+    transparent
+  );
+  --graph-glow-color: color-mix(
+    in srgb,
+    var(--color-primary-600) 48%,
+    transparent
+  );
+  --graph-hub-color: var(--color-secondary-700);
+  --graph-leaf-color: var(--color-tertiary-600);
+  --graph-root-color: var(--color-primary-700);
 }
 
 [data-md-color-scheme="slate"] {
-  --graph-bg-color: #090f25;
-  --graph-grid-color: rgb(88 217 232 / 0.055);
-  --graph-glow-color: rgb(220 232 95 / 0.56);
-  --graph-hub-color: #58d9e8;
-  --graph-leaf-color: #8ba5ee;
-  --graph-root-color: #f2ff3d;
+  --graph-bg-color: var(--color-neutral-cool-950);
+  --graph-grid-color: color-mix(
+    in srgb,
+    var(--color-secondary-300) 5.5%,
+    transparent
+  );
+  --graph-glow-color: color-mix(
+    in srgb,
+    var(--color-accent-400) 56%,
+    transparent
+  );
+  --graph-hub-color: var(--color-secondary-300);
+  --graph-leaf-color: var(--color-tertiary-300);
+  --graph-root-color: var(--color-accent-300);
 }
 
 .graph-shell {
@@ -49,7 +65,8 @@
     2rem 2rem,
     2rem 2rem,
     auto;
-  box-shadow: 0 1rem 2.5rem rgb(6 18 115 / 0.24);
+  box-shadow: 0 1rem 2.5rem
+    color-mix(in srgb, var(--color-primary-900) 24%, transparent);
 }
 
 .modal_graph:focus-visible {
@@ -74,7 +91,8 @@
   border-radius: 0.65rem;
   color: var(--md-default-fg-color);
   background: var(--md-default-bg-color);
-  box-shadow: 0 0.12rem 0.3rem rgb(0 0 0 / 0.1);
+  box-shadow: 0 0.12rem 0.3rem
+    color-mix(in srgb, var(--color-neutral-cool-950) 10%, transparent);
   cursor: pointer;
   place-items: center;
   transition:
