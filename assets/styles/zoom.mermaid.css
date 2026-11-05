@@ -53,7 +53,8 @@
   border: 1px solid var(--md-default-fg-color--lighter);
   border-radius: 0.2rem;
   background: var(--md-default-bg-color);
-  box-shadow: 0 0.2rem 0.6rem rgb(0 0 0 / 12%);
+  box-shadow: 0 0.2rem 0.6rem
+    color-mix(in srgb, var(--color-neutral-cool-950) 12%, transparent);
 }
 
 .mermaid-zoom__button {
