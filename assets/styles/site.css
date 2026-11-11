@@ -136,7 +136,8 @@
   --site-status-error: var(--color-error-600);
   --site-status-success: var(--color-success-700);
   --site-status-warning: var(--color-warning-700);
-  --site-link: #30454d;
+  --site-link: var(--color-primary-700);
+  --site-table-head: #e6ebff;
 }
 
 [data-md-color-scheme="slate"] {
@@ -171,7 +172,8 @@
   --site-status-error: var(--color-error-400);
   --site-status-success: var(--color-success-400);
   --site-status-warning: var(--color-warning-400);
-  --site-link: #d7e4eb;
+  --site-link: var(--color-primary-200);
+  --site-table-head: #283a60;
 }
 
 body {
@@ -252,8 +254,42 @@ body {
   text-underline-offset: 0.16em;
 }
 
+.md-typeset :is(p, li, td, dd, blockquote) a,
+.papers :is(.papers__item-actions, .papers__preview-actions, .papers__summary) a {
+  text-decoration-line: underline;
+}
+
 .md-typeset a:is(:hover, :focus-visible) {
   color: var(--md-accent-fg-color);
+}
+
+.md-typeset table tbody tr:nth-child(even) {
+  background: color-mix(in srgb, var(--md-default-bg-color) 92%, var(--site-link));
+}
+
+.md-typeset table thead th {
+  color: var(--md-default-fg-color);
+  background: var(--site-table-head);
+}
+
+.md-typeset .course-index tbody tr:is(:hover, :focus-within) {
+  background: color-mix(in srgb, var(--md-default-bg-color) 84%, var(--site-link));
+}
+
+.md-typeset .course-index tbody tr {
+  position: relative;
+  cursor: pointer;
+}
+
+.md-typeset .course-index tbody tr a::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+}
+
+.md-typeset .course-index tbody tr a:focus-visible::after {
+  outline: 2px solid var(--md-accent-fg-color);
+  outline-offset: -2px;
 }
 
 .md-typeset :not(pre) > code {
@@ -1195,15 +1231,11 @@ body {
   @supports not (animation-timeline: view()) {
     .md-footer.has-reveal {
       opacity: 0.82;
-      transform: translateY(0.55rem);
     }
 
     .md-footer.has-reveal.is-visible {
       opacity: 1;
-      transform: none;
-      transition:
-        opacity 320ms ease,
-        transform 320ms cubic-bezier(0.16, 1, 0.3, 1);
+      transition: opacity 320ms ease;
     }
 
     .md-footer.has-reveal::before {
@@ -1229,12 +1261,6 @@ body {
   }
 
   @supports (animation-timeline: view()) {
-    .md-footer {
-      animation: site-footer-reveal linear both;
-      animation-timeline: view();
-      animation-range: entry 0 entry 35%;
-    }
-
     .md-footer::before {
       animation: site-footer-rule linear both;
       animation-timeline: view();
@@ -1296,12 +1322,6 @@ body {
   from {
     opacity: 0.72;
     transform: translateY(-0.45rem);
-  }
-}
-
-@keyframes site-footer-reveal {
-  from {
-    transform: translateY(0.55rem);
   }
 }
 

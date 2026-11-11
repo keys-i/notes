@@ -7,10 +7,12 @@ document.querySelector(".md-search")?.insertAdjacentHTML(
 );
 
 var graphTimelapseIcon =
-  '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"> \
-  <path d="M12 4a8 8 0 1 1-7.4 5H2l3.5-4L9 9H6.7A6 6 0 1 0 12 6v5h4v2h-6V4Z" fill="currentColor"/> \
-  <circle class="graph-timelapse__sparkle" cx="4" cy="17" r="1.4" fill="currentColor"/> \
-  <circle class="graph-timelapse__sparkle" cx="9" cy="21" r="1" fill="currentColor"/> \
+  '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"> \
+  <path d="M19.5 8.5A8 8 0 1 0 20 15M19.5 4.5v4h-4"/> \
+  <path d="m8.5 13 3-3 3.5 3.5"/> \
+  <circle cx="8" cy="13.5" r="1" fill="currentColor" stroke="none"/> \
+  <circle cx="11.5" cy="10" r="1" fill="currentColor" stroke="none"/> \
+  <circle cx="15" cy="13.5" r="1" fill="currentColor" stroke="none"/> \
 </svg>';
 
 function set_toc_marquees() {
@@ -354,16 +356,6 @@ function show_graph_timeline_step(chart, steps, step, popScale?) {
       },
     ],
   });
-  var slider = document.querySelector<HTMLInputElement>("#graph-timeline-range");
-  var label = document.querySelector<HTMLOutputElement>("#graph-timeline-date");
-  if (slider) slider.value = String(step);
-  if (label) {
-    label.textContent =
-      String(nodes[shown - 1].created || "Unknown date").slice(0, 10) +
-      " · " +
-      shown +
-      (shown === 1 ? " note" : " notes");
-  }
 }
 
 function replay_graph_growth(chart) {
@@ -1092,7 +1084,6 @@ function ensure_graph_modal() {
         "</button>" +
         '<button class="graph-tool graph-close" type="button" title="Close graph" aria-label="Close graph">×</button>' +
         "</div>" +
-        '<div class="graph-timeline"><label for="graph-timeline-range">History <output id="graph-timeline-date">Latest</output></label><input id="graph-timeline-range" type="range" min="1" max="1" value="1" aria-label="Graph history" /></div>' +
         "</div>" +
         "</div>",
     );
@@ -1121,16 +1112,6 @@ function open_graph() {
       element.removeAttribute("aria-busy");
       myChart = init_graph(element);
       draw_graph(myChart);
-      var steps = graph_timeline_steps(graphTimelineNodes);
-      var slider = modal.querySelector<HTMLInputElement>("#graph-timeline-range");
-      if (slider) {
-        slider.max = String(Math.max(1, steps.length));
-        slider.value = slider.max;
-      }
-      var timelineDate = modal.querySelector<HTMLOutputElement>("#graph-timeline-date");
-      if (timelineDate) {
-        timelineDate.textContent = "Latest · " + graphTimelineNodes.length + " notes";
-      }
     })
     .catch(function () {
       if (myChart) myChart.dispose();
@@ -1221,19 +1202,6 @@ document.addEventListener("click", function (event) {
   ) {
     close_graph();
   }
-});
-
-document.addEventListener("input", function (event) {
-  var slider = event.target;
-  if (
-    !(slider instanceof HTMLInputElement) ||
-    slider.id !== "graph-timeline-range" ||
-    !myChart ||
-    myChart.isDisposed()
-  ) return;
-  finish_graph_timelapse();
-  cache_graph_positions(myChart);
-  show_graph_timeline_step(myChart, graph_timeline_steps(graphTimelineNodes), Number(slider.value));
 });
 
 document.getElementById("graph_button")?.addEventListener("click", open_graph);
