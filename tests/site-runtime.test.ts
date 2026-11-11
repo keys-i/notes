@@ -590,20 +590,11 @@ function graphHarness() {
     const tools = new RuntimeElement();
     tools.className = "graph-tools";
     tools.append(replay, close);
-    const timeline = new RuntimeElement();
-    timeline.className = "graph-timeline";
-    const range = new RuntimeElement();
-    range.id = "graph-timeline-range";
-    const date = new RuntimeElement();
-    date.id = "graph-timeline-date";
-    timeline.append(range, date);
-    shell.append(canvas, tools, timeline);
+    shell.append(canvas, tools);
     modal.appendChild(shell);
     body.appendChild(modal);
     elements.set("modal_background", modal);
     elements.set("graph", canvas);
-    elements.set("graph-timeline-range", range);
-    elements.set("graph-timeline-date", date);
   };
   const document: any = {
     body,
@@ -970,6 +961,15 @@ test("graph helpers preserve routes, ordering, labels, and timeline state", asyn
     },
   };
   (graph.context as any).testChart = chart;
+  call("replay_graph_growth({isDisposed:()=>true})");
+  call(`
+    var savedTimelineNodes = graphTimelineNodes;
+    graphTimelineNodes = [];
+    replay_graph_growth(testChart);
+    bind_graph_keyboard(testChart, document.getElementById('graph'));
+    graphTimelineNodes = savedTimelineNodes;
+  `);
+  assert.equal(chart.options.length, 0);
   call("replay_graph_growth(testChart)");
   assert.equal(chart.options.at(-1).series[0].data.length, 2);
   const modalPromise = call("open_graph(); graphModalPromise");
@@ -1008,6 +1008,10 @@ test("graph helpers preserve routes, ordering, labels, and timeline state", asyn
   assert.match(canvas.attributes["aria-label"], /Week/);
   canvas.dispatch("keydown", {
     key: "Enter",
+    preventDefault: () => (prevented += 1),
+  });
+  canvas.dispatch("keydown", {
+    key: "Tab",
     preventDefault: () => (prevented += 1),
   });
   assert.equal(new URL(graph.window.location.href).pathname, "/week/");
@@ -1065,32 +1069,6 @@ test("graph helpers preserve routes, ordering, labels, and timeline state", asyn
   assert.equal([...graph.timers.values()][0].delay, 0);
   call("close_graph()");
   assert.equal(graph.timers.size, 0);
-});
-
-test("graph history slider reveals dated notes and connected links", async () => {
-  const graph = graphHarness();
-  const call = (source: string) => vm.runInContext(source, graph.context);
-  call("open_graph()");
-  await call("graphModalPromise");
-  const slider = graph.elements.get("graph-timeline-range")! as RuntimeElement & { value: string; max: string };
-  const date = graph.elements.get("graph-timeline-date")!;
-  assert.equal(slider.max, "2");
-  slider.value = "1";
-  graph.handlers.input[0]({ target: slider });
-  assert.equal(date.textContent, "2024-01-01 · 1 note");
-  assert.equal(graph.chart.options.at(-1).series[0].data.length, 1);
-  assert.equal(graph.chart.options.at(-1).series[0].links.length, 0);
-  slider.value = "2";
-  graph.handlers.input[0]({ target: slider });
-  assert.equal(date.textContent, "2024-01-02 · 2 notes");
-  assert.equal(graph.chart.options.at(-1).series[0].links.length, 1);
-  const updates = graph.chart.options.length;
-  graph.handlers.input[0]({ target: new RuntimeElement() });
-  graph.chart.disposed = true;
-  graph.handlers.input[0]({ target: slider });
-  assert.equal(graph.chart.options.length, updates);
-  graph.chart.disposed = false;
-  call("close_graph()");
 });
 
 test("graph fit contains oversized layouts and pinned labels on every open", async () => {
