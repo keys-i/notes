@@ -22,6 +22,39 @@ VERSIONED_ASSETS = (
 )
 WEEK_TITLE = re.compile(r"^(?:W|Week\s+)(\d+)\b", re.IGNORECASE)
 PAPERS = json.loads((ROOT / "site/papers.json").read_text(encoding="utf-8"))
+ROUTE_LABELS = {"PY": "Past years", "CS": "Cheatsheet"}
+CHEATSHEETS = {
+    "INFS2200": "INFS2200-cheatsheet.pdf",
+    "MECH2700": "MECH2700-cheatsheet.pdf",
+}
+
+
+def paper_display_title(item, code):
+    """Turn source filenames into labels without changing their Drive identity"""
+    title = re.sub(r"\.(?:pdf|docx?)$", "", item["title"], flags=re.IGNORECASE)
+    title = re.sub(r"[_-]+", " ", title)
+    title = re.sub(r"(?i)\bexamsol\b", "Exam Solutions", title)
+    title = re.sub(r"(?i)\bfinalexam\b", "Final Exam", title)
+    title = re.sub(r"(?i)\b(solutions|answers)\d{2}\b", r"\1", title)
+    title = re.sub(rf"\b{re.escape(code)}\b", " ", title, flags=re.IGNORECASE)
+    years = set(re.findall(r"\b(?:19|20)\d{2}\b", title))
+    if years == {str(item["year"])} and "onwards" not in title.lower():
+        title = re.sub(rf"\b{item['year']}\b", " ", title)
+    if not re.search(r"\b(?:19|20)\d{2}\b", title):
+        title = re.sub(r"^\s*\d{3,4}\b", " ", title)
+    title = re.sub(r"\b\d{3,4}\s*$", "", title)
+    title = re.sub(r"(?i)\bsem\b", "Semester", title)
+    title = re.sub(r"\s+", " ", title).strip(" .,-")
+    title = re.sub(
+        r"(?i)\b(exam|answers|solutions|final|semester|two|examinations|practice|sample|online|onwards)\b",
+        lambda match: match.group().capitalize(),
+        title,
+    )
+    if item["kind"] in {"Paper", "Practice"} and not re.search(
+        r"(?i)\b(?:answers|solutions)\b", title
+    ):
+        title = f"{title or 'Exam'} with answers"
+    return title or "Exam answers"
 
 
 def on_config(config):
@@ -80,9 +113,23 @@ def _pages(items):
             yield from _pages(item.children)
 
 
+def _label_compact_routes(items):
+    for item in items:
+        children = getattr(item, "children", None)
+        url = getattr(item, "url", "") or ""
+        if not url and children:
+            url = getattr(children[0], "url", "") or ""
+        route = url.rstrip("/").rsplit("/", 1)[-1]
+        if route in ROUTE_LABELS:
+            item.title = ROUTE_LABELS[route]
+        if children:
+            _label_compact_routes(children)
+
+
 def on_nav(nav, **_):
-    """Keep numbered weeks natural in navigation and previous/next links"""
+    """Keep navigation labels, weeks and previous/next links coherent"""
     _sort_weeks(nav.items)
+    _label_compact_routes(nav.items)
     nav.pages = list(_pages(nav.items))
     for index, page in enumerate(nav.pages):
         page.previous_page = nav.pages[index - 1] if index else None
@@ -94,25 +141,64 @@ def on_page_context(context, page, **_):
     """Expose the curated Drive index only on course paper pages"""
     code = page.meta.get("papers") if page.meta else None
     if code:
-        context["paper_catalog"] = PAPERS["courses"][code]
+        course = PAPERS["courses"][code]
+        items = {}
+        for item in sorted(
+            course["items"], key=lambda value: value["source"] != "primary"
+        ):
+            if item.get("has_solutions"):
+                label = paper_display_title(item, code)
+                items.setdefault(
+                    (item["year"], label.casefold()), {**item, "display_title": label}
+                )
+        context["paper_catalog"] = {
+            **course,
+            "items": list(items.values()),
+        }
         context["paper_updated"] = PAPERS["updated"]
     return context
 
 
 def on_page_markdown(markdown, page, **_):
-    """Share paper-page copy while keeping one route file per course"""
+    """Share generated resource pages while keeping one route file per course"""
     code = page.meta.get("papers") if page.meta else None
+    if code:
+        return (
+            '<nav class="papers__nav" aria-label="Course navigation">'
+            f'<a class="papers__back" href="../" aria-label="Back to {code}" '
+            f'title="Back to {code}">'
+            '<svg aria-hidden="true" viewBox="0 0 24 24">'
+            '<path d="m14.5 6-6 6 6 6M9 12h9" />'
+            "</svg></a></nav>\n\n"
+            "# Past year papers\n\nSolutions and worked answers, grouped by year\n"
+        )
+    code = page.meta.get("cheatsheet") if page.meta else None
     if not code:
         return markdown
-    archive_note = (
-        "\n\nThe main course folder is empty, so these files come from the archive."
-        if all(item["source"] != "primary" for item in PAPERS["courses"][code]["items"])
-        else ""
-    )
+    pdf = CHEATSHEETS[code]
     return (
-        f"# Past year papers\n\nSearch {code} papers and solutions by year, "
-        f"then preview them here.{archive_note}\n\n"
-        f"[← Back to {code}](../index.md)\n\n## Find a paper\n"
+        '<nav class="papers__nav" aria-label="Course navigation">'
+        f'<a class="papers__back" href="../" aria-label="Back to {code}" '
+        f'title="Back to {code}">'
+        '<svg aria-hidden="true" viewBox="0 0 24 24">'
+        '<path d="m14.5 6-6 6 6 6M9 12h9" />'
+        "</svg></a></nav>\n\n"
+        f"# {code} Cheatsheet\n\n"
+        "A one-page exam reference built from the course notes and past papers\n\n"
+        f'<section class="cheatsheet" aria-label="{code} cheatsheet reader">'
+        '<div class="cheatsheet__bar"><strong>Exam reference</strong>'
+        f'<a href="{pdf}" target="_blank" rel="noopener" '
+        f'aria-label="Open {code} cheatsheet full screen" title="Full screen">'
+        '<svg viewBox="0 0 24 24" aria-hidden="true"><path '
+        'd="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></svg></a></div>'
+        '<div class="cheatsheet__viewer">'
+        f'<iframe src="{pdf}#view=FitH" title="{code} one-page cheatsheet" '
+        'loading="eager"></iframe>'
+        f'<a class="cheatsheet__download" href="{pdf}" download '
+        f'aria-label="Download {code} cheatsheet" title="Download">'
+        '<svg viewBox="0 0 24 24" aria-hidden="true"><path '
+        'd="M12 3v12m-5-5 5 5 5-5M5 20h14"/></svg></a>'
+        "</div></section>"
     )
 
 
@@ -137,6 +223,12 @@ def _redirect(target):
 def on_post_build(config):
     """Redirect the former markdown subject paths to their stable pages"""
     site = Path(config.site_dir)
+    leaked_catalog = next(site.rglob("papers.json"), None)
+    if leaked_catalog:
+        raise RuntimeError(
+            f"built site contains the source paper catalogue: "
+            f"{leaked_catalog.relative_to(site)}"
+        )
     index = site / "index.html"
     if index.is_file():
         markup = index.read_text(encoding="utf-8")

@@ -158,7 +158,9 @@ class SiteAssetTests(unittest.TestCase):
         self.assertIn("prefers-reduced-motion: reduce", theme)
         self.assertIn('[data-md-color-scheme="default"]', theme)
         self.assertIn('[data-md-color-scheme="slate"]', theme)
-        self.assertIn("width: min(100%, 116rem)", theme)
+        self.assertIn(".md-header__inner > .md-search:focus-within", theme)
+        self.assertIn("transform: translateX(-50%)", theme)
+        self.assertIn("body:has(.papers__preview:not([hidden])) #dock-pet", theme)
         self.assertIn("text: IBM Plex Sans", config)
         self.assertIn("code: IBM Plex Mono", config)
         self.assertNotIn("language:", config)
@@ -356,13 +358,93 @@ class SiteAssetTests(unittest.TestCase):
                 context = site.on_page_context(
                     {}, SimpleNamespace(meta={"papers": code})
                 )
-                self.assertIs(context["paper_catalog"], course)
+                self.assertEqual(context["paper_catalog"]["folder"], course["folder"])
+                self.assertTrue(context["paper_catalog"]["items"])
+                self.assertTrue(
+                    all(
+                        item["has_solutions"]
+                        for item in context["paper_catalog"]["items"]
+                    )
+                )
+                self.assertTrue(
+                    all(
+                        item["display_title"]
+                        for item in context["paper_catalog"]["items"]
+                    )
+                )
                 body = site.on_page_markdown("", SimpleNamespace(meta={"papers": code}))
-                self.assertIn(f"Search {code} papers and solutions", body)
-                self.assertIn("## Find a paper", body)
+                self.assertIn("Solutions and worked answers", body)
+                self.assertIn(f"Back to {code}", body)
         self.assertEqual(
             {item["source"] for item in catalog["MECH2700"]["items"]}, {"fallback"}
         )
+        infs = site.on_page_context({}, SimpleNamespace(meta={"papers": "INFS2200"}))[
+            "paper_catalog"
+        ]["items"]
+        exam_2019 = [
+            item
+            for item in infs
+            if item["year"] == 2019 and item["display_title"] == "Exam with answers"
+        ]
+        self.assertEqual(len(exam_2019), 1)
+        self.assertEqual(exam_2019[0]["source"], "primary")
+
+    def test_course_cheatsheets_keep_cs_urls_and_ship_one_pdf_each(self):
+        for code, filename in site.CHEATSHEETS.items():
+            with self.subTest(course=code):
+                subject, number = code[:4], code[4:]
+                course = ROOT / "content" / subject / number
+                route = course / "CS/index.md"
+                pdf = route.with_name(filename)
+                source = ROOT / "site/cheatsheets" / f"{code.lower()}.typ"
+
+                self.assertIn(f"cheatsheet: {code}", route.read_text(encoding="utf-8"))
+                self.assertIn(
+                    "[Cheatsheet](CS/index.md)", (course / "index.md").read_text()
+                )
+                self.assertTrue(source.is_file())
+                self.assertTrue(pdf.read_bytes().startswith(b"%PDF-"))
+                self.assertGreater(pdf.stat().st_size, 100_000)
+
+                body = site.on_page_markdown(
+                    "", SimpleNamespace(meta={"cheatsheet": code})
+                )
+                self.assertIn(filename, body)
+                self.assertIn("one-page exam reference", body)
+
+    def test_paper_titles_remove_file_noise_but_keep_cross_year_context(self):
+        cases = (
+            (
+                "MECH2700",
+                "Semester_Two_Final_Examinations__2018_MECH2700_415.pdf",
+                2018,
+                "Paper",
+                "Semester Two Final Examinations with answers",
+            ),
+            (
+                "COMP4702",
+                "COMP4702-7703-FinalExam_solutions23.pdf",
+                2023,
+                "Solution",
+                "Final Exam Solutions",
+            ),
+            ("INFS2200", "2022.pdf", 2022, "Paper", "Exam with answers"),
+            (
+                "MECH2700",
+                "MECH2700 - 2016 and 2017 Exam Solutions.PDF",
+                2016,
+                "Solution",
+                "2016 and 2017 Exam Solutions",
+            ),
+        )
+        for code, title, year, kind, expected in cases:
+            with self.subTest(title=title):
+                self.assertEqual(
+                    site.paper_display_title(
+                        {"title": title, "year": year, "kind": kind}, code
+                    ),
+                    expected,
+                )
 
 
 if __name__ == "__main__":

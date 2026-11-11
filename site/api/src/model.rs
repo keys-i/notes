@@ -1,3 +1,5 @@
+//! Minimal Cloudflare AI client with bounded response decoding
+
 use futures_util::StreamExt;
 use serde::{Serialize, de::DeserializeOwned};
 use serde_json::Value;

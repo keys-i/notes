@@ -27,12 +27,10 @@ set image = config.site_url ~ page.meta.image %} {% endif %}
   rel="stylesheet"
   href="{{ ('assets/styles/graph.min.css?v=' ~ asset_version) | url }}"
 />
-{% if not paper_catalog %}
 <link
   rel="stylesheet"
   href="{{ ('assets/styles/pet.min.css?v=' ~ asset_version) | url }}"
 />
-{% endif %}
 {% if has_plot %}
 <link
   rel="stylesheet"
@@ -132,16 +130,6 @@ true %}
 </div>
 {% endif %} {{ super() }} {% if paper_catalog %}
 {% include "partials/papers.html" %}
-{% endif %} {% if git_page_authors and not paper_catalog %}
-<div class="md-source-date">
-  <small>
-    <a
-      href="{{ page.edit_url | replace('edit', 'blob') }}"
-      title="Requires a valid access to github repository"
-      >Contributors</a
-    >: {{ git_page_authors | default('enable mkdocs-git-authors-plugin') }}
-  </small>
-</div>
 {% endif %} {% if config.extra.comments.enabled and page and page.meta and
 page.meta.comments == false %}
 <!-- disable comments -->
@@ -168,7 +156,6 @@ page.meta.comments == false %}
 
 <script src="{{ ('assets/js/comments.min.js?v=' ~ asset_version) | url }}"></script>
 {% endif %} {% endblock %} {% block footer %} {{ super() }}
-{% if not paper_catalog %}
 <button
   class="dock-pet"
   id="dock-pet"
@@ -264,12 +251,9 @@ page.meta.comments == false %}
   role="status"
   aria-live="polite"
 ></span>
-{% endif %}
 {% endblock %} {% block scripts %} {{ super() }}
 <script src="{{ ('assets/js/graph.min.js?v=' ~ asset_version) | url }}"></script>
-{% if not paper_catalog %}
 <script src="{{ ('assets/js/pet.min.js?v=' ~ asset_version) | url }}"></script>
-{% endif %}
 <script src="{{ ('assets/js/math.min.js?v=' ~ asset_version) | url }}"></script>
 {% if has_plot %}
 <script src="{{ ('assets/js/plot.min.js?v=' ~ asset_version) | url }}"></script>

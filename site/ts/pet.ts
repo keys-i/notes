@@ -11,12 +11,14 @@ var DOCK_PET_MOTIVATION = [
   "One clean example, then decide whether the rule actually makes sense",
   "Check the units before wrestling the algebra. They catch a surprising amount",
   "Finish this heading, then take the tiny break you were about to negotiate for",
+  "You did not come this far to be defeated by one suspicious minus sign",
 ];
 
 var DOCK_PET_BANTER = [
   "That definition has exam-question energy",
   "I read that equation twice. Respectfully, it could use a diagram",
   "We are not memorising that symbol until it earns a name",
+  "Tiny study noise: fwip-fwip. That means progress in koala",
 ];
 
 function dockPetGuidance(event, section, hasPlot) {
@@ -26,7 +28,29 @@ function dockPetGuidance(event, section, hasPlot) {
   if (event === "complete") {
     return hasPlot
       ? "Graphs on this page can be panned, zoomed and reset"
-      : "Use the page navigation to choose the next topic";
+      : "You did the hard bit. Tiny victory noise: ba-ding!";
+  }
+  return "";
+}
+
+function dockPetVoiceRoute(transcript, links, origin) {
+  var command = String(transcript || "").match(/^\s*(?:go to|open)\s+(.+?)\s*$/i);
+  if (!command) return "";
+  var target = command[1].toLocaleLowerCase().replace(/[^a-z0-9]+/g, "");
+  if (!target) return "";
+  for (var link of links) {
+    var label = String(
+      link.textContent || link.getAttribute?.("aria-label") || "",
+    )
+      .toLocaleLowerCase()
+      .replace(/[^a-z0-9]+/g, "");
+    if (label !== target) continue;
+    try {
+      var url = new URL(String(link.href || link.getAttribute?.("href") || ""), origin);
+      if (url.origin === origin && /^https?:$/.test(url.protocol)) return url.href;
+    } catch (_) {
+      continue;
+    }
   }
   return "";
 }
@@ -2042,6 +2066,20 @@ function dockPetStudyError(code, timedOut?) {
       recognition.onresult = function (event) {
         var transcript = dockPetText(event.results?.[0]?.[0]?.transcript, 240);
         if (!transcript) return;
+        if (/^\s*(?:go to|open)\s+/i.test(transcript)) {
+          var route = dockPetVoiceRoute(
+            transcript,
+            document.querySelectorAll<HTMLAnchorElement>("a[href]"),
+            window.location.origin,
+          );
+          if (route) {
+            announce("Opening " + transcript.replace(/^\s*(?:go to|open)\s+/i, ""));
+            window.location.assign(route);
+          } else {
+            announce("I couldn’t find that page here");
+          }
+          return;
+        }
         question.value = transcript;
         answerQuestion(transcript, true);
       };
