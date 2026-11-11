@@ -426,7 +426,7 @@ function plotHarness({
     document,
     getComputedStyle: () => ({
       getPropertyValue: (name: string) =>
-        name === "--site-rule" ? " #dde " : " #eef ",
+        name === "--site-plot-grid" ? " rgba(189, 202, 255, 0.22) " : " #eef ",
     }),
     window,
   };
@@ -486,8 +486,12 @@ test("plots load lazily, render accessibly, reset, and expose failures", async (
   assert.equal(rendered[0][2].xaxis.title, "x");
   assert.equal(rendered[0][2].xaxis.tickfont.color, "#eef");
   assert.equal(rendered[0][2].xaxis.showline, true);
+  assert.equal(rendered[0][2].xaxis.showgrid, true);
+  assert.equal(rendered[0][2].xaxis.gridwidth, 1);
+  assert.equal(rendered[0][2].xaxis.gridcolor, "rgba(189, 202, 255, 0.22)");
   assert.equal(rendered[0][2].xaxis.linewidth, 2);
   assert.equal(rendered[0][2].yaxis.rangemode, "tozero");
+  assert.equal(rendered[0][2].yaxis.gridcolor, "rgba(189, 202, 255, 0.22)");
   assert.equal(rendered[0][2].yaxis.tickwidth, 2);
   assert.equal(rendered[0][3].displayModeBar, true);
   assert.equal(rendered[0][3].doubleClick, "reset+autosize");

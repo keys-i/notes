@@ -131,6 +131,7 @@
     transparent
   );
   --site-plot-ink: var(--color-neutral-cool-950);
+  --site-plot-grid: rgba(7, 26, 171, 0.18);
   --site-rule: color-mix(in srgb, var(--color-primary-700) 16%, transparent);
   --site-surface: var(--color-neutral-cool-100);
   --site-status-error: var(--color-error-600);
@@ -159,6 +160,7 @@
     transparent
   );
   --site-plot-ink: var(--color-neutral-cool-100);
+  --site-plot-grid: rgba(189, 202, 255, 0.22);
   --site-rule: color-mix(
     in srgb,
     var(--color-neutral-cool-200) 16%,
