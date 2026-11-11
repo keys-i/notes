@@ -21,6 +21,7 @@ VERSIONED_ASSETS = (
     "assets/js/math.min.js",
 )
 WEEK_TITLE = re.compile(r"^(?:W|Week\s+)(\d+)\b", re.IGNORECASE)
+PAPERS = json.loads((ROOT / "site/papers.json").read_text(encoding="utf-8"))
 
 
 def on_config(config):
@@ -87,6 +88,32 @@ def on_nav(nav, **_):
         page.previous_page = nav.pages[index - 1] if index else None
         page.next_page = nav.pages[index + 1] if index + 1 < len(nav.pages) else None
     return nav
+
+
+def on_page_context(context, page, **_):
+    """Expose the curated Drive index only on course paper pages"""
+    code = page.meta.get("papers") if page.meta else None
+    if code:
+        context["paper_catalog"] = PAPERS["courses"][code]
+        context["paper_updated"] = PAPERS["updated"]
+    return context
+
+
+def on_page_markdown(markdown, page, **_):
+    """Share paper-page copy while keeping one route file per course"""
+    code = page.meta.get("papers") if page.meta else None
+    if not code:
+        return markdown
+    archive_note = (
+        "\n\nThe main course folder is empty, so these files come from the archive."
+        if all(item["source"] != "primary" for item in PAPERS["courses"][code]["items"])
+        else ""
+    )
+    return (
+        f"# Past year papers\n\nSearch {code} papers and solutions by year, "
+        f"then preview them here.{archive_note}\n\n"
+        f"[← Back to {code}](../index.md)\n\n## Find a paper\n"
+    )
 
 
 def _redirect(target):

@@ -17,6 +17,9 @@ on:
 permissions:
   contents: read
 
+env:
+  NO_MKDOCS_2_WARNING: "1"
+
 concurrency:
   group: github-pages
   cancel-in-progress: true

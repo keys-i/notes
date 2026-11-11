@@ -12,3 +12,4 @@ supervised and unsupervised learning to neural networks and generative models.
 1. [Lecture notes](Lectures/index.md)
 2. [Tutorials](Tutorial/index.md)
 3. [Assignments](Assignment/index.md)
+4. [Past year papers](PY/index.md)

@@ -1,12 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
   <title id="title">Rad's Notes koala reading mark</title>
-  <rect x="2" y="2" width="60" height="60" rx="14" fill="#0719aa"/>
+  <rect x="2" y="2" width="60" height="60" rx="14" fill="#071aab"/>
   <circle cx="16" cy="22" r="10" fill="#aebbc4"/>
   <circle cx="48" cy="22" r="10" fill="#aebbc4"/>
-  <path fill="#eef1f4" d="M32 10c-12 0-20 8-20 21 0 12 8 20 20 20s20-8 20-20c0-13-8-21-20-21Z"/>
-  <circle cx="24" cy="30" r="2.7" fill="#0719aa"/>
-  <circle cx="40" cy="30" r="2.7" fill="#0719aa"/>
-  <path fill="#0719aa" d="M32 33c4 0 6.5 2.4 6.5 5.2S36 44 32 44s-6.5-3-6.5-5.8S28 33 32 33Z"/>
-  <path fill="#f2ff3d" stroke="#0719aa" stroke-linejoin="round" stroke-width="2" d="M10 43c8-2 16 0 22 6 6-6 14-8 22-6l-2 13c-8-1-14 1-20 6-6-5-12-7-20-6l-2-13Z"/>
-  <path fill="none" stroke="#0719aa" stroke-linecap="round" stroke-width="2" d="M32 49v12"/>
+  <path fill="#fffdf6" d="M32 10c-12 0-20 8-20 21 0 12 8 20 20 20s20-8 20-20c0-13-8-21-20-21Z"/>
+  <circle cx="24" cy="30" r="2.7" fill="#071aab"/>
+  <circle cx="40" cy="30" r="2.7" fill="#071aab"/>
+  <path fill="#071aab" d="M32 33c4 0 6.5 2.4 6.5 5.2S36 44 32 44s-6.5-3-6.5-5.8S28 33 32 33Z"/>
+  <path fill="#ffff31" stroke="#071aab" stroke-linejoin="round" stroke-width="2" d="M10 43c8-2 16 0 22 6 6-6 14-8 22-6l-2 13c-8-1-14 1-20 6-6-5-12-7-20-6l-2-13Z"/>
+  <path fill="none" stroke="#071aab" stroke-linecap="round" stroke-width="2" d="M32 49v12"/>
 </svg>
