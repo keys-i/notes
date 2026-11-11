@@ -11,18 +11,17 @@ repo_url: https://github.com/keys-i/notes
 edit_uri: edit/main/content/
 
 hooks:
-  - hooks/typescript.py
-  - hooks/site.py
-  - hooks/game.py
-  - hooks/callouts.py
-  - hooks/graph.py
-  - hooks/discovery.py
-  - hooks/man.py
+  - web/hooks/browser.py
+  - web/hooks/publish/site.py
+  - web/hooks/publish/game.py
+  - web/hooks/content/callouts.py
+  - web/hooks/content/graph.py
+  - web/hooks/publish/discovery.py
 
 # Theme Configuration
 theme:
   name: material
-  custom_dir: theme
+  custom_dir: web/theme
   logo: assets/images/logo.svg
 
   static_templates:
@@ -98,7 +97,7 @@ markdown_extensions:
           format: !!python/name:mermaid2.fence_mermaid_custom
         - name: plot
           class: note-plot
-          format: !!python/name:hooks.plot.format_plot
+          format: !!python/name:hooks.content.plot.format_plot
   - pymdownx.details # Adds collapsible detail/summary blocks
   - pymdownx.magiclink # Automatically turns URLs into clickable links
   - pymdownx.tasklist # Adds support for task lists
@@ -131,17 +130,17 @@ plugins:
       htmlmin_opts:
         remove_comments: true
       js_files:
-        - assets/js/freebsd.boot.js
-        - assets/js/404/game.js
-        - assets/js/404/shell.js
-        - assets/js/404/panic.js
-        - assets/js/comments.js
-        - assets/js/graph.js
-        - assets/js/math.js
-        - assets/js/pet.js
-        - assets/js/plot.js
-        - assets/js/papers.js
-        - assets/js/zoom.mermaid.js
+        - assets/js/recovery/boot.js
+        - assets/js/recovery/game.js
+        - assets/js/recovery/shell.js
+        - assets/js/recovery/panic.js
+        - assets/js/page/comments.js
+        - assets/js/page/graph.js
+        - assets/js/page/math.js
+        - assets/js/study/koala.js
+        - assets/js/page/plot.js
+        - assets/js/study/papers.js
+        - assets/js/page/mermaid.js
       css_files:
         - assets/styles/site.css
         - assets/styles/freebsd.boot.css

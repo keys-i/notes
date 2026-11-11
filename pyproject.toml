@@ -35,7 +35,7 @@ dev = [
 
 [tool.uv.build-backend]
 module-name = "hooks"
-module-root = "site"
+module-root = "site/web"
 
 [tool.markdownlint-cli2]
 gitignore = true
@@ -54,14 +54,13 @@ ignore = ["E731"]
 [tool.coverage.run]
 branch = true
 source = [
-    "hooks.callouts",
-    "hooks.discovery",
-    "hooks.game",
-    "hooks.graph",
-    "hooks.man",
-    "hooks.plot",
-    "hooks.site",
-    "hooks.typescript",
+    "hooks.browser",
+    "hooks.content.callouts",
+    "hooks.content.graph",
+    "hooks.content.plot",
+    "hooks.publish.discovery",
+    "hooks.publish.game",
+    "hooks.publish.site",
 ]
 
 [tool.coverage.report]

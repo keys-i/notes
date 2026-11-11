@@ -8,20 +8,8 @@
 //! assert_eq!(classify_input("How does momentum change?"), InputClass::Allowed);
 //! ```
 
-mod answer;
-mod attachment;
-mod cache;
-mod input;
-mod media;
-mod model;
-mod ops;
-mod prompt;
-mod retrieval;
-mod study;
-mod worker;
+mod routing;
+mod service;
+mod shared;
 
-pub use cache::*;
-pub use input::*;
-pub use prompt::*;
-pub use retrieval::*;
-pub use study::*;
+pub use service::koala::*;

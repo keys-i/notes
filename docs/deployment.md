@@ -42,17 +42,17 @@ wrangler secret put MODEL_API_KEY --config site/api/wrangler.toml
 ```
 
 The client is fixed to Groq's OpenAI-compatible HTTPS API. Model identifiers in
-[`site/api/src/study.rs`](../site/api/src/study.rs) route quick, general,
-difficult, image, audio and guard work. Retrieval stays inside the Worker, so
-the provider receives no embedding or reranking request. No paid fallback or
-automatic overage path is configured
+[`site/api/src/service/koala/mcp/route.rs`](../site/api/src/service/koala/mcp/route.rs)
+route quick, general, difficult, image, audio and guard work. Retrieval stays
+inside the Worker, so the provider receives no embedding or reranking request
+No paid fallback or automatic overage path is configured
 
 The Cloudflare account provides only the existing rate limiter and edge
 runtime; model inference does not use Workers AI. Privacy-safe structured
 metrics use Workers Logs with invocation logs disabled and query strings
 redacted. No model credential is stored in the repository. `workers_dev` is
-disabled and routes are limited to `uni.keysi.dev/api/pet` plus the three
-documented probe paths
+disabled and routes are limited to the study endpoint, course paper catalogues,
+the FreeBSD manual proxy and the three documented probe paths
 
 Groq's free tier has quotas and no availability SLA. A quota, network or model
 failure returns the typed `model_unavailable` response, and the browser keeps
@@ -71,8 +71,8 @@ identity contract; browser roles or headers are never trusted as authority
 | TypeScript compilation             | `npm run check:web`                               |
 | Python or browser tests            | `uv run test`                                     |
 | Formatting or Markdown             | `uv run lint`                                     |
-| Missing page or asset              | strict MkDocs build and `site/hooks/site.py`      |
-| Page renders but interaction fails | browser console and the relevant `site/ts/` test  |
+| Missing page or asset              | strict MkDocs build and `site/web/hooks/site.py`  |
+| Page renders but interaction fails | browser console and `site/web/tests/`             |
 | Koala falls back to local answers  | Worker route, Groq secret, free quota, rate limit |
 | Worker build fails                 | Rust checks from the Study Worker section         |
 
