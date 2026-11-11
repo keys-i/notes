@@ -9,10 +9,10 @@ readme = "README.md"
 requires-python = ">=3.13,<4"
 dependencies = [
     "mkdocs (>=1.1.2)",
-    "mkdocs-material>=9.8.0",
+    "mkdocs-material>=9.8.1",
     "mkdocs-mermaid2-plugin (>=1.2.3,<2.0.0)",
     "mkdocs-minify-plugin (>=0.8.0,<0.9.0)",
-    "pymdown-extensions>=12.3",
+    "pymdown-extensions>=13.0",
     "mkdocs-obsidian-interactive-graph-plugin (>=0.3.2,<0.4.0)",
     "mkdocs-callouts>=1.17.1,<2.0.0",
     "mkdocs-git-authors-plugin (>=0.10.0,<0.11.0)",
@@ -35,7 +35,7 @@ dev = [
 
 [tool.uv.build-backend]
 module-name = "hooks"
-module-root = "site"
+module-root = "site/web"
 
 [tool.markdownlint-cli2]
 gitignore = true
@@ -54,14 +54,13 @@ ignore = ["E731"]
 [tool.coverage.run]
 branch = true
 source = [
-    "hooks.callouts",
-    "hooks.discovery",
-    "hooks.game",
-    "hooks.graph",
-    "hooks.man",
-    "hooks.plot",
-    "hooks.site",
-    "hooks.typescript",
+    "hooks.browser",
+    "hooks.content.callouts",
+    "hooks.content.graph",
+    "hooks.content.plot",
+    "hooks.publish.discovery",
+    "hooks.publish.game",
+    "hooks.publish.site",
 ]
 
 [tool.coverage.report]
