@@ -62,7 +62,7 @@ async function renderPlot(figure: HTMLElement): Promise<void> {
     canvas.textContent = "";
     const styles = getComputedStyle(figure);
     const foreground = styles.getPropertyValue("--site-plot-ink").trim();
-    const grid = styles.getPropertyValue("--site-rule").trim();
+    const grid = styles.getPropertyValue("--site-plot-grid").trim();
     const twoDimensional = figure.classList.contains("note-plot--2d");
     const reduceMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
@@ -70,9 +70,11 @@ async function renderPlot(figure: HTMLElement): Promise<void> {
     const axisStyle: PlotRecord = {
       automargin: true,
       gridcolor: grid,
+      gridwidth: 1,
       linecolor: foreground,
       linewidth: 2,
       showline: true,
+      showgrid: true,
       tickcolor: foreground,
       tickfont: { color: foreground, size: 12 },
       ticklen: 6,
