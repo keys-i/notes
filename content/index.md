@@ -6,6 +6,8 @@ description: My course notes for COMP, INFS, and MECH courses, including assignm
 
 # My Course Notes
 
+<div class="course-index" markdown="1">
+
 ## COMP
 
 | Course code | Name                                             |
@@ -24,3 +26,5 @@ description: My course notes for COMP, INFS, and MECH courses, including assignm
 | Course code | Name                                                            |
 | ----------- | --------------------------------------------------------------- |
 | 2700        | [Computational Engineering & Data Analysis](MECH/2700/index.md) |
+
+</div>
