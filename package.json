@@ -9,7 +9,7 @@
     "test:web": "tsc --project site/tsconfig.tests.json && node --test site/web/tests/*.test.ts"
   },
   "devDependencies": {
-    "@types/node": "24.10.0",
+    "@types/node": "26.6.6",
     "typescript": "5.9.3"
   }
 }
