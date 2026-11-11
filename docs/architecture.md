@@ -5,29 +5,27 @@
 ```text
 .
 ├── content/              # learner-facing Markdown, grouped by subject and course
-├── assets/               # published audio, images, styles, manuals and vendor files
+├── assets/               # published media, cheatsheet sources and vendor files
 ├── site/                 # source and configuration used to build the website
-│   ├── hooks/            # Python build rules and project command entry points
 │   ├── api/              # Rust edge API for grounded study answers
 │   │   ├── src/
-│   │   │   ├── answer.rs      # access, rate-limit and answer orchestration
-│   │   │   ├── attachment.rs  # bounded media data validation and decoding
-│   │   │   ├── cache.rs       # versioned keys and edge-cache ownership
-│   │   │   ├── input.rs       # request types and trust-boundary validation
-│   │   │   ├── media.rs       # image analysis and audio transcription
-│   │   │   ├── model.rs       # bounded Groq HTTPS client
-│   │   │   ├── ops.rs         # probes, logs and hardened responses
-│   │   │   ├── prompt.rs      # model contracts and prompt construction
-│   │   │   ├── retrieval.rs   # bounded BM25 retrieval and citations
-│   │   │   ├── study.rs       # model routing and answer validation
-│   │   │   └── worker.rs      # HTTP routing and bounded body handling
-│   │   └── tests/             # Worker integration and contract tests
-│   ├── ts/               # authored browser TypeScript
-│   ├── theme/            # Material templates and partials
-│   ├── game.toml         # recovery-game data and tuning
+│   │   │   ├── routing/       # Worker entry, responses, health and telemetry
+│   │   │   ├── service/
+│   │   │   │   ├── koala/     # route entry for study requests
+│   │   │   │   │   ├── request/ # input, files, output and response caching
+│   │   │   │   │   └── mcp/     # routing, reranking, prompts and LLM work
+│   │   │   │   ├── manuals/   # FreeBSD configuration and proxy
+│   │   │   │   └── papers/    # paper configuration and catalogue
+│   │   │   └── shared/cache/  # cache access, opaque keys and policies
+│   ├── config/           # editable game, paper and manual TOML
+│   ├── web/              # authored website source
+│   │   ├── browser/      # TypeScript grouped by page, study and recovery work
+│   │   ├── hooks/        # Python content and publication build rules
+│   │   ├── styles/       # authored CSS published under /assets/styles
+│   │   ├── tests/        # Python hook and TypeScript browser tests
+│   │   └── theme/        # Material templates and partials
 │   ├── mkdocs.yml        # MkDocs configuration
 │   └── tsconfig*.json    # browser and test type checking
-├── tests/                # all Python and TypeScript behaviour tests
 ├── docs/                 # architecture, development and deployment guides
 ├── .github/              # contribution policy, issue templates and CI workflows
 ├── pyproject.toml        # Python dependencies, commands, lint and coverage settings
@@ -46,34 +44,35 @@ site/api/target/           # Rust build cache
 ```
 
 The root keeps standard tool entry files where `uv`, npm and GitHub expect
-them. Product source stays in the six named domains above instead of being
-split across generic `web`, `config` or `overrides` folders
+them. Product source stays grouped by ownership instead of being split across
+generic language folders
 
 ## Build flow
 
 ```text
-site/ts/*.ts               # browser source
-  → TypeScript compiler    # invoked by site/hooks/typescript.py
-  → assets/js/             # generated and ignored
+site/web/browser/**/*.ts   # browser source grouped by runtime responsibility
+  → TypeScript compiler    # invoked by site/web/hooks/browser.py
+  → assets/js/{page,study,recovery}/ # generated and ignored
 
 content/                   # note pages
-assets/                    # static files
-site/theme/                # page templates
-  → MkDocs + site/hooks/   # validation, metadata and publication
+assets/                    # static media and vendor files
+site/web/styles/           # authored CSS exposed as /assets/styles
+site/web/theme/            # page templates
+  → MkDocs + site/web/hooks/ # validation, metadata and publication
   → public/                # generated and ignored
 ```
 
-[`site/hooks/typescript.py`](../site/hooks/typescript.py) compiles browser
+[`site/web/hooks/browser.py`](../site/web/hooks/browser.py) compiles browser
 scripts before MkDocs collects files
 
-[`site/hooks/site.py`](../site/hooks/site.py) is the publication seam for root
-assets. It exposes `assets/` to MkDocs without copying source into `content/`,
-so source paths and public `/assets/...` URLs stay aligned
+[`site/web/hooks/publish/site.py`](../site/web/hooks/publish/site.py) is the
+publication seam for root assets. It exposes `assets/` and authored
+`site/web/styles/` files to MkDocs without copying source into `content/`, so
+public `/assets/...` URLs remain stable
 
-The same hook reads the curated Drive catalogue from `site/papers.json` only
-while rendering course paper pages. The catalogue is source input, not a public
-API, and the post-build gate rejects any `papers.json` found anywhere under
-`public/`
+Course paper pages carry only their course code. The Worker reads
+`site/config/papers.toml`, expands validated Google resource codes and returns
+one course from `/api/papers/<course>` without publishing a whole-site JSON file
 
 The same hook writes lightweight redirects from the former
 `/markdown/<subject>/...` URLs to the current subject paths. This keeps old
@@ -81,28 +80,39 @@ bookmarks working while `content/` remains free of compatibility files
 
 Other hooks own one build concern each
 
-- `game.py` validates [`site/game.toml`](../site/game.toml) and makes it
-  available to the 404 template
-- `graph.py` prepares the note graph and moves its generated data beside the
-  browser scripts
-- `plot.py` validates bounded JSON from interactive `plot` fences
-- `discovery.py` produces discovery files such as `robots.txt` and `llms.txt`
-- `man.py` maintains the checked-in FreeBSD manual snapshot used by recovery
-  mode
+- `publish/game.py` validates
+  [`site/config/game.toml`](../site/config/game.toml) for the 404 template
+- `content/graph.py` prepares graph data and moves it beside the browser script
+- `content/plot.py` validates bounded JSON from interactive `plot` fences
+- `publish/discovery.py` produces `robots.txt` and `llms.txt`
+
+Some hook and browser files deliberately share a feature name without sharing
+an implementation. `content/graph.py` and `content/plot.py` prepare trusted
+build artifacts, while `browser/page/graph.ts` and `browser/page/plot.ts`
+render them. `publish/game.py` validates configuration, while
+`browser/recovery/game.ts` owns game state and interaction. Their parent folders
+identify the execution phase and keep each rule in one owner
+
+The recovery shell requests manual pages through `/api/manuals/freebsd`. The
+Worker validates the query, fetches the configured FreeBSD renderer and caches
+the response at the edge; `site/config/manual.toml` keeps only release and
+alias policy rather than duplicating FreeBSD's page index
 
 Keep a hook only when it owns build-time behaviour. Browser interaction belongs
-in `site/ts/`; note content belongs in `content/`; published files belong in
-`assets/`
+in `site/web/browser/`; note content belongs in `content/`; authored styles
+belong in `site/web/styles/`; published media belongs in `assets/`
 
 The optional study helper backend is independent of the static build
 
 ```text
 current public note sections + short conversation
-  → input.rs               # validate size, media signatures and public scope
-  → worker.rs              # route, origin and body controls
-  → answer.rs              # authorise, rate-limit and coordinate the answer
-  → retrieval.rs           # bounded local BM25 evidence selection
-  → study.rs               # fixed model routing and grounded-answer checks
+  → routing/mod.rs         # route and origin controls
+  → service/koala/mod.rs   # Koala route, body limit and request decoding
+  → koala/request/         # validation, attachments, safe output and cache
+  → koala/mcp/mod.rs       # authorise, rate-limit and coordinate the answer
+  → koala/mcp/route.rs     # fixed model selection and answer kind
+  → koala/mcp/rank.rs      # bounded local BM25 evidence reranking
+  → koala/mcp/llm.rs       # bounded OpenAI-compatible provider transport
   → Groq free models       # guard, one answer call and optional transcription
   → deterministic checks   # valid bounded citations or a closed failure
   → browser thread         # rich safe rendering or immediate local fallback
@@ -114,12 +124,28 @@ each of the top three sections and keeps only the most recent 2,000 conversation
 characters. No question or note text is sent to an embedding, HyDE or reranking
 service
 
-[`site/api/src/study.rs`](../site/api/src/study.rs) owns the fixed Groq model
-routes. Browser input cannot select a model. Text and image requests use one
-fail-closed guard call and one answer call; audio adds one transcription call
-before the same guarded text path. There is no second verifier model call or
-paid-provider fallback. Note answers are accepted only when citations are
-present, well formed and resolve to the retrieved evidence
+[`site/api/src/service/koala/mcp/route.rs`](../site/api/src/service/koala/mcp/route.rs)
+owns the fixed Groq model routes. Browser input cannot select a model. Text and
+image requests use one fail-closed guard call and one answer call; audio adds
+one transcription call before the same guarded text path. There is no second
+verifier model call or paid-provider fallback. Note answers are accepted only
+when citations are present, well formed and resolve to the retrieved evidence
+
+`mcp/` is the internal model coordination pipeline, not a networked Model
+Context Protocol server. Its fallback module converts provider failure into the
+typed `503` consumed by the browser's local answer path; it does not retry or
+silently spend a second model request
+
+Long-lived system and task prompts live as editable `.prompt` sources under
+`mcp/prompt/` and are embedded at compile time with no runtime file read. Their
+exact contents participate in the response-cache key, so a prompt edit cannot
+reuse an older generated answer
+
+This is one modular Cloudflare Worker rather than networked microservices
+Cloudflare schedules independent requests concurrently, while each request
+keeps dependent safety steps ordered. The guard must succeed before inference,
+so adding task fan-out there would weaken the trust boundary without reducing
+latency
 
 Exact cache keys include the prompt version, public access scope, locale, note
 content and model route. Shared edge caching is disabled for follow-ups and
@@ -155,7 +181,7 @@ is build output and must never be edited directly
 | Work | Owner | Reason |
 | --- | --- | --- |
 | Note search, graph playback, themes and paper filtering | Static browser code | Immediate interaction with no network dependency or private state |
-| Drive inventory normalisation, primary-before-fallback deduplication and route rendering | Deterministic build hook | One reproducible catalogue per deployment with no Drive credential in the browser |
+| Paper catalogue validation, primary-before-fallback deduplication and URL expansion | Worker paper service | One reproducible embedded catalogue per deployment with no Drive credential in the browser |
 | Koala inference, input validation, rate limiting, probes and operational telemetry | Cloudflare Worker | Secrets and abuse controls stay server-side while static notes remain available during failure |
 | PDF text extraction, OCR and question/subpart indexing | No current owner | Add a queued, cached document worker only after Drive access, retention, copyright and failure policy are authorised |
 
@@ -170,8 +196,9 @@ queue backpressure
 - Public asset URLs remain under `/assets/`
 - Published course paths begin with `COMP/`, `INFS/` or `MECH/`
 - Former `/markdown/...` course paths redirect to the current location
-- Browser source is TypeScript under `site/ts/`
-- Tests live under `tests/`
+- Browser source is TypeScript under `site/web/browser/`
+- Web and MkDocs tests live under `site/web/tests/`
 - Generated `assets/js/` and `public/` files are disposable build output
-- The study Worker serves `/api/pet` plus `/healthz`, `/livez` and `/readyz`;
-  private Minis routes stay separate
+- The Worker serves `/api/pet`, `/api/papers/<course>`,
+  `/api/manuals/freebsd`, `/healthz`, `/livez` and `/readyz`
+- Private Minis routes stay separate
