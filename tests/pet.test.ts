@@ -42,7 +42,7 @@ const siteConfig = fs.readFileSync(
   new URL("../site/mkdocs.yml", import.meta.url),
   "utf8",
 );
-const pure: any = vm.createContext({ Math, Object });
+const pure: any = vm.createContext({ Math, Object, URL });
 vm.runInContext(source.slice(0, source.indexOf("\n(function () {")), pure, {
   filename: petPath,
 });
@@ -217,7 +217,31 @@ test("pet guidance is useful and selected from page state", () => {
   );
   assert.match(
     pure.dockPetGuidance("complete", "Energy", false),
-    /page navigation/,
+    /You did the hard bit/,
+  );
+});
+
+test("voice navigation needs an explicit command and stays same-origin", () => {
+  const links = [
+    { href: "/MECH/2700/", textContent: "MECH2700" },
+    { href: "https://uni.keysi.dev/COMP/4403/", textContent: "COMP4403" },
+    { href: "https://example.com/trap", textContent: "MECH2700 answers" },
+  ];
+  assert.equal(
+    pure.dockPetVoiceRoute("go to MECH2700", links, "https://uni.keysi.dev"),
+    "https://uni.keysi.dev/MECH/2700/",
+  );
+  assert.equal(
+    pure.dockPetVoiceRoute("open COMP4403", links, "https://uni.keysi.dev"),
+    "https://uni.keysi.dev/COMP/4403/",
+  );
+  assert.equal(
+    pure.dockPetVoiceRoute("MECH2700", links, "https://uni.keysi.dev"),
+    "",
+  );
+  assert.equal(
+    pure.dockPetVoiceRoute("open MECH2700 answers", links, "https://uni.keysi.dev"),
+    "",
   );
 });
 
@@ -425,10 +449,9 @@ test("site chrome exposes progress and authored footer motion safely", () => {
   assert.match(siteStyle, /html\.theme-wave::view-transition-new\(root\)/);
   assert.match(siteStyle, /mask-image: radial-gradient/);
   assert.match(siteStyle, /animation: theme-fallback 220ms/);
-  assert.match(siteStyle, /@media \(min-width: 76\.25em\)/);
-  assert.match(siteStyle, /\.md-sidebar:is\(:hover, :focus-within\)/);
-  assert.match(siteStyle, /\.md-sidebar--primary[\s\S]*left: 0\.75rem/);
-  assert.match(siteStyle, /\.md-sidebar--secondary[\s\S]*right: 0\.75rem/);
+  assert.doesNotMatch(siteStyle, /content: "Menu"|content: "Page"/);
+  assert.match(siteStyle, /\.md-header__inner > \.md-search[\s\S]*left: 50%/);
+  assert.match(siteStyle, /translateX\(-50%\)/);
   assert.doesNotMatch(
     siteStyle,
     /repeating-radial-gradient|160vmax|backdrop-filter|filter: blur/,
@@ -462,15 +485,12 @@ test("site chrome exposes progress and authored footer motion safely", () => {
     siteStyle,
     /\.note-comments > summary\s*\{[^}]*flex-direction: column/,
   );
-  assert.match(style, /width: min\(26rem, calc\(100vw - 1\.5rem\)\)/);
+  assert.match(style, /width: min\(30rem, calc\(100vw - 1\.5rem\)\)/);
   assert.match(style, /dock-pet__help\[data-placement="above"\]::after/);
   assert.doesNotMatch(style, /html\.pet-help-open \.md-main__inner/);
   assert.match(style, /dock-pet__token--keyword/);
   assert.match(style, /dock-pet__math--display/);
-  assert.match(
-    style,
-    /#dock-pet-send\s*\{[\s\S]*?display: none[\s\S]*?max-width: 59\.99em[\s\S]*?#dock-pet-send\s*\{[\s\S]*?display: grid/,
-  );
+  assert.match(style, /#dock-pet-send\s*\{[\s\S]*?background: var\(--color-accent-300\)/);
   assert.doesNotMatch(mainTemplate, /lang\.t|data-lang|giscus/);
 });
 
@@ -524,6 +544,7 @@ function createRuntime({
   scrollY = 0,
   viewportHeight = 800,
   viewportWidth = 1000,
+  voiceLinks = [],
   observed = false,
   sessionCache = null,
   sessionReadError = false,
@@ -544,6 +565,7 @@ function createRuntime({
   const fileHandlers: Record<string, any> = {};
   const windowHandlers: Record<string, any> = {};
   const scrollCalls: any[] = [];
+  const assignedRoutes: string[] = [];
   const capturedPointers: number[] = [];
   const releasedPointers: number[] = [];
   const viewTransitions: any[] = [];
@@ -892,7 +914,9 @@ function createRuntime({
       return null;
     },
     querySelectorAll(selector) {
-      return selector === ".md-content :is(h1, h2, h3)" ? headings : [];
+      if (selector === ".md-content :is(h1, h2, h3)") return headings;
+      if (selector === "a[href]") return voiceLinks;
+      return [];
     },
     addEventListener(name, handler) {
       documentHandlers[name] = handler;
@@ -1021,7 +1045,14 @@ function createRuntime({
   const window: any = {
     innerHeight: viewportHeight,
     innerWidth: viewportWidth,
-    location: { pathname: page, search: "" },
+    location: {
+      origin: "https://uni.keysi.dev",
+      pathname: page,
+      search: "",
+      assign(route) {
+        assignedRoutes.push(route);
+      },
+    },
     navigator: { language: "en-AU" },
     pageYOffset: scrollY,
     scrollY,
@@ -1185,6 +1216,7 @@ function createRuntime({
     },
     Math,
     Object,
+    URL,
     clearTimeout(id) {
       timers.delete(id);
     },
@@ -1208,6 +1240,7 @@ function createRuntime({
 
   return {
     aborts,
+    assignedRoutes,
     attachButton,
     attachHandlers,
     attachmentName,
@@ -2037,7 +2070,10 @@ test("the study buddy stays fully on the floor while the footer is off-screen", 
 });
 
 test("voice input is optional and uses the same grounded answer path", async () => {
-  const runtime = createRuntime({ speech: true });
+  const runtime = createRuntime({
+    speech: true,
+    voiceLinks: [{ href: "/MECH/2700/", textContent: "MECH2700" }],
+  });
   assert.equal(runtime.listenButton.hidden, false);
   runtime.petHandlers.click();
   runtime.listenHandlers.click();
@@ -2048,6 +2084,10 @@ test("voice input is optional and uses the same grounded answer path", async () 
   });
   assert.match(runtime.threadItems[1].textContent, /From “Dynamics”/);
   await flushStudy();
+  recognition.onresult({ results: [[{ transcript: "open MECH2700" }]] });
+  assert.deepEqual(runtime.assignedRoutes, ["https://uni.keysi.dev/MECH/2700/"]);
+  recognition.onresult({ results: [[{ transcript: "open nowhere" }]] });
+  assert.equal(runtime.status.textContent, "I couldn’t find that page here");
   recognition.onend();
   assert.equal(runtime.listenButton.dataset.listening, undefined);
   assert.equal(runtime.spoken[0], "cancel");
@@ -2229,7 +2269,7 @@ test("halfway and completion guidance is gated by real progress", () => {
   assert.equal(runtime.rootStyle["--reading-progress"], "1.0000");
   assert.equal(
     runtime.bubbleText.textContent,
-    "Page complete: Use the page navigation to choose the next topic",
+    "Page complete: You did the hard bit. Tiny victory noise: ba-ding!",
   );
 });
 
@@ -2403,7 +2443,7 @@ test("idle messages rotate through motivation and current-note facts", () => {
   };
 
   runIdle();
-  assert.match(runtime.bubbleText.textContent, /example|units|heading/);
+  assert.match(runtime.bubbleText.textContent, /example|units|heading|minus sign/);
   runtime.runTimer(6500);
   runIdle();
   assert.match(runtime.bubbleText.textContent, /^From “Week 2”:/);

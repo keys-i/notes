@@ -4,6 +4,7 @@
   overflow: hidden;
   border: 1px solid var(--md-default-fg-color--lightest);
   border-radius: 0.2rem;
+  corner-shape: squircle;
   background: var(--md-default-bg-color);
 }
 
@@ -52,6 +53,7 @@
   padding: 0.2rem;
   border: 1px solid var(--md-default-fg-color--lighter);
   border-radius: 0.2rem;
+  corner-shape: squircle;
   background: var(--md-default-bg-color);
   box-shadow: 0 0.2rem 0.6rem
     color-mix(in srgb, var(--color-neutral-cool-950) 12%, transparent);
@@ -63,6 +65,7 @@
   width: 1.7rem;
   height: 1.7rem;
   border-radius: 0.15rem;
+  corner-shape: squircle;
   color: var(--md-default-fg-color);
   font-size: 0.72rem;
   font-weight: 700;

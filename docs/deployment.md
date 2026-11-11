@@ -51,7 +51,8 @@ The Cloudflare account provides only the existing rate limiter and edge
 runtime; model inference does not use Workers AI. Privacy-safe structured
 metrics use Workers Logs with invocation logs disabled and query strings
 redacted. No model credential is stored in the repository. `workers_dev` is
-disabled and the route is limited to `uni.keysi.dev/api/pet`
+disabled and routes are limited to `uni.keysi.dev/api/pet` plus the three
+documented probe paths
 
 Groq's free tier has quotas and no availability SLA. A quota, network or model
 failure returns the typed `model_unavailable` response, and the browser keeps
@@ -91,3 +92,49 @@ workflow never deployed, fix it on the branch and rerun the existing workflow
 The Worker rolls back independently: deploy `site/api/` from the last known-good
 commit or remove its narrow route while the static helper continues with its
 local grounded fallback
+
+## Reliability contract
+
+The site has two independently deployable failure domains
+
+| Surface | Initial objective | Error budget over 28 days | Evidence source |
+| --- | --- | --- | --- |
+| Static notes | 99.9% successful edge responses | 40m 19s | GitHub Pages availability plus an external probe |
+| Study Worker | 99.0% non-5xx responses to valid requests | 6h 43m | Cloudflare request logs and Worker metrics |
+
+These are operating targets, not measured achievements, until an external monitor and dashboard evaluate them over a complete window
+
+Pause risky releases when either service exhausts its 28-day budget or burns faster than 14.4× for one hour, then restore the last known-good deployment and diagnose before resuming
+
+### Probes
+
+- `/healthz` and `/livez` prove the Worker isolate can execute and return a bounded response
+- `/readyz` proves the model secret and rate-limit binding are configured before traffic is accepted
+- Readiness deliberately does not spend a model request or make Groq availability part of Worker admission; provider failure returns a typed `503` and the browser keeps its local grounded fallback
+- GitHub Pages has no application process, database or queue, so its honest health check is an external HTTPS request to a representative generated page
+
+### Golden signals and tracing
+
+- Latency comes from `latency_ms` and the `Server-Timing` response header
+- Traffic is the count of `http_request` events by path and method
+- Errors are request status plus bounded outcome codes, with prompts and attachments excluded from logs
+- Saturation uses Cloudflare CPU and wall-time telemetry plus `rate_limited` and `limiter_unavailable` outcomes
+- `CF-Ray` becomes the bounded `request_id` field and `X-Request-ID` response header for edge-to-Worker correlation
+- Groq does not expose a compatible trace contract here, so cross-provider distributed spans remain unavailable rather than being simulated
+
+### Resilience choices
+
+- The Worker rejects excess demand with `429` and `Retry-After` instead of queueing unbounded work
+- The browser cancels obsolete or 30-second study requests and falls back locally on model, quota or network failure
+- Model calls are not retried automatically because duplicate inference increases cost and recovery load; a person can retry after the typed failure
+- Cloudflare owns isolate draining and shutdown; the Worker has no long-lived connection or local write queue requiring application shutdown hooks
+- There is no distributed authoritative datastore, so CAP does not govern note reads; edge caches may be eventually consistent while Git and Google Drive remain the sources of truth
+
+### Security and maintenance controls
+
+- Cloudflare terminates HTTPS for the Worker and the API sends HSTS, deny-by-default CSP, no-sniff, frame denial, referrer and permissions headers
+- GitHub Pages HTTPS and custom-domain enforcement are provider settings and must be verified after each domain change
+- Dependabot covers npm, Cargo, uv and GitHub Actions weekly while locked installs and dependency review protect CI
+- The repository and Pages artifact are recoverable copies on one provider, not an off-site backup; a second storage account, credentials, retention policy and restore drill are still required before claiming off-site backup coverage
+- `robots.txt`, `sitemap.xml`, canonical metadata, structured data and `llms.txt` are generated during the strict build for search and AI discovery
+- Core Web Vitals remain a measured browser outcome; minification and bounded client code are in place, but no performance claim is valid until production field or repeatable lab data is recorded
