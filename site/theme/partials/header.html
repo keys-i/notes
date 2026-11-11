@@ -8,29 +8,17 @@ d(nav.homepage.url, true) | url %}
     <a
       href="{{ home_url }}"
       title="{{ config.site_name | e }}"
-      class="md-header__button md-logo"
+      class="md-header__button md-logo site-home-link"
       aria-label="{{ config.site_name }} home"
       data-md-component="logo"
     >
       {% include "partials/logo.html" %}
+      <span class="site-brand__name">{{ config.site_name }}</span>
     </a>
     <label class="md-header__button md-icon" for="__drawer">
       {% set icon = config.theme.icon.menu or "material/menu" %} {% include
       ".icons/" ~ icon ~ ".svg" %}
     </label>
-    <div class="md-header__title" data-md-component="header-title">
-      <div class="md-header__ellipsis">
-        <a class="md-header__topic site-home-link" href="{{ home_url }}">
-          <span class="md-ellipsis">{{ config.site_name }}</span>
-        </a>
-        <div class="md-header__topic" data-md-component="header-topic">
-          <span class="md-ellipsis">
-            {% if page.meta and page.meta.title %} {{ page.meta.title }} {% else
-            %} {{ page.title }} {% endif %}
-          </span>
-        </div>
-      </div>
-    </div>
     {% if config.theme.palette %} {% if not config.theme.palette is mapping %}
     {% include "partials/palette.html" %} {% endif %} {% endif %} {% if not
     config.theme.palette is mapping %} {% include

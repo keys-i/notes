@@ -12,6 +12,7 @@ through differential equations, optimisation, and computational engineering.
 1. [Lecture notes](Lectures/index.md)
 2. [Tutorials](Tutorial/index.md)
 3. [Assignments](Assignment/index.md)
+4. [Past year papers](PY/index.md)
 
 ## Interactive plotter
 

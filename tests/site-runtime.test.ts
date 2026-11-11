@@ -143,6 +143,7 @@ class RuntimeElement {
       this.children.find(
         (child) =>
           (className && child.classList.contains(className)) ||
+          (selector.startsWith("#") && child.id === selector.slice(1)) ||
           (selector === "svg" && child.tagName === "SVG") ||
           (selector === "code" && child.tagName === "CODE"),
       ) ||
@@ -589,11 +590,20 @@ function graphHarness() {
     const tools = new RuntimeElement();
     tools.className = "graph-tools";
     tools.append(replay, close);
-    shell.append(canvas, tools);
+    const timeline = new RuntimeElement();
+    timeline.className = "graph-timeline";
+    const range = new RuntimeElement();
+    range.id = "graph-timeline-range";
+    const date = new RuntimeElement();
+    date.id = "graph-timeline-date";
+    timeline.append(range, date);
+    shell.append(canvas, tools, timeline);
     modal.appendChild(shell);
     body.appendChild(modal);
     elements.set("modal_background", modal);
     elements.set("graph", canvas);
+    elements.set("graph-timeline-range", range);
+    elements.set("graph-timeline-date", date);
   };
   const document: any = {
     body,
@@ -613,6 +623,7 @@ function graphHarness() {
     querySelector(selector: string) {
       if (selector === ".md-search") return search;
       if (selector === "[data-md-component=palette]") return palette;
+      if (selector.startsWith("#")) return elements.get(selector.slice(1)) || null;
       return null;
     },
     querySelectorAll(selector: string) {
@@ -692,6 +703,7 @@ function graphHarness() {
   };
   const context: any = {
     Element: RuntimeElement,
+    HTMLInputElement: RuntimeElement,
     Map,
     Math,
     Number,
@@ -1055,6 +1067,32 @@ test("graph helpers preserve routes, ordering, labels, and timeline state", asyn
   assert.equal(graph.timers.size, 0);
 });
 
+test("graph history slider reveals dated notes and connected links", async () => {
+  const graph = graphHarness();
+  const call = (source: string) => vm.runInContext(source, graph.context);
+  call("open_graph()");
+  await call("graphModalPromise");
+  const slider = graph.elements.get("graph-timeline-range")! as RuntimeElement & { value: string; max: string };
+  const date = graph.elements.get("graph-timeline-date")!;
+  assert.equal(slider.max, "2");
+  slider.value = "1";
+  graph.handlers.input[0]({ target: slider });
+  assert.equal(date.textContent, "2024-01-01 · 1 note");
+  assert.equal(graph.chart.options.at(-1).series[0].data.length, 1);
+  assert.equal(graph.chart.options.at(-1).series[0].links.length, 0);
+  slider.value = "2";
+  graph.handlers.input[0]({ target: slider });
+  assert.equal(date.textContent, "2024-01-02 · 2 notes");
+  assert.equal(graph.chart.options.at(-1).series[0].links.length, 1);
+  const updates = graph.chart.options.length;
+  graph.handlers.input[0]({ target: new RuntimeElement() });
+  graph.chart.disposed = true;
+  graph.handlers.input[0]({ target: slider });
+  assert.equal(graph.chart.options.length, updates);
+  graph.chart.disposed = false;
+  call("close_graph()");
+});
+
 test("graph fit contains oversized layouts and pinned labels on every open", async () => {
   const graph = graphHarness();
   const call = (source: string) => vm.runInContext(source, graph.context);
@@ -1278,8 +1316,9 @@ test("graph replay is one cancellable frame loop and data failures retry", async
   (graph.context as any).cancelAnimationFrame = (id: number) =>
     cancelled.push(id);
   graph.window.matchMedia = () => ({ matches: false });
+  let disposed = false;
   const chart = {
-    isDisposed: () => false,
+    isDisposed: () => disposed,
     options: [] as any[],
     setOption(value: any) {
       this.options.push(value);
@@ -1323,6 +1362,11 @@ test("graph replay is one cancellable frame loop and data failures retry", async
   assert.equal(graph.replay.classList.contains("is-playing"), false);
   assert.equal(call("graphTimelineFrame"), 0);
   assert.equal(graph.timers.size, 0);
+  call("replay_graph_growth(replayChart)");
+  disposed = true;
+  frames.at(-1)!(1000);
+  assert.equal(graph.replay.classList.contains("is-playing"), false);
+  disposed = false;
   const frameCount = frames.length;
   graph.window.matchMedia = () => ({ matches: true });
   call("replay_graph_growth(replayChart)");

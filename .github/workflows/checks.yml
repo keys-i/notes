@@ -13,6 +13,9 @@ on:
 permissions:
   contents: read
 
+env:
+  NO_MKDOCS_2_WARNING: "1"
+
 concurrency:
   group: checks-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true

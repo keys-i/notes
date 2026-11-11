@@ -1,6 +1,7 @@
 """Enrich and relocate the interactive graph."""
 
 import json
+import re
 import subprocess
 from datetime import UTC, datetime
 from html.parser import HTMLParser
@@ -13,6 +14,7 @@ repository_root = Path(__file__).parents[2]
 nodes_by_url = {}
 edges = set()
 seen_links = 0
+PAPER_ROUTE = re.compile(r"^/(?:COMP|INFS|MECH)/\d{4}/PY/?$")
 
 
 class LinkCollector(HTMLParser):
@@ -184,6 +186,19 @@ def on_post_build(config):
         return
 
     graph = json.loads(graph_path.read_text(encoding="utf-8"))
+    paper_ids = {
+        str(node["id"])
+        for node in graph.get("nodes", [])
+        if PAPER_ROUTE.fullmatch(node.get("value", ""))
+    }
+    graph["nodes"] = [
+        node for node in graph.get("nodes", []) if str(node["id"]) not in paper_ids
+    ]
+    graph["links"] = [
+        link
+        for link in graph.get("links", [])
+        if str(link["source"]) not in paper_ids and str(link["target"]) not in paper_ids
+    ]
     for node in graph.get("nodes", []):
         if created := creation_dates_by_url.get(page_url(node.get("value", ""))):
             node["created"] = created

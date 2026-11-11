@@ -321,6 +321,51 @@ function finish_graph_timelapse() {
   });
 }
 
+function show_graph_timeline_step(chart, steps, step, popScale?) {
+  var shown = steps[step - 1];
+  var previousShown = step === 1 ? 0 : steps[step - 2];
+  var nodes = graphTimelineNodes.slice(0, shown);
+  var visibleLinks = graph_visible_links(
+    graphTimelineLinks,
+    new Set(
+      nodes.map(function (node) {
+        return String(node.id);
+      }),
+    ),
+  );
+  var appearingIds = popScale === undefined
+    ? new Set()
+    : new Set(
+        nodes.slice(previousShown).map(function (node) {
+          return String(node.id);
+        }),
+      );
+  chart.setOption({
+    series: [
+      {
+        data: graph_timeline_nodes(
+          nodes,
+          visibleLinks,
+          appearingIds,
+          popScale,
+        ),
+        links: visibleLinks,
+        layout: "none",
+      },
+    ],
+  });
+  var slider = document.querySelector<HTMLInputElement>("#graph-timeline-range");
+  var label = document.querySelector<HTMLOutputElement>("#graph-timeline-date");
+  if (slider) slider.value = String(step);
+  if (label) {
+    label.textContent =
+      String(nodes[shown - 1].created || "Unknown date").slice(0, 10) +
+      " · " +
+      shown +
+      (shown === 1 ? " note" : " notes");
+  }
+}
+
 function replay_graph_growth(chart) {
   if (!chart || chart.isDisposed() || graphTimelineNodes.length === 0) {
     return;
@@ -354,6 +399,9 @@ function replay_graph_growth(chart) {
   }
 
   var beats = graph_timeline_beats(graphTimelineNodes);
+  var steps = beats.map(function (beat) {
+    return beat.shown;
+  });
   var started = 0;
   var renderedBeat = -1;
   var renderedPhase = -1;
@@ -379,34 +427,12 @@ function replay_graph_growth(chart) {
     var phase = progress >= 0.65 ? 2 : progress >= 0.15 ? 1 : 0;
 
     if (beat !== renderedBeat || phase !== renderedPhase) {
-      var previousShown = beat === 0 ? 0 : beats[beat - 1].shown;
-      var nodes = graphTimelineNodes.slice(0, beats[beat].shown);
-      var visibleLinks = graph_visible_links(
-        graphTimelineLinks,
-        new Set(
-          nodes.map(function (node) {
-            return String(node.id);
-          }),
-        ),
+      show_graph_timeline_step(
+        chart,
+        steps,
+        beat + 1,
+        phase === 1 ? 1.8 : phase === 0 ? 0 : undefined,
       );
-      var appearingIds = new Set(
-        nodes.slice(previousShown).map(function (node) {
-          return String(node.id);
-        }),
-      );
-      chart.setOption({
-        series: [
-          {
-            data: graph_timeline_nodes(
-              nodes,
-              visibleLinks,
-              phase === 2 ? new Set() : appearingIds,
-              phase === 1 ? 1.8 : undefined,
-            ),
-            links: visibleLinks,
-          },
-        ],
-      });
       renderedBeat = beat;
       renderedPhase = phase;
     }
@@ -1066,6 +1092,7 @@ function ensure_graph_modal() {
         "</button>" +
         '<button class="graph-tool graph-close" type="button" title="Close graph" aria-label="Close graph">×</button>' +
         "</div>" +
+        '<div class="graph-timeline"><label for="graph-timeline-range">History <output id="graph-timeline-date">Latest</output></label><input id="graph-timeline-range" type="range" min="1" max="1" value="1" aria-label="Graph history" /></div>' +
         "</div>" +
         "</div>",
     );
@@ -1094,6 +1121,16 @@ function open_graph() {
       element.removeAttribute("aria-busy");
       myChart = init_graph(element);
       draw_graph(myChart);
+      var steps = graph_timeline_steps(graphTimelineNodes);
+      var slider = modal.querySelector<HTMLInputElement>("#graph-timeline-range");
+      if (slider) {
+        slider.max = String(Math.max(1, steps.length));
+        slider.value = slider.max;
+      }
+      var timelineDate = modal.querySelector<HTMLOutputElement>("#graph-timeline-date");
+      if (timelineDate) {
+        timelineDate.textContent = "Latest · " + graphTimelineNodes.length + " notes";
+      }
     })
     .catch(function () {
       if (myChart) myChart.dispose();
@@ -1184,6 +1221,19 @@ document.addEventListener("click", function (event) {
   ) {
     close_graph();
   }
+});
+
+document.addEventListener("input", function (event) {
+  var slider = event.target;
+  if (
+    !(slider instanceof HTMLInputElement) ||
+    slider.id !== "graph-timeline-range" ||
+    !myChart ||
+    myChart.isDisposed()
+  ) return;
+  finish_graph_timelapse();
+  cache_graph_positions(myChart);
+  show_graph_timeline_step(myChart, graph_timeline_steps(graphTimelineNodes), Number(slider.value));
 });
 
 document.getElementById("graph_button")?.addEventListener("click", open_graph);

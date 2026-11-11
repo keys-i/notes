@@ -13,8 +13,8 @@
 }
 
 .recovery-shell:focus-within {
-  border-color: #69e8ff;
-  box-shadow: 0 0 0 1px #69e8ff;
+  border-color: #b4c0c6;
+  box-shadow: 0 0 0 1px #b4c0c6;
 }
 
 .recovery-shell[data-reaction] {
@@ -103,7 +103,7 @@
 }
 
 .shell-prompt {
-  color: #f2ff3d;
+  color: #ffff31;
 }
 
 .shell-man-title {
@@ -125,7 +125,7 @@
   gap: 0.45rem;
   padding: 0.28rem 0.5rem;
   border-top: 1px solid rgb(107 220 255 / 0.48);
-  color: #f2ff3d;
+  color: #ffff31;
   background: #00020a;
   cursor: text;
 }
@@ -138,7 +138,7 @@
   outline: 0;
   color: #fff;
   background: transparent;
-  caret-color: #f2ff3d;
+  caret-color: #ffff31;
   font: inherit;
 }
 

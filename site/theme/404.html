@@ -1,9 +1,9 @@
-{% extends "main.html" %} {% set site_root = config.site_url.rstrip('/') ~ '/'
+{% extends "main.html" %} {% set site_root = '/'
 %} {% set game = config.extra.game %} {% block htmltitle %}
 <title>404 — Page not found — {{ config.site_name }}</title>
 {% endblock %} {% block extrahead %}
 <meta name="robots" content="noindex,follow" />
-<meta name="theme-color" content="#0719aa" />
+<meta name="theme-color" content="#071aab" />
 <link
   rel="stylesheet"
   href="{{ site_root }}assets/styles/freebsd.boot.min.css"
@@ -102,6 +102,7 @@ Dumping 404 out of 404 MB</pre>
         <span aria-live="polite">Score <strong id="score">0000</strong></span>
         <span aria-live="polite">Moves <strong id="moves">000</strong></span>
         <span aria-live="polite">Lives <strong id="lives">♥♥♥</strong></span>
+        <button class="score__reset" id="reset" type="button" aria-label="Restart maze">Restart</button>
         <span class="score__audio">
           <button
             class="score__sound"
@@ -224,6 +225,9 @@ Dumping 404 out of 404 MB</pre>
           <span>EAGLE.SYS</span>
         </span>
         <div class="game-scene" id="game-scene" hidden>
+          <div class="game-scene__screen">
+          <span class="game-scene__take" aria-hidden="true">LONG WAY HOME</span>
+          <strong class="game-scene__caption" aria-hidden="true"></strong>
           <div class="scene-stage scene-stage--attract" aria-hidden="true">
             <strong class="scene-attract__title">LONG WAY HOME</strong>
             <div class="scene-attract__route">
@@ -361,6 +365,7 @@ Dumping 404 out of 404 MB</pre>
           >
             Play
           </button>
+          </div>
         </div>
       </div>
 
@@ -381,14 +386,7 @@ Dumping 404 out of 404 MB</pre>
         >
           ←
         </button>
-        <button
-          class="controls__reset"
-          id="reset"
-          type="button"
-          aria-label="Restart game"
-        >
-          ↻
-        </button>
+        <button class="controls__boop" id="boop" type="button" aria-label="Boop the koala">KOA</button>
         <button
           class="controls__right"
           type="button"

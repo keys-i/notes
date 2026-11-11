@@ -1284,12 +1284,14 @@ test("authored scenes run once while repeat powers stay on the board", () => {
     hidden: true,
     dataset: {} as Record<string, string>,
     style: { removeProperty() {}, setProperty() {} },
+    classList: { add() {}, remove() {}, contains: () => false },
     contains: () => false,
     querySelector: (selector) =>
       selector.includes("[data-scene-hunters]") ? hunters : sceneNode(selector),
   };
   const context = vm.createContext({
     SCENE_DURATIONS: JSON.parse(JSON.stringify(game.SCENE_DURATIONS)),
+    SCENE_CAPTIONS: JSON.parse(JSON.stringify(game.SCENE_CAPTIONS)),
     AUSSIE_SLANG: [...game.AUSSIE_SLANG],
     gameScene: "",
     gameSceneExitTimer: 0,

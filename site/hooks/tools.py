@@ -1,5 +1,6 @@
 """Project command entry points."""
 
+from os import environ
 from pathlib import Path
 from subprocess import call
 from sys import executable
@@ -63,5 +64,6 @@ serve = lambda: call(
         "site/theme",
         "-w",
         "site/hooks",
-    ]
+    ],
+    env={**environ, "NO_MKDOCS_2_WARNING": "1"},
 )
