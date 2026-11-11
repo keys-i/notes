@@ -1,0 +1,264 @@
+{% extends "base.html" %} {% set has_mermaid = page and page.content and
+'class="mermaid"' in page.content %} {% set has_plot = page and page.content and
+'class="note-plot' in page.content %} {% set asset_version =
+config.extra.asset_version | default('dev') %} {% block extrahead %} {% set
+title = config.site_name %} {% if page and page.title and not page.is_homepage
+%} {% set title = (page.title | striptags) ~ " — " ~ config.site_name %} {%
+endif %} {% set description = config.site_description %} {% if page and
+page.meta and page.meta.description %} {% set description =
+page.meta.description %} {% endif %} {% set image = config.site_url ~
+'assets/images/logo.png' %} {% if page and page.meta and page.meta.image %} {%
+set image = config.site_url ~ page.meta.image %} {% endif %}
+<link
+  rel="apple-touch-icon"
+  sizes="180x180"
+  href="{{ 'assets/images/apple-touch-icon.png' | url }}"
+/>
+<link
+  rel="apple-touch-icon-precomposed"
+  sizes="180x180"
+  href="{{ 'assets/images/apple-touch-icon-precomposed.png' | url }}"
+/>
+<link
+  rel="stylesheet"
+  href="{{ ('assets/styles/site.min.css?v=' ~ asset_version) | url }}"
+/>
+<link
+  rel="stylesheet"
+  href="{{ ('assets/styles/graph.min.css?v=' ~ asset_version) | url }}"
+/>
+<link
+  rel="stylesheet"
+  href="{{ ('assets/styles/pet.min.css?v=' ~ asset_version) | url }}"
+/>
+{% if has_plot %}
+<link
+  rel="stylesheet"
+  href="{{ ('assets/styles/plot.min.css?v=' ~ asset_version) | url }}"
+/>
+{% endif %} {% if has_mermaid %}
+<link
+  rel="stylesheet"
+  href="{{ 'assets/styles/zoom.mermaid.min.css?v=20260512-resolution2' | url }}"
+/>
+{% endif %} {% if not page or page.url == "print_page/" %}
+<meta name="robots" content="noindex,follow" />
+{% else %}
+<meta
+  name="robots"
+  content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1"
+/>
+{% endif %}
+<meta
+  property="og:type"
+  content="{{ 'website' if page and page.is_homepage else 'article' }}"
+/>
+<meta property="og:site_name" content="{{ config.site_name }}" />
+<meta property="og:title" content="{{ title }}" />
+<meta property="og:description" content="{{ description }}" />
+<meta property="og:url" content="{{ page.canonical_url }}" />
+<meta property="og:image" content="{{ image }}" />
+<meta property="og:image:alt" content="{{ config.site_name }} logo" />
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="{{ title }}" />
+<meta name="twitter:description" content="{{ description }}" />
+<meta name="twitter:image" content="{{ image }}" />
+{% if page and page.canonical_url and page.url != "print_page/" %}
+<script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": {{ ("WebSite" if page.is_homepage else "TechArticle") | tojson }},
+    "name": {{ title | tojson }},
+    "description": {{ description | tojson }},
+    "url": {{ page.canonical_url | tojson }},
+    "image": {{ image | tojson }},
+    "author": {
+      "@type": "Person",
+      "name": {{ config.site_author | tojson }},
+      "url": "https://github.com/keys-i"
+    }
+  }
+</script>
+{% endif %} {% endblock %}
+
+<!-- printing pdf -->
+{% block repo %} {% if page.url_to_pdf %}
+<li class="nav-item">
+  <a href="{{ page.url_to_pdf }}" title="Site PDF" class="nav-link">
+    <i class="fas fa-file-pdf"></i> PDF
+  </a>
+</li>
+{% endif %} {{ super() }} {% endblock repo %}
+
+<!-- outdated version - remove suffix: off -->
+{% block outdatedoff %} You're not viewing the latest version.
+<a href="{{ '../' ~ base_url }}">
+  <strong>Click here to go to latest.</strong>
+</a>
+{% endblock %}
+
+<!-- Announcements - remove suffix: off -->
+{% block announceoff %}
+<a href="https://github.com/keys-i/notes/releases">
+  For updates, follow our announcements.
+</a>
+{% endblock %} {% block content %} {% if page and page.meta and page.meta.wip ==
+true %}
+<div class="admonition warning">
+  <p class="admonition-title">🚧 Work in Progress 🚧</p>
+  <p>
+    Following page is work in progress. Feel free to contribute by clicking
+    <span class="twemoji"
+      ><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+        <path
+          d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25z"
+        ></path></svg
+    ></span>
+    icon located next to the title of this page. If you land on a GitHub 404
+    page, you may either not have logged into your GitHub account or not have
+    been added to a required GitHub group of writers. For the latter, tweet
+    <code>@{{ config.extra.twitter }}</code> to be added into a valid group.
+  </p>
+  <p>
+    <small>
+      Powered by
+      <a href="{{ config.repo_url }}/{{ config.extra.comments.type }}"
+        >GitHub {{ config.extra.comments.type }}</a
+      >
+    </small>
+  </p>
+</div>
+{% endif %} {{ super() }} {% if paper_catalog %}
+{% include "partials/papers.html" %}
+{% endif %} {% if config.extra.comments.enabled and page and page.meta and
+page.meta.comments == false %}
+<!-- disable comments -->
+{% else %}
+<details class="note-comments" id="__comments">
+  <summary>
+    <span class="note-comments__icon md-icon" aria-hidden="true">
+      {% include ".icons/material/comment-text-outline.svg" %}
+    </span>
+    <span class="note-comments__copy">
+      <span>Discuss this note</span>
+      <small>GitHub sign-in to comment</small>
+    </span>
+  </summary>
+  <div class="note-comments__body">
+    <div
+      id="comments-provider"
+      data-mode="utterances"
+      data-repo="keys-i/notes"
+      data-issue-term="title"
+    ></div>
+  </div>
+</details>
+
+<script src="{{ ('assets/js/page/comments.min.js?v=' ~ asset_version) | url }}"></script>
+{% endif %} {% endblock %} {% block footer %} {{ super() }}
+<button
+  class="dock-pet"
+  id="dock-pet"
+  type="button"
+  hidden
+  aria-label="Ask the koala study buddy"
+  data-state="idle"
+  data-direction="left"
+  data-endpoint="/api/pet"
+>
+  <span class="dock-pet__bubble" hidden aria-hidden="true">
+    <svg class="dock-pet__cloud" aria-hidden="true" focusable="false">
+      <path></path>
+    </svg>
+    <span class="dock-pet__bubble-text"></span>
+    <span class="dock-pet__thought-tail" aria-hidden="true"></span>
+  </span>
+  <span class="dock-pet__body" aria-hidden="true">
+    {% include "partials/koala.html" %}
+  </span>
+  <span class="dock-pet__rope" aria-hidden="true"></span>
+  <span class="dock-pet__hook" aria-hidden="true"></span>
+</button>
+<aside
+  class="dock-pet__help"
+  id="dock-pet-help"
+  hidden
+  aria-label="Koala study helper"
+>
+  <form id="dock-pet-help-form">
+    <label class="dock-pet__help-label" for="dock-pet-question"
+      >Ask Koa a question</label
+    >
+    <ol
+      class="dock-pet__thread"
+      id="dock-pet-thread"
+      aria-live="polite"
+      aria-label="Conversation"
+    ></ol>
+    <div class="dock-pet__attachment" id="dock-pet-attachment" hidden>
+      <span id="dock-pet-attachment-name"></span>
+      <button
+        id="dock-pet-attachment-remove"
+        type="button"
+        aria-label="Remove attachment"
+        title="Remove attachment"
+      >
+        {% include ".icons/material/close.svg" %}
+      </button>
+    </div>
+    <div class="dock-pet__help-question">
+      <input
+        id="dock-pet-file"
+        type="file"
+        accept="image/avif,image/bmp,image/gif,image/heic,image/heif,image/jpeg,image/png,image/webp,audio/aac,audio/flac,audio/mpeg,audio/mp4,audio/ogg,audio/wav,audio/webm,audio/x-m4a,audio/x-wav,video/mp4,video/webm,video/quicktime"
+        hidden
+      />
+      <input
+        id="dock-pet-question"
+        name="question"
+        type="text"
+        maxlength="240"
+        autocomplete="off"
+        dir="auto"
+        placeholder="Explain, quiz, attach media, or ask in any language…"
+      />
+      <button
+        id="dock-pet-attach"
+        type="button"
+        aria-label="Attach image, audio or video"
+        title="Attach image, audio or video"
+      >
+        {% include ".icons/material/paperclip.svg" %}
+      </button>
+      <button
+        id="dock-pet-listen"
+        type="button"
+        hidden
+        aria-label="Ask by voice"
+        title="Ask by voice"
+      >
+        {% include ".icons/material/microphone-outline.svg" %}
+      </button>
+      <button id="dock-pet-send" type="submit" aria-label="Ask" title="Ask">
+        {% include ".icons/material/send-variant-outline.svg" %}
+      </button>
+    </div>
+  </form>
+</aside>
+<span
+  class="dock-pet__status"
+  id="dock-pet-status"
+  role="status"
+  aria-live="polite"
+></span>
+{% endblock %} {% block scripts %} {{ super() }}
+<script src="{{ ('assets/js/page/graph.min.js?v=' ~ asset_version) | url }}"></script>
+<script src="{{ ('assets/js/study/koala.min.js?v=' ~ asset_version) | url }}"></script>
+<script src="{{ ('assets/js/page/math.min.js?v=' ~ asset_version) | url }}"></script>
+{% if has_plot %}
+<script src="{{ ('assets/js/page/plot.min.js?v=' ~ asset_version) | url }}"></script>
+{% endif %} {% if has_mermaid %}
+<script src="{{ 'assets/js/page/mermaid.min.js?v=20260512-resolution2' | url }}"></script>
+{% endif %} {% if paper_catalog %}
+<script src="{{ ('assets/js/study/papers.min.js?v=' ~ asset_version) | url }}"></script>
+{% endif %} {% endblock %}

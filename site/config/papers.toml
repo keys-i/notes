@@ -1,0 +1,418 @@
+updated = "2026-11-11"
+
+[courses.INFS2200]
+folder-code = "1QKEYzWC9Bq7sMqbLMcSjh1pqkAGcDdkD"
+archive-code = "0B8Js1RmtBIt9Z0NPLWVqcU92OFU?resourcekey=0-olmDsbg4c6gx76A3_02RoQ"
+
+[[courses.INFS2200.items]]
+title = "Exam"
+year = 2025
+url-code = "document/1QeXgzxW-q1szg3dCdQBucuRUYDLFUh3IBpNSlMIRCu4"
+source = "primary"
+
+[[courses.INFS2200.items]]
+title = "Exam with answers"
+year = 2024
+url-code = "document/1e7k7XNExF3JvP1H9xm3u0etQwTq9HYSBPsmoL_Fppw8"
+source = "primary"
+solutions = true
+
+[[courses.INFS2200.items]]
+title = "Exam with answers"
+year = 2023
+url-code = "document/1I6ZC9lVEVLkYUBPzm7cDaKA-KGhvDwouEvbf8l3XLn0"
+source = "primary"
+solutions = true
+
+[[courses.INFS2200.items]]
+title = "Exam Answers"
+year = 2023
+url-code = "document/1DCpdKdxTHLuHlPSZLRYcDCjJoO2Z6cOQ6ecJtf9wGkY"
+kind = "solution"
+solutions = true
+
+[[courses.INFS2200.items]]
+title = "Exam with answers"
+year = 2022
+url-code = "document/1IHPM6W2dOFZeICU0io6Mh5Ch0PlUKbqPE0WbDVJZ4gQ"
+source = "primary"
+solutions = true
+
+[[courses.INFS2200.items]]
+title = "Exam with answers"
+year = 2022
+url-code = "document/1OlK4LPKZ2KpNL7ExemT75CSUnnCwVIOGCMLSnLEMBjo"
+solutions = true
+
+[[courses.INFS2200.items]]
+title = "Exam"
+year = 2022
+url-code = "file/15tC5j0mt5WGztNxz1FBxE-tdtMPhuDg-"
+
+[[courses.INFS2200.items]]
+title = "Practice Exam"
+year = 2022
+url-code = "document/1wEZPo9CMIGiM6ML5NE3jkRcfSwVmB_ijBVdmY5ARZ6s"
+kind = "practice"
+source = "primary"
+
+[[courses.INFS2200.items]]
+title = "Practice Exam Answers"
+year = 2022
+url-code = "document/1pWaKG1uxspaaFR6zR_6evOcAyH9UOj52V9rdbavHlMk"
+kind = "solution"
+solutions = true
+
+[[courses.INFS2200.items]]
+title = "Exam with answers"
+year = 2021
+url-code = "document/1eRoG9fDeIVj8V_3dkxCA_KkXJFpGrAW-I2SWvmai4m8"
+source = "primary"
+solutions = true
+
+[[courses.INFS2200.items]]
+title = "Exam"
+year = 2021
+url-code = "file/1BgkTDZSMn7UnHafcwRsXcWytPfcwkM7f"
+
+[[courses.INFS2200.items]]
+title = "Exam Answers"
+year = 2021
+url-code = "document/1L-bN0Ia0E8cRlGxBEZM_UY_HDOTwnbT7w87mfZNh5sU"
+kind = "solution"
+solutions = true
+
+[[courses.INFS2200.items]]
+title = "Exam with answers"
+year = 2020
+url-code = "document/1zqYQfAfvX1krmyWkLqjlUmg2NPLoNtg6GE519r7QxnU"
+source = "primary"
+solutions = true
+
+[[courses.INFS2200.items]]
+title = "Exam Answers"
+year = 2020
+url-code = "document/1tjyIIQrzeo_x5S_ryiQuSA60NqW17AZ7qqakHunN7AE"
+kind = "solution"
+solutions = true
+
+[[courses.INFS2200.items]]
+title = "Exam with answers"
+year = 2019
+url-code = "document/1k1KnKxVZGetQpTAVUrlBU49JHm9qErhLJ7cWWQULVoc"
+source = "primary"
+solutions = true
+
+[[courses.INFS2200.items]]
+title = "Exam with answers"
+year = 2019
+url-code = "document/1_bdyd0xdp_3Z-yGMumsP3NsSE3bukJjth-c6F7BH8qQ"
+solutions = true
+
+[[courses.INFS2200.items]]
+title = "Exam"
+year = 2018
+url-code = "document/1Yj0Q1ZGvjbiB3Hh68Rdh3OfY5MfEXwCFPQvOm-SoNt0"
+source = "primary"
+
+[[courses.INFS2200.items]]
+title = "Exam"
+year = 2017
+url-code = "document/1suOIBi5GR-Hp_T8il-dGVJCxkwkqUVqDO6K3uBzp0CA"
+source = "primary"
+
+[[courses.INFS2200.items]]
+title = "Exam"
+year = 2016
+url-code = "document/1ZfkblzfPLT-9QiXRDXaFWvhwPPlMjgnn_RImNd9tsDo"
+source = "primary"
+
+[[courses.INFS2200.items]]
+title = "Exam"
+year = 2015
+url-code = "document/1QstOhwp15v56tVeoA27-ZsbwV-YDUZNQpbQDphnHA5E"
+source = "primary"
+
+[[courses.INFS2200.items]]
+title = "Exam"
+year = 2014
+url-code = "document/1M1wKKofaBaFhxFVmuU_XjoSAOjGl8N68grj0GzmBcU0"
+source = "primary"
+
+[[courses.INFS2200.items]]
+title = "Exam"
+year = 2014
+url-code = "file/1SHbCcyD5BaWRbJc6TmO2dDQMWWdCnVqT"
+
+[[courses.INFS2200.items]]
+title = "Exam"
+year = 2015
+url-code = "file/183FOy5_Va_aQowk9SolbEUWZQJiNuSUh"
+
+[[courses.INFS2200.items]]
+title = "Exam"
+year = 2016
+url-code = "file/1BOgIu64LG_dSVkUm5509M8Pzz49isl6P"
+
+[[courses.INFS2200.items]]
+title = "Exam"
+year = 2017
+url-code = "file/1bvGVkcZJeqP0OdHMvj0-N8YFrjXl-2xf"
+
+[[courses.INFS2200.items]]
+title = "Exam"
+year = 2018
+url-code = "file/1rxYchf0qocbOaOpqfureA2cvNofDBwji"
+
+[[courses.INFS2200.items]]
+title = "Exam"
+year = 2019
+url-code = "file/1zK2fFBie8tW8_X4wS3WDlTt8nP8bCmuk"
+
+[[courses.INFS2200.items]]
+title = "Exam"
+year = 2020
+url-code = "file/1R7ItmBqN4nS_8bUh266As2hD9Rc-50Jc"
+
+[[courses.INFS2200.items]]
+title = "Exam"
+year = 2023
+url-code = "file/1_2zxXT5kZXzmWpAqtdrODLzMPGHYojik"
+
+[[courses.INFS2200.items]]
+title = "Semester Two Examinations with answers"
+year = 2024
+url-code = "document/1ekqhHKbbpMeyREPSAoO51vrfMhNiU_lnFCnBBjPO38o"
+solutions = true
+
+[[courses.INFS2200.items]]
+title = "Semester Two Examinations"
+year = 2024
+url-code = "file/12Kec-lzSEeJ0V3t9bSnDgJ7VWLX5es_I"
+
+[courses.MECH2700]
+folder-code = "0Bz1jLGzgQnjtT1EyamxIeWpPVlU?resourcekey=0-78DGAxFB7i9ijkkQKoYvYw"
+
+[[courses.MECH2700.items]]
+title = "Semester Two Examinations"
+year = 2024
+url-code = "file/1-QJR4-IXLbu5Du60VePlbqNa7-CH9fi9"
+
+[[courses.MECH2700.items]]
+title = "2021 Onwards with answers"
+year = 2021
+url-code = "document/1zGK9NqHK_v4ojHLNypgHEgzlIznig4Hr8CVlOCmdJZI"
+solutions = true
+
+[[courses.MECH2700.items]]
+title = "Semester 2 with answers"
+year = 2019
+url-code = "document/1Tr6pEmU9-BxqnqYQIzo0FE3rTuxmX_26c5_syXVawAE"
+solutions = true
+
+[[courses.MECH2700.items]]
+title = "Semester 2 with answers"
+year = 2018
+url-code = "document/1fptja_1GXO8Zc1IE3T3ARp_F91Z29pIspHf2pN6k3qA"
+solutions = true
+
+[[courses.MECH2700.items]]
+title = "2016 and 2017 Exam Solutions"
+year = 2016
+url-code = "file/13Q4q0giiD9Mc8HLgKEvvA7d_GA5RFR18"
+kind = "solution"
+solutions = true
+
+[[courses.MECH2700.items]]
+title = "Final Exam Answers"
+year = 2022
+url-code = "document/1o1wkNWwQVjjQs3Yys__zjfh4ZQjSe79M98gVN-UthrM"
+kind = "solution"
+solutions = true
+
+[[courses.MECH2700.items]]
+title = "Exam (Marty)"
+year = 2011
+url-code = "document/1xV6t4xds44UCQhBXuBTKEtrRcp_s0hlWcTIYK4kWI_s"
+
+[[courses.MECH2700.items]]
+title = "Exam (Marty)"
+year = 2011
+url-code = "file/0Bz1jLGzgQnjtNDFHM19DX2ZIeFE?resourcekey=0-FEcYj60soPuddO0iDxnXVA"
+
+[[courses.MECH2700.items]]
+title = "MESS SWOTVAC"
+year = 2023
+url-code = "file/1VBUXC59rS1A4KGjMrlMMde7RqdtZluv6"
+
+[[courses.MECH2700.items]]
+title = "Semester Two Final Examinations"
+year = 2018
+url-code = "file/1NDEjlgHAK3e2WJu9xDYu2elqyugfrZHW"
+
+[courses.COMP4403]
+folder-code = "12kfwOQ7PZDF9MIFQTqFdcF_NVl5Sfc01"
+
+[[courses.COMP4403.items]]
+title = "Exam Answers"
+year = 2025
+url-code = "document/1FdEtgRgHzUiv2VZ3fxIOKdodUN6ZqdBUOFPEAOk9F74"
+kind = "solution"
+solutions = true
+
+[[courses.COMP4403.items]]
+title = "Exam Answers"
+year = 2024
+url-code = "document/1i18EdeMD2w6CMv9LTGE114HdjdHqKxdh"
+kind = "solution"
+solutions = true
+
+[[courses.COMP4403.items]]
+title = "Exam Answers"
+year = 2023
+url-code = "document/1ucP0RH8TULsAnQ5u2ZLr-wYtORdnyq2eDp5J6UmYPK0"
+kind = "solution"
+solutions = true
+
+[[courses.COMP4403.items]]
+title = "Exam with answers"
+year = 2022
+url-code = "document/1lHBLIDHPXkiWtE3m8baUY7gjpBfbUz7qa8DcsvIw7Kk"
+solutions = true
+
+[[courses.COMP4403.items]]
+title = "Exam with answers"
+year = 2021
+url-code = "document/1VIS1RQTLJGKm5S_DY5IDSS_uQJSSx0Up"
+solutions = true
+
+[[courses.COMP4403.items]]
+title = "Exam"
+year = 2020
+url-code = "file/1sFTAtBuTHtGegBCrQS-Ugf0jqQcfvv0d"
+
+[[courses.COMP4403.items]]
+title = "Exam"
+year = 2012
+url-code = "file/16BeCLOYuRMlU10xsg76iKNZhbH0gXQam"
+
+[[courses.COMP4403.items]]
+title = "Exam Solutions"
+year = 2012
+url-code = "file/1oGfx71erxVeY82bvKYr2-bLuSacUycT5"
+solutions = true
+
+[[courses.COMP4403.items]]
+title = "Exam"
+year = 2011
+url-code = "file/1DhBVAjCC-zO921bmdjsTOVg3KUSoozWx"
+
+[[courses.COMP4403.items]]
+title = "Exam Solutions"
+year = 2011
+url-code = "file/1HmSgf5JPx6i_W1Xx05N1loc_wrmRd57k"
+solutions = true
+
+[[courses.COMP4403.items]]
+title = "Final Solutions"
+year = 2019
+url-code = "document/1I2PSeT68ZnV4UMuH6_iAJaUPcCg6xzqr"
+kind = "solution"
+solutions = true
+
+[courses.COMP4702]
+folder-code = "1IDoh1OmL_JWsZKx0BfssAL27weAwArv1"
+
+[[courses.COMP4702.items]]
+title = "Exam"
+year = 2023
+url-code = "file/1bW1O_irb2vDRDo8n-uedUOnHVJwc6mjN"
+
+[[courses.COMP4702.items]]
+title = "Final Exam with answers"
+year = 2023
+url-code = "document/1_mUVRn0WcHG40tXAQ8W-Ah8RT8f_T-Nnm4f7A_P2TKw"
+solutions = true
+
+[[courses.COMP4702.items]]
+title = "Sample Exam with answers"
+year = 2023
+url-code = "document/1-2jM8YJ0p3ExAiIH1dvWq-LEn0nrX1UnoV5XJfwPgIQ"
+kind = "practice"
+solutions = true
+
+[[courses.COMP4702.items]]
+title = "Exam"
+year = 2022
+url-code = "file/114UK-l2YlRHJZLxigwJrzfIl9mXUQLTy"
+
+[[courses.COMP4702.items]]
+title = "Exam"
+year = 2021
+url-code = "file/17UxSiM4JVHDIG68-jqgOAsJQRtm1JNar"
+
+[[courses.COMP4702.items]]
+title = "Online"
+year = 2020
+url-code = "file/13SAux3oEqUITDLbhxRhE8mR5wk9gpDkQ"
+
+[[courses.COMP4702.items]]
+title = "Final Exam with answers"
+year = 2020
+url-code = "document/11_TEPcB9Uk59P5Hrd3beJsa52n4P6gnaD8Q8HQ58t40"
+solutions = true
+
+[[courses.COMP4702.items]]
+title = "Exam"
+year = 2019
+url-code = "file/1H3s085wmZ7nt4m2E8_03-LUq3kARPPJJ"
+
+[[courses.COMP4702.items]]
+title = "Final Exam Answers"
+year = 2019
+url-code = "document/1ALtphdo8CdKYQ3T6vnU_6rb9TJFzfUY7aLWYp0VenAo"
+kind = "solution"
+solutions = true
+
+[[courses.COMP4702.items]]
+title = "Final Exam with answers"
+year = 2018
+url-code = "document/17sQlJQdQzHQxC-XnVb4e2qeD_S6FhuToRnlsIsaJPfE"
+solutions = true
+
+[[courses.COMP4702.items]]
+title = "Final Exam with answers"
+year = 2017
+url-code = "document/1c6WqtHV5waRHm8hHq5dO6K8hpNZFkXLUxKgCzaO1QnU"
+solutions = true
+
+[[courses.COMP4702.items]]
+title = "Final Exam with answers"
+year = 2016
+url-code = "document/1eZD9IaarlM_ReerAXl9ZRrbaCn2jPWxb7v7maZLep_8"
+solutions = true
+
+[[courses.COMP4702.items]]
+title = "Final Exam with answers"
+year = 2015
+url-code = "document/1bifEgcDrw-tvv5RgMwN-I-nr2NcmRE8dfpqriVOIWSo"
+solutions = true
+
+[[courses.COMP4702.items]]
+title = "Final Exam with answers"
+year = 2014
+url-code = "document/1PAIl2J_NTYnEe0WvtRmacpPY8zJA3Wln4frDI3F12lk"
+solutions = true
+
+[[courses.COMP4702.items]]
+title = "Final Exam with answers"
+year = 2013
+url-code = "document/1YDiJeDpPQLllOZqTImquxD00xaLnqiexnbU8sNnQFZc"
+solutions = true
+
+[[courses.COMP4702.items]]
+title = "Final Exam Solutions"
+year = 2023
+url-code = "file/19vpm-dTf9C2YCD7ZE6_F1IjSDzNltYtB"
+kind = "solution"
+solutions = true

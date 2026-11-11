@@ -37,9 +37,9 @@ jobs:
       - name: Test and lint
         run: |
           uv run --locked coverage erase
-          uv run --locked coverage run tests/hooks.test.py
+          uv run --locked coverage run site/web/tests/hooks.test.py
           uv run --locked coverage report
-          uv run --locked python tests/site.test.py
+          uv run --locked python site/web/tests/site.test.py
           uv run --locked ruff format --check .
           uv run --locked ruff check .
 

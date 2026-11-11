@@ -4,7 +4,7 @@
     "module": "none",
     "lib": ["DOM", "DOM.Iterable", "ES2022"],
     "types": [],
-    "rootDir": "ts",
+    "rootDir": "web/browser",
     "outDir": "../assets/js",
     "strict": false,
     "noImplicitAny": false,
@@ -12,5 +12,5 @@
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true
   },
-  "include": ["ts/**/*.ts"]
+  "include": ["web/browser/**/*.ts"]
 }
