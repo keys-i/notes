@@ -1,0 +1,12 @@
+release = "FreeBSD 14.2-RELEASE"
+source = "https://cgit.freebsd.org/src/tree/share/man?h=releng/14.2"
+renderer = "https://man.freebsd.org/cgi/man.cgi"
+
+[aliases]
+bt = "ddb"
+cd = "builtin"
+exit = "builtin"
+help = "man"
+recovery = "rescue"
+swapinfo = "swapctl"
+trace = "ddb"
