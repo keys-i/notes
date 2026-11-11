@@ -1,0 +1,60 @@
+<section class="papers" aria-label="Past year paper library">
+  <div class="papers__summary">
+    <p>{{ paper_catalog["items"] | length }} papers and solutions · Index checked {{ paper_updated }}</p>
+    <a href="{{ paper_catalog.folder }}" target="_blank" rel="noopener noreferrer">Open source folder ↗</a>
+    {% if paper_catalog.archive %}<a href="{{ paper_catalog.archive }}" target="_blank" rel="noopener noreferrer">Open archive ↗</a>{% endif %}
+    <a href="#__comments" id="papers-discuss">Discuss papers ↓</a>
+  </div>
+  <div class="papers__tools">
+    <label for="papers-search">Search title or year</label>
+    <input id="papers-search" type="search" placeholder="Search year or title" autocomplete="off" />
+    <div class="papers__filters" role="group" aria-label="Filter papers">
+      <button type="button" data-paper-filter="all" aria-pressed="true">All</button>
+      <button type="button" data-paper-filter="Paper" aria-pressed="false">Papers</button>
+      <button type="button" data-paper-filter="Solution" aria-pressed="false">Solutions</button>
+      <button type="button" data-paper-filter="Practice" aria-pressed="false">Practice</button>
+    </div>
+  </div>
+  <nav class="papers__years" aria-label="Browse paper years">
+    {% for year, items in paper_catalog["items"] | groupby("year") | reverse %}
+    {% if year %}<a href="#papers-{{ year }}">{{ year }}</a>{% endif %}
+    {% endfor %}
+  </nav>
+  <section class="papers__preview" id="papers-preview" aria-label="Paper preview" hidden>
+    <div class="papers__preview-bar">
+      <div><span>Previewing</span><strong id="papers-preview-title"></strong></div>
+      <div class="papers__preview-actions">
+        <a id="papers-preview-open" href="#" target="_blank" rel="noopener noreferrer">Open original ↗</a>
+        <button id="papers-preview-close" type="button" aria-label="Close preview">Close</button>
+      </div>
+    </div>
+    <iframe id="papers-preview-frame" title="Paper preview" loading="lazy" referrerpolicy="no-referrer"></iframe>
+    <p>If the preview is blocked by Google, use <a id="papers-preview-fallback" href="#" target="_blank" rel="noopener noreferrer">Open original</a></p>
+  </section>
+  <p class="papers__empty" id="papers-empty" role="status" hidden>No papers match. Try another year or filter.</p>
+  {% for year, items in paper_catalog["items"] | groupby("year") | reverse %}
+  <section class="papers__group" {% if year %}id="papers-{{ year }}"{% endif %} aria-label="{{ year or 'Other years' }} papers">
+    <h2>{{ year or "Other years" }}</h2>
+    <div class="papers__list">
+      {% for item in items %}
+      <article class="papers__item" data-paper-kind="{{ item.kind }}" data-paper-search="{{ (item.title ~ ' ' ~ (item.year or '')) | lower }}">
+        <div class="papers__item-copy">
+          <span class="papers__kind">{{ item.kind }}</span>
+          <h3>{{ item.title }}</h3>
+          <small>{{ 'Main collection' if item.source == 'primary' else 'Archive' }}</small>
+        </div>
+        <div class="papers__item-actions">
+          <button type="button" data-paper-preview="{{ item.url }}" data-paper-title="{{ item.title }}">Preview</button>
+          {% if item.url.startswith('https://docs.google.com/') %}
+          <a href="{{ item.url }}" target="_blank" rel="noopener noreferrer" aria-label="Edit {{ item.title }} in Google Docs if you have access">Edit ↗</a>
+          {% else %}
+          <a href="{{ item.url }}" target="_blank" rel="noopener noreferrer" aria-label="Open {{ item.title }} in Google Drive">Open ↗</a>
+          {% endif %}
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+  {% endfor %}
+  <p class="papers__note">Files open from the source collection. Google Drive controls preview and editing access.</p>
+</section>

@@ -176,6 +176,15 @@ var SCENE_DURATIONS = {
   ultra: 2500,
   hakai: 2200,
 };
+var SCENE_CAPTIONS = {
+  ready: "THE LONG WAY HOME",
+  vegemite: "KOALA POWER",
+  dragon: "THE TURNING POINT",
+  combined: "EVERYTHING AT ONCE",
+  weak: "NOT THE FINAL FORM",
+  ultra: "TOO FAST TO CATCH",
+  hakai: "ONE LAST MOVE",
+};
 
 var AUSSIE_SLANG = ["Too easy", "Beauty", "No worries"];
 var SAIYAN_WEAK_POWERUPS = new Set(["avocado", "banana"]);
@@ -536,6 +545,10 @@ function clearGameScene() {
   sceneTake += 1;
   gameScene = "";
   sceneElement.hidden = true;
+  if (sceneElement.classList?.contains("game-scene--cinema")) {
+    sceneElement.classList.remove("game-scene--cinema");
+    board.appendChild(sceneElement);
+  }
   delete sceneElement.dataset.exit;
   delete board.dataset.scene;
   delete board.dataset.entering;
@@ -630,6 +643,8 @@ function startGameScene(kind) {
   sceneTakes.set(kind, (sceneTakes.get(kind) || 0) + 1);
   var take = sceneTake;
   sceneElement.dataset.kind = kind;
+  sceneElement.querySelector(".game-scene__caption").textContent =
+    SCENE_CAPTIONS[kind] || "LONG WAY HOME";
   sceneElement.dataset.take = String(sceneTake);
   sceneElement.style.setProperty("--scene-duration", duration + "ms");
   var skip = sceneElement.querySelector(".game-scene__skip");
@@ -642,6 +657,10 @@ function startGameScene(kind) {
   // Restart the cutscene even when a reset selects the same power again
   void sceneElement.offsetWidth;
   sceneElement.hidden = false;
+  if (sceneElement.parentElement === board) {
+    document.body.appendChild(sceneElement);
+    sceneElement.classList.add("game-scene--cinema");
+  }
   board.dataset.scene = kind;
   osElement.classList.toggle("power-cutscene", power);
   gameAudio.sequence(power ? "power" : "boot");
@@ -3346,6 +3365,12 @@ document
 document.getElementById("reset").addEventListener("click", function () {
   resetGame();
   gameAudio.start();
+});
+document.getElementById("boop").addEventListener("click", function () {
+  if (!running || gameScene) return;
+  flashGameReaction("boop", "BOOP!");
+  statusElement.textContent = "Boop. The koala approves of this detour.";
+  gameAudio.play("fruit");
 });
 bindShutdownButton();
 playerElement.addEventListener("click", function (event) {

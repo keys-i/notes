@@ -27,10 +27,12 @@ set image = config.site_url ~ page.meta.image %} {% endif %}
   rel="stylesheet"
   href="{{ ('assets/styles/graph.min.css?v=' ~ asset_version) | url }}"
 />
+{% if not paper_catalog %}
 <link
   rel="stylesheet"
   href="{{ ('assets/styles/pet.min.css?v=' ~ asset_version) | url }}"
 />
+{% endif %}
 {% if has_plot %}
 <link
   rel="stylesheet"
@@ -128,7 +130,9 @@ true %}
     </small>
   </p>
 </div>
-{% endif %} {{ super() }} {% if git_page_authors %}
+{% endif %} {{ super() }} {% if paper_catalog %}
+{% include "partials/papers.html" %}
+{% endif %} {% if git_page_authors and not paper_catalog %}
 <div class="md-source-date">
   <small>
     <a
@@ -149,7 +153,7 @@ page.meta.comments == false %}
     </span>
     <span class="note-comments__copy">
       <span>Discuss this note</span>
-      <small>GitHub sign-in optional</small>
+      <small>GitHub sign-in to comment</small>
     </span>
   </summary>
   <div class="note-comments__body">
@@ -164,6 +168,7 @@ page.meta.comments == false %}
 
 <script src="{{ ('assets/js/comments.min.js?v=' ~ asset_version) | url }}"></script>
 {% endif %} {% endblock %} {% block footer %} {{ super() }}
+{% if not paper_catalog %}
 <button
   class="dock-pet"
   id="dock-pet"
@@ -259,12 +264,17 @@ page.meta.comments == false %}
   role="status"
   aria-live="polite"
 ></span>
+{% endif %}
 {% endblock %} {% block scripts %} {{ super() }}
 <script src="{{ ('assets/js/graph.min.js?v=' ~ asset_version) | url }}"></script>
+{% if not paper_catalog %}
 <script src="{{ ('assets/js/pet.min.js?v=' ~ asset_version) | url }}"></script>
+{% endif %}
 <script src="{{ ('assets/js/math.min.js?v=' ~ asset_version) | url }}"></script>
 {% if has_plot %}
 <script src="{{ ('assets/js/plot.min.js?v=' ~ asset_version) | url }}"></script>
 {% endif %} {% if has_mermaid %}
 <script src="{{ 'assets/js/zoom.mermaid.min.js?v=20260512-resolution2' | url }}"></script>
+{% endif %} {% if paper_catalog %}
+<script src="{{ ('assets/js/papers.min.js?v=' ~ asset_version) | url }}"></script>
 {% endif %} {% endblock %}

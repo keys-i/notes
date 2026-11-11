@@ -1,6 +1,6 @@
 html,
 body {
-  background: #0719aa;
+  background: #071aab;
 }
 
 .md-top {
@@ -39,7 +39,7 @@ body {
   min-height: 100svh;
   overflow-x: hidden;
   color: #fff;
-  background: #0719aa;
+  background: #071aab;
   font-family: "Lucida Console", Monaco, Consolas, ui-monospace, monospace;
   grid-template-rows: auto 1fr auto;
   text-shadow: 0 0 0.18rem rgb(215 255 234 / 0.24);
@@ -79,7 +79,7 @@ body {
   --roll-speed: calc(9s - var(--route-progress) * 6s);
   --route-scene: calc(1 - var(--route-progress) * 0.82);
   --route-glow: calc(1 + var(--route-progress) * 1.55);
-  background: rgb(7 25 170 / calc(1 - var(--route-progress) * 0.88));
+  background: rgb(15 76 129 / calc(1 - var(--route-progress) * 0.88));
   transition:
     background 0.85s linear,
     color 0.85s linear,
@@ -226,8 +226,8 @@ html:has(.os[data-route]) body {
   max-width: 100%;
   margin-bottom: 1rem;
   padding: 0.16rem 0.35rem;
-  border: 1px solid #f2ff3d;
-  background: #061273;
+  border: 1px solid #ffff31;
+  background: #0b2a4c;
   box-shadow: inset 0 0 0.45rem rgb(23 67 245 / 0.5);
   color: #fff;
   font-weight: 800;
@@ -256,16 +256,16 @@ html:has(.os[data-route]) body {
 .reboot {
   display: inline-block;
   padding: 0.08rem 0.28rem;
-  border: 1px solid #f2ff3d;
-  background: #061273;
+  border: 1px solid #ffff31;
+  background: #0b2a4c;
   text-decoration: none;
 }
 
 .reboot:hover,
 .reboot:focus-visible {
   color: #fff;
-  background: #1743f5;
-  outline: 0.2rem solid #f2ff3d;
+  background: #94a5ad;
+  outline: 0.2rem solid #ffff31;
 }
 
 @media (min-width: 1025px) {

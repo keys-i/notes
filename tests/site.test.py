@@ -88,7 +88,6 @@ class SiteAssetTests(unittest.TestCase):
         template = (ROOT / "site/theme/404.html").read_text(encoding="utf-8")
         script = (ROOT / "assets/js/404/game.js").read_text(encoding="utf-8")
         shell = (ROOT / "assets/js/404/shell.js").read_text(encoding="utf-8")
-        style = (ROOT / "assets/styles/404/game.css").read_text(encoding="utf-8")
 
         for name, body, expected in (
             ("control", template, 'id="sound"'),
@@ -98,8 +97,6 @@ class SiteAssetTests(unittest.TestCase):
             ("preference", script, 'storage.getItem("404-sound-muted")'),
             ("visibility", script, 'page.addEventListener("visibilitychange"'),
             ("native audio", script, "globalThis.Audio"),
-            ("hover volume", style, ".score__audio:hover .score__volume"),
-            ("connected volume", style, "bottom: 100%"),
             ("shell pause", shell, "gameAudio.pause()"),
             ("shell start", shell, "gameAudio.start()"),
         ):
@@ -329,6 +326,43 @@ class SiteAssetTests(unittest.TestCase):
             self.assertIn(f"assets/styles/{asset}.min.css?v=", main)
         for asset in ("comments", "graph", "math", "pet"):
             self.assertIn(f"assets/js/{asset}.min.js?v=", main)
+
+    def test_paper_pages_use_curated_course_folders_and_safe_file_links(self):
+        catalog = site.PAPERS["courses"]
+        self.assertEqual(set(catalog), {"INFS2200", "MECH2700", "COMP4403", "COMP4702"})
+        for code, course in catalog.items():
+            with self.subTest(course=code):
+                subject, number = code[:4], code[4:]
+                page = ROOT / "content" / subject / number / "PY/index.md"
+                self.assertIn(f"papers: {code}", page.read_text(encoding="utf-8"))
+                self.assertTrue(course["items"])
+                self.assertTrue(
+                    course["folder"].startswith(
+                        "https://drive.google.com/drive/folders/"
+                    )
+                )
+                self.assertTrue(all(item["year"] >= 2000 for item in course["items"]))
+                self.assertTrue(
+                    all(
+                        item["url"].startswith(
+                            (
+                                "https://docs.google.com/document/d/",
+                                "https://drive.google.com/file/d/",
+                            )
+                        )
+                        for item in course["items"]
+                    )
+                )
+                context = site.on_page_context(
+                    {}, SimpleNamespace(meta={"papers": code})
+                )
+                self.assertIs(context["paper_catalog"], course)
+                body = site.on_page_markdown("", SimpleNamespace(meta={"papers": code}))
+                self.assertIn(f"Search {code} papers and solutions", body)
+                self.assertIn("## Find a paper", body)
+        self.assertEqual(
+            {item["source"] for item in catalog["MECH2700"]["items"]}, {"fallback"}
+        )
 
 
 if __name__ == "__main__":

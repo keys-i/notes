@@ -379,8 +379,8 @@ test("site chrome exposes progress and authored footer motion safely", () => {
   assert.match(siteConfig, /code: IBM Plex Mono/);
   assert.match(siteConfig, /link: https:\/\/keysi\.dev/);
   assert.match(siteConfig, /link: https:\/\/linkedin\.com\/in\/radhesh-g/);
-  assert.match(headerTemplate, /class="md-header__button md-logo"/);
-  assert.match(headerTemplate, /class="md-header__topic site-home-link"/);
+  assert.match(headerTemplate, /class="md-header__button md-logo site-home-link"/);
+  assert.match(headerTemplate, /class="site-brand__name"/);
   assert.doesNotMatch(headerTemplate, /site-home-link__wordmark/);
   assert.match(
     footerTemplate,
@@ -411,11 +411,11 @@ test("site chrome exposes progress and authored footer motion safely", () => {
   assert.match(siteStyle, /\.site-footer-owner__name/);
   assert.match(
     siteStyle,
-    /\.site-footer-network__wordmark[\s\S]*?font-family: "IBM Plex Sans", sans-serif/,
+    /\.site-footer-network__wordmark[\s\S]*?font-family: Georgia, serif/,
   );
   assert.match(
     siteStyle,
-    /mask-image: repeating-linear-gradient\([\s\S]*?#000 0 2\.5px,[\s\S]*?transparent 2\.5px 4\.5px/,
+    /text-decoration-color: var\(--color-accent-300\)/,
   );
   assert.match(graphStyle, /width: min\(42rem, calc\(100% - 28rem\)\)/);
   assert.match(siteStyle, /@property --theme-reveal/);

@@ -29,13 +29,13 @@ theme:
     - 404.html
   include_search_page: true
   palette:
-    - scheme: default # Light mode
+    - scheme: default # Ivory and Classic Blue
       toggle:
-        icon: material/weather-sunny
+        icon: material/weather-night
         name: Switch to dark mode
     - scheme: slate # Dark mode
       toggle:
-        icon: material/weather-night
+        icon: material/weather-sunny
         name: Switch to light mode
   font:
     text: IBM Plex Sans
@@ -140,6 +140,7 @@ plugins:
         - assets/js/math.js
         - assets/js/pet.js
         - assets/js/plot.js
+        - assets/js/papers.js
         - assets/js/zoom.mermaid.js
       css_files:
         - assets/styles/site.css

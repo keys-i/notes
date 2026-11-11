@@ -32,6 +32,24 @@ class HookTests(unittest.TestCase):
     def setUp(self):
         self.config = setup()
 
+    def test_paper_routes_share_body_and_fallback_copy(self):
+        normal = SimpleNamespace(meta={})
+        self.assertEqual(site_hook.on_page_markdown("Original", normal), "Original")
+        self.assertEqual(site_hook.on_page_context({}, normal), {})
+        for code in ("INFS2200", "MECH2700"):
+            page = SimpleNamespace(meta={"papers": code})
+            body = site_hook.on_page_markdown("", page)
+            self.assertIn(f"Search {code} papers and solutions", body)
+            self.assertIn("## Find a paper", body)
+            self.assertEqual(
+                "main course folder is empty" in body,
+                code == "MECH2700",
+            )
+            self.assertIs(
+                site_hook.on_page_context({}, page)["paper_catalog"],
+                site_hook.PAPERS["courses"][code],
+            )
+
     def test_game_config(self):
         settings = game.on_config(self.config).extra["game"]
         self.assertEqual(
@@ -350,9 +368,14 @@ class GraphCoverageTests(unittest.TestCase):
                 json.dumps(
                     {
                         "nodes": [
-                            {"value": "/source/#part"},
-                            {"value": "/unknown/"},
-                        ]
+                            {"id": "0", "value": "/source/#part"},
+                            {"id": "1", "value": "/unknown/"},
+                            {"id": "2", "value": "/INFS/2200/PY/"},
+                        ],
+                        "links": [
+                            {"source": "0", "target": "1"},
+                            {"source": "0", "target": "2"},
+                        ],
                     }
                 ),
                 encoding="utf-8",
@@ -363,6 +386,8 @@ class GraphCoverageTests(unittest.TestCase):
             )
             self.assertEqual(moved["nodes"][0]["created"], "2026-02-03T04:05:06+00:00")
             self.assertNotIn("created", moved["nodes"][1])
+            self.assertEqual(len(moved["nodes"]), 2)
+            self.assertEqual(moved["links"], [{"source": "0", "target": "1"}])
 
 
 class ManCoverageTests(unittest.TestCase):
