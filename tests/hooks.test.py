@@ -32,23 +32,57 @@ class HookTests(unittest.TestCase):
     def setUp(self):
         self.config = setup()
 
-    def test_paper_routes_share_body_and_fallback_copy(self):
+    def test_paper_routes_share_body_and_curated_catalog(self):
         normal = SimpleNamespace(meta={})
         self.assertEqual(site_hook.on_page_markdown("Original", normal), "Original")
         self.assertEqual(site_hook.on_page_context({}, normal), {})
         for code in ("INFS2200", "MECH2700"):
             page = SimpleNamespace(meta={"papers": code})
             body = site_hook.on_page_markdown("", page)
-            self.assertIn(f"Search {code} papers and solutions", body)
-            self.assertIn("## Find a paper", body)
-            self.assertEqual(
-                "main course folder is empty" in body,
-                code == "MECH2700",
-            )
-            self.assertIs(
-                site_hook.on_page_context({}, page)["paper_catalog"],
-                site_hook.PAPERS["courses"][code],
-            )
+            self.assertIn("# Past year papers", body)
+            self.assertIn(f"Back to {code}", body)
+            self.assertIn('class="papers__back"', body)
+            self.assertNotIn("← Back", body)
+            items = site_hook.on_page_context({}, page)["paper_catalog"]["items"]
+            self.assertTrue(items)
+            self.assertTrue(all(item["has_solutions"] for item in items))
+
+    def test_compact_routes_keep_urls_but_use_descriptive_navigation(self):
+        paper_page = SimpleNamespace(
+            title="Past year papers", url="INFS/2200/PY/", children=[]
+        )
+        cheatsheet_page = SimpleNamespace(
+            title="INFS2200 Cheatsheet", url="INFS/2200/CS/", children=[]
+        )
+        paper = SimpleNamespace(title="PY", url=None, children=[paper_page])
+        cheatsheet = SimpleNamespace(title="CS", url=None, children=[cheatsheet_page])
+        lecture = SimpleNamespace(
+            title="Lectures", url="INFS/2200/Lectures/", children=[]
+        )
+        course = SimpleNamespace(
+            title="2200",
+            url="INFS/2200/",
+            children=[paper, cheatsheet, lecture],
+        )
+        nav = SimpleNamespace(items=[course])
+
+        self.assertIs(site_hook.on_nav(nav), nav)
+        self.assertEqual(paper.title, "Past years")
+        self.assertEqual(paper_page.url, "INFS/2200/PY/")
+        self.assertEqual(cheatsheet.title, "Cheatsheet")
+        self.assertEqual(cheatsheet_page.url, "INFS/2200/CS/")
+        self.assertEqual(lecture.title, "Lectures")
+
+    def test_cheatsheet_routes_share_accessible_local_reader(self):
+        for code, pdf in site_hook.CHEATSHEETS.items():
+            with self.subTest(code=code):
+                page = SimpleNamespace(meta={"cheatsheet": code})
+                body = site_hook.on_page_markdown("", page)
+                self.assertIn(f"# {code} Cheatsheet", body)
+                self.assertIn(f'src="{pdf}#view=FitH"', body)
+                self.assertIn(f"Open {code} cheatsheet full screen", body)
+                self.assertIn(f"Download {code} cheatsheet", body)
+                self.assertIn(f"Back to {code}", body)
 
     def test_game_config(self):
         settings = game.on_config(self.config).extra["game"]
@@ -118,6 +152,18 @@ class HookTests(unittest.TestCase):
             (root / "index.html").write_text(markup.replace("?v=release123", "?v=", 1))
             with self.assertRaisesRegex(RuntimeError, "built assets lack version"):
                 site_hook.on_post_build(config)
+
+    def test_site_build_rejects_a_published_paper_catalog(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            leaked = root / "assets" / "papers.json"
+            leaked.parent.mkdir()
+            leaked.write_text("{}", encoding="utf-8")
+
+            with self.assertRaisesRegex(RuntimeError, "paper catalogue"):
+                site_hook.on_post_build(
+                    SimpleNamespace(site_dir=root, extra={"asset_version": "dev"})
+                )
 
     def test_game_rejects_attempt_overflow(self):
         source = (ROOT / "site/game.toml").read_text(encoding="utf-8")
@@ -323,6 +369,33 @@ class GraphCoverageTests(unittest.TestCase):
             context,
         )
         self.assertFalse(graph.creation_dates_by_url)
+
+    def test_graph_prefetches_missing_creation_dates(self):
+        config = SimpleNamespace(
+            docs_dir=str(ROOT / "content"),
+            config_file_path=str(ROOT / "site/mkdocs.yml"),
+        )
+        markdown = list((ROOT / "content").rglob("*.md"))
+        with (
+            patch.object(graph, "git_creation_dates", return_value={}),
+            patch.object(
+                graph, "git_creation_date", return_value="2026-01-01"
+            ) as lookup,
+        ):
+            graph.on_pre_build(config)
+        self.assertEqual(
+            graph.creation_dates_by_path["content/MECH/2700/Lectures/W9.md"],
+            "2026-01-01",
+        )
+        self.assertEqual(lookup.call_count, len(markdown))
+
+        known = {path.relative_to(ROOT).as_posix(): "2026-01-01" for path in markdown}
+        with (
+            patch.object(graph, "git_creation_dates", return_value=known),
+            patch.object(graph, "git_creation_date") as lookup,
+        ):
+            graph.on_pre_build(config)
+        lookup.assert_not_called()
 
     def test_page_context_content_and_graph_artifact(self):
         with TemporaryDirectory() as directory:

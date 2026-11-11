@@ -3,6 +3,7 @@
   overflow: hidden;
   border: 1px solid var(--site-rule);
   border-radius: 0.65rem;
+  corner-shape: squircle;
   background: var(--site-surface);
   box-shadow: 0 0.45rem 1.4rem
     color-mix(in srgb, var(--color-primary-900) 8%, transparent);
@@ -53,6 +54,7 @@
   padding: 0.2rem !important;
   border: 1px solid var(--site-rule);
   border-radius: 0.45rem;
+  corner-shape: squircle;
   background: var(--site-surface) !important;
   box-shadow: 0 0.2rem 0.7rem
     color-mix(in srgb, var(--color-primary-950) 10%, transparent);
@@ -86,6 +88,7 @@
   height: 2.5rem;
   padding: 0.58rem !important;
   border-radius: 0.3rem;
+  corner-shape: squircle;
   color: var(--site-plot-ink) !important;
   line-height: 1;
   opacity: 1 !important;

@@ -3,6 +3,7 @@
 import json
 import re
 import subprocess
+from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 from html.parser import HTMLParser
 from pathlib import Path
@@ -130,6 +131,23 @@ def on_pre_build(config):
     )
     creation_dates_by_path.clear()
     creation_dates_by_path.update(git_creation_dates(repository_root))
+    docs_dir = getattr(config, "docs_dir", None)
+    if docs_dir and Path(docs_dir).resolve().is_relative_to(repository_root):
+        missing = [
+            path.relative_to(repository_root).as_posix()
+            for path in Path(docs_dir).resolve().rglob("*.md")
+            if path.is_file()
+            and path.relative_to(repository_root).as_posix()
+            not in creation_dates_by_path
+        ]
+        if missing:
+            with ThreadPoolExecutor(max_workers=8) as pool:
+                dates = pool.map(
+                    lambda path: git_creation_date(repository_root, path), missing
+                )
+                creation_dates_by_path.update(
+                    (path, date) for path, date in zip(missing, dates) if date
+                )
 
 
 def on_page_context(context, page, **_):
