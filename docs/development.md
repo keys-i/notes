@@ -16,21 +16,24 @@ Start the local site with live reload
 uv run serve
 ```
 
-The project command watches `assets/`, `site/ts/`, `site/theme/` and the
-MkDocs hooks. Course Markdown is watched by MkDocs through `content/`
+The project command watches `assets/`, `site/web/browser/`, `site/web/styles/`,
+`site/web/theme/` and `site/web/hooks/`. Course Markdown is watched by MkDocs
+through `content/`
 
 ## Edit the right source
 
 | Change                         | Source                        |
 | ------------------------------ | ----------------------------- |
 | Course explanation or example  | `content/<subject>/<course>/` |
-| Audio, image or stylesheet     | `assets/`                     |
-| Browser behaviour              | `site/ts/`                    |
-| Templates and partials         | `site/theme/`                 |
-| Game data and timing           | `site/game.toml`              |
+| Audio, image or vendor file    | `assets/`                     |
+| Browser behaviour              | `site/web/browser/`           |
+| Stylesheet                     | `site/web/styles/`            |
+| Templates and partials         | `site/web/theme/`             |
+| Game data and timing           | `site/config/game.toml`       |
+| Paper and manual sources       | `site/config/`                |
 | MkDocs and TypeScript settings | `site/`                       |
-| Build behaviour                | `site/hooks/`                 |
-| Automated proof                | `tests/`                      |
+| Build behaviour                | `site/web/hooks/`             |
+| Automated proof                | `site/web/tests/`             |
 
 Do not edit `assets/js/` or `public/`. Both are generated and ignored
 
