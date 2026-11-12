@@ -46,6 +46,17 @@ pub(crate) fn json_error(
     )
 }
 
+pub(crate) fn asset_response(
+    body: &str,
+    content_type: &str,
+    cache_control: &str,
+    content_security_policy: &str,
+) -> Result<Response> {
+    let mut response = Response::ok(body)?;
+    response.headers_mut().set("Content-Type", content_type)?;
+    secure_with_policy(response, None, cache_control, content_security_policy)
+}
+
 pub(crate) fn unavailable_error(
     code: &'static str,
     message: &'static str,
@@ -66,13 +77,24 @@ pub(crate) fn method_error(
     Ok(response)
 }
 
-fn secure(mut response: Response, origin: Option<&str>, cache_control: &str) -> Result<Response> {
+fn secure(response: Response, origin: Option<&str>, cache_control: &str) -> Result<Response> {
+    secure_with_policy(
+        response,
+        origin,
+        cache_control,
+        "default-src 'none'; frame-ancestors 'none'",
+    )
+}
+
+fn secure_with_policy(
+    mut response: Response,
+    origin: Option<&str>,
+    cache_control: &str,
+    content_security_policy: &str,
+) -> Result<Response> {
     let headers: &mut Headers = response.headers_mut();
     headers.set("Cache-Control", cache_control)?;
-    headers.set(
-        "Content-Security-Policy",
-        "default-src 'none'; frame-ancestors 'none'",
-    )?;
+    headers.set("Content-Security-Policy", content_security_policy)?;
     headers.set("Cross-Origin-Resource-Policy", "same-site")?;
     headers.set(
         "Permissions-Policy",

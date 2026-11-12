@@ -54,6 +54,16 @@ struct Item {
 
 static CONFIG: LazyLock<Result<Config, String>> =
     LazyLock::new(|| toml::from_str(SOURCE).map_err(|error| error.to_string()));
+static READY: LazyLock<bool> = LazyLock::new(|| {
+    let Ok(config) = CONFIG.as_ref() else {
+        return false;
+    };
+    !config.courses.is_empty()
+        && config
+            .courses
+            .keys()
+            .all(|code| matches!(catalog(code), Ok(Some(_))))
+});
 
 fn paper_kind() -> String {
     "paper".into()
@@ -168,12 +178,17 @@ pub(super) fn catalog(code: &str) -> Result<Option<Catalog>, ()> {
     }))
 }
 
+pub(super) fn ready() -> bool {
+    *READY
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{catalog, item_url};
+    use super::{catalog, item_url, ready};
 
     #[test]
     fn catalogue_expands_only_safe_google_codes_and_prefers_primary_items() {
+        assert!(ready());
         let infs = catalog("INFS2200").unwrap().unwrap();
         let value = serde_json::to_value(infs).unwrap();
         let items = value["items"].as_array().unwrap();

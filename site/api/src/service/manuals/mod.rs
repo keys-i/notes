@@ -7,6 +7,10 @@ use crate::shared::cache::{edge, policy::MANUALS, short_hash};
 use config::Query;
 use worker::{Context, Fetch, Method, Request, Response, Result};
 
+pub(crate) fn ready() -> bool {
+    config::ready()
+}
+
 pub(crate) async fn respond(request: &Request, context: &Context) -> Result<Response> {
     if request.method() != Method::Get {
         return method_error("Use GET for manual pages", "GET, OPTIONS", None);

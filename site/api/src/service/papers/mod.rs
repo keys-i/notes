@@ -6,6 +6,10 @@ use crate::routing::response::{json_error, json_response, method_error, unavaila
 use crate::shared::cache::policy::PAPERS;
 use worker::{Method, Request, Response, Result};
 
+pub(crate) fn ready() -> bool {
+    config::ready()
+}
+
 pub(crate) fn respond(request: &Request, code: &str) -> Result<Response> {
     if request.method() != Method::Get {
         return method_error("Use GET for paper catalogues", "GET, OPTIONS", None);

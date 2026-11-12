@@ -31,6 +31,14 @@ pub(super) enum Query<'a> {
 
 static CONFIG: LazyLock<Result<Config, String>> =
     LazyLock::new(|| toml::from_str(SOURCE).map_err(|error| error.to_string()));
+static READY: LazyLock<bool> = LazyLock::new(|| {
+    metadata().is_ok()
+        && upstream(Query::Page {
+            name: "man",
+            section: "1",
+        })
+        .is_ok()
+});
 
 pub(super) fn metadata() -> Result<Metadata, ()> {
     let config = CONFIG.as_ref().map_err(|_| ())?;
@@ -40,6 +48,10 @@ pub(super) fn metadata() -> Result<Metadata, ()> {
         renderer: config.renderer.clone(),
         aliases: config.aliases.clone(),
     })
+}
+
+pub(super) fn ready() -> bool {
+    *READY
 }
 
 fn valid_name(value: &str) -> bool {
@@ -99,10 +111,11 @@ pub(super) fn valid_response(query: Query<'_>, body: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::{Query, metadata, upstream, valid_response};
+    use super::{Query, metadata, ready, upstream, valid_response};
 
     #[test]
     fn manual_queries_are_bounded_to_the_configured_freebsd_renderer() {
+        assert!(ready());
         let metadata = metadata().unwrap();
         assert!(metadata.aliases.contains_key("help"));
         let page = upstream(Query::Page {

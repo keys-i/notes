@@ -8,6 +8,8 @@
 //! assert_eq!(classify_input("How does momentum change?"), InputClass::Allowed);
 //! ```
 
+#![deny(missing_docs)]
+
 mod routing;
 mod service;
 mod shared;

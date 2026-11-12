@@ -1,0 +1,159 @@
+@property --theme-reveal {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 0px;
+}
+
+/* == Brand tokens == */
+:root {
+  color-scheme: light dark;
+}
+
+.scalar-app {
+  --scalar-font: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --scalar-font-code: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+  --scalar-radius: 0.65rem;
+  --scalar-radius-lg: 0.8rem;
+  --nerdrage-focus: #071aab;
+}
+
+.light-mode {
+  --scalar-color-1: #101422;
+  --scalar-color-2: #4a5366;
+  --scalar-color-3: #657086;
+  --scalar-color-accent: #071aab;
+  --scalar-background-1: #fffefa;
+  --scalar-background-2: #f0f2ff;
+  --scalar-background-3: #eef1f7;
+  --scalar-background-accent: rgb(7 26 171 / 0.09);
+  --scalar-border-color: rgb(7 26 171 / 0.16);
+  --scalar-sidebar-background-1: #071aab;
+  --scalar-sidebar-color-1: #fffefa;
+  --scalar-sidebar-color-2: #dfe5ff;
+  --scalar-sidebar-color-active: #050c31;
+  --scalar-sidebar-item-active-background: #ffff31;
+  --scalar-sidebar-item-hover-background: #081681;
+  --scalar-sidebar-item-hover-color: #fffefa;
+  --scalar-sidebar-border-color: #2845c5;
+  --scalar-sidebar-indent-border: #7186e4;
+  --scalar-sidebar-indent-border-hover: #ffff31;
+  --scalar-sidebar-indent-border-active: #ffff31;
+  --scalar-sidebar-search-background: rgb(255 255 255 / 0.12);
+  --scalar-sidebar-search-border-color: rgb(255 255 255 / 0.24);
+  --scalar-sidebar-search-color: #dfe5ff;
+}
+
+.dark-mode {
+  --scalar-color-1: #f8f9ff;
+  --scalar-color-2: #c8d0df;
+  --scalar-color-3: #8490a5;
+  --scalar-color-accent: #ffff31;
+  --scalar-background-1: #101422;
+  --scalar-background-2: #172229;
+  --scalar-background-3: #1f2533;
+  --scalar-background-accent: rgb(255 255 49 / 0.1);
+  --scalar-border-color: rgb(200 208 223 / 0.18);
+  --scalar-sidebar-background-1: #050c31;
+  --scalar-sidebar-color-1: #fffefa;
+  --scalar-sidebar-color-2: #bdcaff;
+  --scalar-sidebar-color-active: #fffefa;
+  --scalar-sidebar-item-active-background: #071aab;
+  --scalar-sidebar-item-hover-background: #07145d;
+  --scalar-sidebar-item-hover-color: #fffefa;
+  --scalar-sidebar-border-color: #303747;
+  --scalar-sidebar-indent-border: #303747;
+  --scalar-sidebar-indent-border-hover: #ffff31;
+  --scalar-sidebar-indent-border-active: #ffff31;
+  --scalar-sidebar-search-background: rgb(255 255 255 / 0.08);
+  --scalar-sidebar-search-border-color: rgb(200 208 223 / 0.2);
+  --scalar-sidebar-search-color: #c8d0df;
+  --nerdrage-focus: #ffff31;
+}
+
+/* == Interaction == */
+.scalar-app :is(a, button, input, select, textarea):focus-visible {
+  outline: 3px solid var(--nerdrage-focus);
+  outline-offset: 2px;
+}
+
+.scalar-app :is(button, input, select, textarea, pre) {
+  corner-shape: squircle;
+}
+
+.nerdrage-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--scalar-sidebar-color-2);
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.nerdrage-brand::before {
+  width: 0.45rem;
+  height: 0.45rem;
+  content: "";
+  border-radius: 50%;
+  background: #ffff31;
+  box-shadow: 0 0 0 0.2rem rgb(255 255 49 / 0.14);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html.theme-wave::view-transition-old(root) {
+    z-index: 1;
+    animation: none;
+  }
+
+  html.theme-wave::view-transition-new(root) {
+    --theme-reveal: 0px;
+
+    z-index: 2;
+    animation: theme-wave-reveal 1200ms cubic-bezier(0.55, 0.04, 0.24, 1) both;
+    filter: drop-shadow(0 0 7px rgb(180 192 198 / 0.18));
+    mask-image: radial-gradient(
+      circle at var(--theme-x) var(--theme-y),
+      #000 0 calc(var(--theme-reveal) - 29px),
+      rgb(0 0 0 / 0.96) calc(var(--theme-reveal) - 28px)
+        calc(var(--theme-reveal) - 22px),
+      rgb(0 0 0 / 0.68) calc(var(--theme-reveal) - 21px)
+        calc(var(--theme-reveal) - 16px),
+      rgb(0 0 0 / 0.94) calc(var(--theme-reveal) - 15px)
+        calc(var(--theme-reveal) - 9px),
+      rgb(0 0 0 / 0.52) calc(var(--theme-reveal) - 8px)
+        calc(var(--theme-reveal) - 3px),
+      rgb(0 0 0 / 0.88) calc(var(--theme-reveal) - 2px)
+        calc(var(--theme-reveal) + 4px),
+      rgb(0 0 0 / 0.28) calc(var(--theme-reveal) + 5px)
+        calc(var(--theme-reveal) + 11px),
+      transparent calc(var(--theme-reveal) + 19px)
+    );
+    mask-repeat: no-repeat;
+  }
+
+  body.theme-fade {
+    animation: theme-fallback 220ms ease-in-out both;
+  }
+}
+
+@keyframes theme-wave-reveal {
+  to {
+    --theme-reveal: calc(var(--theme-radius) + 30px);
+  }
+}
+
+@keyframes theme-fallback {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  45% {
+    opacity: 0.88;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.theme-fade {
+    animation: none;
+  }
+}

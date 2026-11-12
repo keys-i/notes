@@ -1,0 +1,464 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Keysi Notes API",
+    "version": "0.1.0",
+    "description": "Study assistance, past papers, FreeBSD manuals and operational health for uni.keysi.dev"
+  },
+  "servers": [
+    {
+      "url": "https://uni.keysi.dev",
+      "description": "Production"
+    }
+  ],
+  "tags": [
+    { "name": "Koala", "description": "Grounded study answers" },
+    { "name": "Papers", "description": "Validated past-paper catalogues" },
+    { "name": "Manuals", "description": "FreeBSD manual lookup and search" },
+    { "name": "Operations", "description": "Health, readiness and Prometheus metrics" }
+  ],
+  "paths": {
+    "/api/pet": {
+      "post": {
+        "tags": ["Koala"],
+        "operationId": "askKoala",
+        "summary": "Ask a grounded study question",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PetRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Study answer",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PetReply" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "413": { "$ref": "#/components/responses/TooLarge" },
+          "415": { "$ref": "#/components/responses/Unsupported" },
+          "422": { "$ref": "#/components/responses/Invalid" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "503": { "$ref": "#/components/responses/Unavailable" }
+        }
+      }
+    },
+    "/api/papers/{course}": {
+      "get": {
+        "tags": ["Papers"],
+        "operationId": "getPaperCatalogue",
+        "summary": "Get the solution-backed paper catalogue for a course",
+        "parameters": [
+          {
+            "name": "course",
+            "in": "path",
+            "required": true,
+            "description": "Uppercase course code",
+            "schema": { "type": "string", "pattern": "^[A-Z]{4}[0-9]{4}$" },
+            "example": "INFS2200"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Course paper catalogue",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PaperCatalogue" }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "503": { "$ref": "#/components/responses/Unavailable" }
+        }
+      }
+    },
+    "/api/manuals/freebsd": {
+      "get": {
+        "tags": ["Manuals"],
+        "operationId": "getFreeBsdManual",
+        "summary": "Read metadata, a manual page or an apropos search",
+        "description": "Omit name and search for service metadata. Supply exactly one of name or search for content.",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "query",
+            "schema": { "type": "string", "maxLength": 64 },
+            "example": "man"
+          },
+          {
+            "name": "section",
+            "in": "query",
+            "schema": { "type": "string", "pattern": "^[0-9]$", "default": "0" },
+            "example": "1"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": { "type": "string", "maxLength": 64 },
+            "example": "display manual"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Manual metadata or content",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    { "$ref": "#/components/schemas/ManualMetadata" },
+                    { "$ref": "#/components/schemas/ManualContent" }
+                  ]
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "503": { "$ref": "#/components/responses/Unavailable" }
+        }
+      }
+    },
+    "/healthz": {
+      "get": {
+        "tags": ["Operations"],
+        "operationId": "getApiHealth",
+        "summary": "Get an API-wide diagnostic snapshot",
+        "description": "Returns 200 while diagnostics are reachable. Inspect status and per-service checks for degradation.",
+        "responses": {
+          "200": {
+            "description": "Current API health",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HealthReport" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/healthz/{service}": {
+      "get": {
+        "tags": ["Operations"],
+        "operationId": "getServiceHealth",
+        "summary": "Get health for one API service",
+        "parameters": [
+          {
+            "name": "service",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "enum": ["koala", "manuals", "papers"] }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Service is ready",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ServiceHealth" }
+              }
+            }
+          },
+          "503": {
+            "description": "Service is unavailable",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ServiceHealth" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/livez": {
+      "get": {
+        "tags": ["Operations"],
+        "operationId": "getLiveness",
+        "summary": "Confirm that the Worker can execute requests",
+        "responses": {
+          "200": {
+            "description": "Worker runtime is live",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Liveness" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/readyz": {
+      "get": {
+        "tags": ["Operations"],
+        "operationId": "getReadiness",
+        "summary": "Check whether every API service can accept traffic",
+        "responses": {
+          "200": {
+            "description": "All services are ready",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Readiness" }
+              }
+            }
+          },
+          "503": {
+            "description": "At least one required service is unavailable",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Readiness" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/metrics": {
+      "get": {
+        "tags": ["Operations"],
+        "operationId": "getPrometheusMetrics",
+        "summary": "Get current readiness gauges in Prometheus text format",
+        "responses": {
+          "200": {
+            "description": "Prometheus exposition",
+            "content": {
+              "text/plain": {
+                "schema": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "responses": {
+      "BadRequest": {
+        "description": "Invalid request",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+      },
+      "Forbidden": {
+        "description": "Identity or origin is not allowed",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+      },
+      "Invalid": {
+        "description": "Request failed semantic validation",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+      },
+      "NotFound": {
+        "description": "Resource not found",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+      },
+      "RateLimited": {
+        "description": "Request limit exceeded",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+      },
+      "TooLarge": {
+        "description": "Request body is too large",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+      },
+      "Unsupported": {
+        "description": "Unsupported media type or encoding",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+      },
+      "Unavailable": {
+        "description": "Required dependency is unavailable",
+        "headers": {
+          "Retry-After": { "schema": { "type": "integer" } }
+        },
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+      }
+    },
+    "schemas": {
+      "ApiError": {
+        "type": "object",
+        "required": ["error"],
+        "properties": {
+          "error": {
+            "type": "object",
+            "required": ["code", "message"],
+            "properties": {
+              "code": { "type": "string" },
+              "message": { "type": "string" }
+            }
+          }
+        }
+      },
+      "PetRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["title", "locale", "sections", "messages"],
+        "properties": {
+          "title": { "type": "string", "maxLength": 160 },
+          "locale": { "type": "string", "maxLength": 40, "example": "en-AU" },
+          "sections": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 6,
+            "items": { "$ref": "#/components/schemas/Section" }
+          },
+          "messages": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 8,
+            "items": { "$ref": "#/components/schemas/Message" }
+          },
+          "attachment": {
+            "oneOf": [
+              { "$ref": "#/components/schemas/Attachment" },
+              { "type": "null" }
+            ]
+          },
+          "scope": { "type": "string", "enum": ["public", "minis"], "default": "public" }
+        }
+      },
+      "Section": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["heading", "text"],
+        "properties": {
+          "heading": { "type": "string", "maxLength": 120 },
+          "text": { "type": "string", "maxLength": 4000 }
+        }
+      },
+      "Message": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["role", "content"],
+        "properties": {
+          "role": { "type": "string", "enum": ["user", "assistant"] },
+          "content": { "type": "string" }
+        }
+      },
+      "Attachment": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "data_url"],
+        "properties": {
+          "kind": { "type": "string", "enum": ["image", "audio"] },
+          "data_url": { "type": "string", "contentEncoding": "base64" }
+        }
+      },
+      "PetReply": {
+        "type": "object",
+        "required": ["answer", "citations", "grounded", "kind", "mode", "mini"],
+        "properties": {
+          "answer": { "type": "string" },
+          "citations": { "type": "array", "items": { "type": "string" } },
+          "grounded": { "type": "boolean" },
+          "kind": { "type": "string", "enum": ["note", "general"] },
+          "mode": { "type": "string", "enum": ["text", "image", "audio"] },
+          "mini": { "type": "string" }
+        }
+      },
+      "PaperCatalogue": {
+        "type": "object",
+        "required": ["updated", "folder", "items"],
+        "properties": {
+          "updated": { "type": "string" },
+          "folder": { "type": "string", "format": "uri" },
+          "archive": { "type": "string", "format": "uri" },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["title", "year", "kind", "url"],
+              "properties": {
+                "title": { "type": "string" },
+                "year": { "type": "integer" },
+                "kind": { "type": "string", "enum": ["paper", "practice", "solution"] },
+                "url": { "type": "string", "format": "uri" }
+              }
+            }
+          }
+        }
+      },
+      "ManualMetadata": {
+        "type": "object",
+        "required": ["release", "source", "renderer", "aliases"],
+        "properties": {
+          "release": { "type": "string" },
+          "source": { "type": "string", "format": "uri" },
+          "renderer": { "type": "string", "format": "uri" },
+          "aliases": { "type": "object", "additionalProperties": { "type": "string" } }
+        }
+      },
+      "ManualContent": {
+        "type": "object",
+        "required": ["body", "kind"],
+        "properties": {
+          "body": { "type": "string" },
+          "kind": { "type": "string", "enum": ["page", "search"] }
+        }
+      },
+      "HealthReport": {
+        "type": "object",
+        "required": ["service", "status", "version", "checked_at_ms", "runtime", "stats", "services"],
+        "properties": {
+          "service": { "const": "notes-api" },
+          "status": { "type": "string", "enum": ["ok", "degraded"] },
+          "version": { "type": "string" },
+          "checked_at_ms": { "type": "integer" },
+          "runtime": { "$ref": "#/components/schemas/Runtime" },
+          "stats": { "$ref": "#/components/schemas/HealthStats" },
+          "services": { "type": "object", "additionalProperties": true }
+        }
+      },
+      "ServiceHealth": {
+        "type": "object",
+        "required": ["api", "service", "status", "checked_at_ms", "details"],
+        "properties": {
+          "api": { "const": "notes-api" },
+          "service": { "type": "string" },
+          "status": { "type": "string", "enum": ["ok", "unavailable"] },
+          "checked_at_ms": { "type": "integer" },
+          "details": { "type": "object", "additionalProperties": true }
+        }
+      },
+      "Liveness": {
+        "type": "object",
+        "required": ["service", "status", "version", "checked_at_ms", "runtime"],
+        "properties": {
+          "service": { "const": "notes-api" },
+          "status": { "const": "ok" },
+          "version": { "type": "string" },
+          "checked_at_ms": { "type": "integer" },
+          "runtime": { "$ref": "#/components/schemas/Runtime" }
+        }
+      },
+      "Readiness": {
+        "type": "object",
+        "required": ["service", "status", "version", "checked_at_ms", "stats", "services"],
+        "properties": {
+          "service": { "const": "notes-api" },
+          "status": { "type": "string", "enum": ["ok", "unavailable"] },
+          "version": { "type": "string" },
+          "checked_at_ms": { "type": "integer" },
+          "stats": { "$ref": "#/components/schemas/HealthStats" },
+          "services": { "type": "object", "additionalProperties": { "type": "string" } }
+        }
+      },
+      "Runtime": {
+        "type": "object",
+        "required": ["provider", "status"],
+        "properties": {
+          "provider": { "const": "cloudflare-workers" },
+          "status": { "const": "ok" }
+        }
+      },
+      "HealthStats": {
+        "type": "object",
+        "required": ["services", "ready", "unavailable"],
+        "properties": {
+          "services": { "type": "integer", "minimum": 0 },
+          "ready": { "type": "integer", "minimum": 0 },
+          "unavailable": { "type": "integer", "minimum": 0 }
+        }
+      }
+    }
+  }
+}

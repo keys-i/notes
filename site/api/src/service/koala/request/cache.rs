@@ -12,6 +12,7 @@ use serde::Serialize;
 use sha2::{Digest, Sha256};
 use worker::{Response, Result};
 
+/// Builds the opaque public cache key for a validated request
 pub fn cache_key(input: &PetRequest) -> String {
     exact_cache_key(input, "public")
 }

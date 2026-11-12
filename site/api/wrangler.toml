@@ -3,12 +3,18 @@ main = "build/worker/shim.mjs"
 compatibility_date = "2026-11-04"
 workers_dev = false
 routes = [
+  { pattern = "uni.keysi.dev/api/docs", zone_name = "keysi.dev" },
+  { pattern = "uni.keysi.dev/api/openapi.json", zone_name = "keysi.dev" },
+  { pattern = "uni.keysi.dev/api/reference.js", zone_name = "keysi.dev" },
+  { pattern = "uni.keysi.dev/api/theme.css", zone_name = "keysi.dev" },
   { pattern = "uni.keysi.dev/api/pet", zone_name = "keysi.dev" },
   { pattern = "uni.keysi.dev/api/papers/*", zone_name = "keysi.dev" },
   { pattern = "uni.keysi.dev/api/manuals/freebsd*", zone_name = "keysi.dev" },
   { pattern = "uni.keysi.dev/healthz", zone_name = "keysi.dev" },
+  { pattern = "uni.keysi.dev/healthz/*", zone_name = "keysi.dev" },
   { pattern = "uni.keysi.dev/livez", zone_name = "keysi.dev" },
   { pattern = "uni.keysi.dev/readyz", zone_name = "keysi.dev" },
+  { pattern = "uni.keysi.dev/metrics", zone_name = "keysi.dev" },
 ]
 
 [build]

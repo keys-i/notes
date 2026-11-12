@@ -17,6 +17,25 @@ pub use mcp::{
 };
 pub use request::*;
 
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct Readiness {
+    pub(crate) model: bool,
+    pub(crate) rate_limit: bool,
+}
+
+impl Readiness {
+    pub(crate) fn ready(self) -> bool {
+        self.model && self.rate_limit
+    }
+}
+
+pub(crate) fn readiness(env: &Env) -> Readiness {
+    Readiness {
+        model: Client::from_env(env).is_ok(),
+        rate_limit: env.rate_limiter("PET_LIMIT").is_ok(),
+    }
+}
+
 pub(crate) async fn respond(
     mut request: Request,
     env: Env,

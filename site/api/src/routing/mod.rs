@@ -1,5 +1,6 @@
 //! URL dispatch for the Cloudflare Worker
 
+mod docs;
 mod health;
 pub(crate) mod response;
 pub(crate) mod telemetry;
@@ -59,8 +60,8 @@ async fn main(request: Request, env: Env, context: Context) -> Result<Response> 
 
 async fn dispatch(request: Request, env: Env, context: Context, started: u64) -> Result<Response> {
     let path = request.path();
-    if let Some(probe) = health::route(&path) {
-        return health::respond(&request, &env, probe);
+    if let Some(route) = health::route(&path) {
+        return health::respond(&request, &env, route);
     }
 
     let origin = request.headers().get("Origin")?;
@@ -72,6 +73,9 @@ async fn dispatch(request: Request, env: Env, context: Context, started: u64) ->
     }
     if request.method() == Method::Options {
         return preflight(origin.as_deref());
+    }
+    if let Some(asset) = docs::route(&path) {
+        return docs::respond(&request, asset);
     }
     if let Some(code) = path.strip_prefix("/api/papers/") {
         return crate::service::papers::respond(&request, code);

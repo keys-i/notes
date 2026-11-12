@@ -11,12 +11,18 @@ pub(crate) const DEEP_MODEL: &str = "openai/gpt-oss-120b";
 pub(crate) const IMAGE_MODEL: &str = FAST_MODEL;
 pub(crate) const AUDIO_MODEL: &str = "whisper-large-v3-turbo";
 pub(crate) const GUARD_MODEL: &str = "meta-llama/llama-prompt-guard-2-86m";
+/// Server-owned model class selected for a validated request
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum ModelRoute {
+    /// Small model for ordinary study conversation
     Quick,
+    /// General model for grounded note answers
     Fast,
+    /// Larger model for long, comparative or multi-step questions
     Deep,
+    /// Vision-capable model for image attachments
     Image,
+    /// Transcription model for audio attachments
     Audio,
 }
 
