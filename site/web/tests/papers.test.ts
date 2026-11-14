@@ -7,7 +7,9 @@ function element(dataset: Record<string, string> = {}) {
   const handlers: Record<string, () => void> = {};
   const node: any = {
     attributes: {}, children: [], className: "", dataset, disabled: false,
-    hidden: false, href: "", id: "", open: false, src: "", style: {},
+    hidden: false, href: "", id: "", open: false, src: "", style: {
+      setProperty(name: string, value: string) { this[name] = value; },
+    },
     textContent: "", title: "", value: "",
     addEventListener(name: string, handler: () => void) { handlers[name] = handler; },
     append(...children: any[]) { this.children.push(...children); },
@@ -219,7 +221,8 @@ test("paper library loads, searches, and reads without leaving the page", async 
   zoomIn.click();
   zoomIn.click();
   zoomOut.click();
-  assert.equal(frame.style.zoom, "1.1");
+  assert.equal(frame.style["--paper-zoom"], "1.1");
+  assert.match(zoomIn.attributes["aria-label"], /currently 110%/);
   pdfButton.click();
   assert.equal(frame.src, "https://drive.google.com/file/d/pdf123/preview?resourcekey=key");
   assert.equal(edit.hidden, true);

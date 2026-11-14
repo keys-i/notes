@@ -993,8 +993,6 @@ test("graph helpers preserve routes, ordering, labels, and timeline state", asyn
   assert.equal(graph.renderer(), "canvas");
   assert.ok(graph.chartHandlers.click);
   assert.ok(graph.chartHandlers.graphroam);
-  assert.equal([...graph.timers.values()][0].delay, 700);
-  [...graph.timers.values()][0].callback();
   assert.equal(graph.timers.size, 0);
   const fitted = graph.chart.options
     .filter((value) => value.series?.[0]?.center)
@@ -1067,20 +1065,20 @@ test("graph helpers preserve routes, ordering, labels, and timeline state", asyn
   call("open_graph()");
   await call("graphModalPromise");
   assert.equal(graph.chart.disposed, false);
-  assert.equal([...graph.timers.values()][0].delay, 260);
+  assert.equal(graph.timers.size, 0);
   graph.handlers.keydown[0]({ key: "Escape" });
   assert.equal(graph.elements.get("modal_background")!.hidden, true);
   assert.equal(graph.timers.size, 0);
   assert.equal(
     call(
-      "[graphTimelineFrame,graphDrawFrame,graphLabelFrame,graphResizeFrame,graphSettleTimer].every(value=>value===0)",
+      "[graphTimelineFrame,graphDrawFrame,graphLabelFrame,graphResizeFrame].every(value=>value===0)",
     ),
     true,
   );
   graph.window.matchMedia = () => ({ matches: true });
   call("open_graph()");
   await call("graphModalPromise");
-  assert.equal([...graph.timers.values()][0].delay, 0);
+  assert.equal(graph.timers.size, 0);
   call("close_graph()");
   assert.equal(graph.timers.size, 0);
 });
@@ -1133,40 +1131,33 @@ test("graph fit contains oversized layouts and pinned labels on every open", asy
   assert.equal(call("option.series[0].roam"), true);
   assert.equal(call("option.series[0].draggable"), true);
 
-  [...graph.timers.values()][0].callback();
   assert.ok(latestFit().zoom < 0.25);
   assert.equal(
     graph.chart.options.filter((value) => value.series?.[0]?.layout).at(-1)
       .series[0].layout,
-    "none",
+    "force",
   );
   assert.equal(graph.timers.size, 0);
   call("close_graph()");
   call("open_graph()");
   await call("graphModalPromise");
-  assert.equal([...graph.timers.values()][0].delay, 260);
-  assert.ok(latestFit().zoom < 0.25);
-  [...graph.timers.values()][0].callback();
+  assert.equal(graph.timers.size, 0);
   assert.ok(latestFit().zoom < 0.25);
   assert.equal(
     graph.chart.options.filter((value) => value.series?.[0]?.layout).at(-1)
       .series[0].layout,
-    "none",
+    "force",
   );
   call("close_graph()");
   assert.equal(graph.timers.size, 0);
-  assert.equal(
-    call("[graphTimelineFrame,graphSettleTimer].every(value=>value===0)"),
-    true,
-  );
+  assert.equal(call("graphTimelineFrame"), 0);
 });
 
-test("graph drag wakes adjacent force briefly and returns to idle", async () => {
+test("graph drag keeps force motion active without moving the camera", async () => {
   const graph = graphHarness();
   const call = (source: string) => vm.runInContext(source, graph.context);
   call("open_graph()");
   await call("graphModalPromise");
-  [...graph.timers.values()][0].callback();
   assert.equal(graph.timers.size, 0);
   const cameraChanges = () =>
     graph.chart.options.filter((value) => value.series?.[0]?.center).length;
@@ -1175,9 +1166,7 @@ test("graph drag wakes adjacent force briefly and returns to idle", async () => 
   graph.chartHandlers.mousedown({ dataType: "edge" });
   assert.equal(graph.timers.size, 0);
   graph.chartHandlers.mousedown({ dataType: "node" });
-  assert.equal(call("graphDragActive"), true);
-  assert.equal(graph.timers.size, 1);
-  assert.equal([...graph.timers.values()][0].delay, 3000);
+  assert.equal(graph.timers.size, 0);
   assert.equal(
     graph.chart.options.filter((value) => value.series?.[0]?.layout).at(-1)
       .series[0].layout,
@@ -1185,23 +1174,14 @@ test("graph drag wakes adjacent force briefly and returns to idle", async () => 
   );
 
   graph.chartHandlers.mousedown({ dataType: "node" });
-  assert.equal(graph.timers.size, 1);
-  graph.chartHandlers.mouseup({});
-  assert.equal(graph.timers.size, 1);
-  assert.equal([...graph.timers.values()][0].delay, 180);
-  [...graph.timers.values()][0].callback();
   assert.equal(graph.timers.size, 0);
-  assert.equal(call("graphDragActive"), false);
   assert.equal(
     graph.chart.options.filter((value) => value.series?.[0]?.layout).at(-1)
       .series[0].layout,
-    "none",
+    "force",
   );
   assert.equal(cameraChanges(), openingCameraChanges);
 
-  graph.chartHandlers.mousedown({ dataType: "node" });
-  graph.chartHandlers.globalout({});
-  [...graph.timers.values()][0].callback();
   call("close_graph()");
   assert.equal(graph.timers.size, 0);
   assert.deepEqual(Object.keys(graph.chartHandlers), []);
@@ -1212,7 +1192,6 @@ test("graph hover decodes full names and cancels every text timer", async () => 
   const call = (source: string) => vm.runInContext(source, graph.context);
   call("open_graph()");
   await call("graphModalPromise");
-  [...graph.timers.values()][0].callback();
   call(`paintedStyle=null; labelElement={style:{fill:'#41d17d'},setStyle(value){paintedStyle=value}};
     paint_graph_label({isDisposed:()=>false,getModel:()=>({getSeriesByIndex:()=>({getData:()=>({getItemGraphicEl:()=>({getSymbolPath(){return this},getTextContent:()=>labelElement})})})})},1,'Full title')`);
   assert.equal(call("paintedStyle.stroke"), "transparent");
@@ -1326,8 +1305,11 @@ test("graph replay is one cancellable frame loop and data failures retry", async
   (graph.context as any).replayChart = chart;
   call("replay_graph_growth(replayChart)");
   call("replay_graph_growth(replayChart)");
-  assert.equal(chart.options.at(-3).series[0].layout, "none");
-  assert.ok(chart.options.at(-2).series[0].zoom < 1);
+  assert.equal(chart.options.at(-2).series[0].layout, "none");
+  assert.equal(
+    chart.options.some((value: any) => value.series?.[0]?.zoom !== undefined),
+    false,
+  );
   assert.deepEqual(cancelled, [1]);
   frames[1](1);
   assert.deepEqual(
@@ -1359,6 +1341,7 @@ test("graph replay is one cancellable frame loop and data failures retry", async
   assert.ok(chart.options.at(-1).series[0].data.at(-1).symbolSize >= 16);
   frames[6](914);
   assert.equal(chart.options.at(-1).series[0].data.length, 3);
+  assert.equal(chart.options.at(-1).series[0].layout, "force");
   assert.equal(graph.replay.classList.contains("is-playing"), false);
   assert.equal(call("graphTimelineFrame"), 0);
   assert.equal(graph.timers.size, 0);

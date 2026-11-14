@@ -210,12 +210,30 @@
     });
   });
 
-  library.querySelectorAll<HTMLButtonElement>("[data-paper-zoom]").forEach(function (button) {
+  var zoomButtons = Array.from(
+    library.querySelectorAll<HTMLButtonElement>("[data-paper-zoom]"),
+  );
+  function updateZoom(change) {
+    zoom = Math.max(0.8, Math.min(1.3, zoom + change / 10));
+    frame.style.setProperty("--paper-zoom", zoom.toFixed(1));
+    zoomButtons.forEach(function (button) {
+      var direction = Number(button.dataset.paperZoom);
+      button.disabled = direction < 0 ? zoom <= 0.8 : zoom >= 1.3;
+      button.setAttribute(
+        "aria-label",
+        (direction < 0 ? "Decrease" : "Increase") +
+          " document size, currently " +
+          Math.round(zoom * 100) +
+          "%",
+      );
+    });
+  }
+  zoomButtons.forEach(function (button) {
     button.addEventListener("click", function () {
-      zoom = Math.max(0.8, Math.min(1.3, zoom + Number(button.dataset.paperZoom) / 10));
-      frame.style.zoom = zoom.toFixed(1);
+      updateZoom(Number(button.dataset.paperZoom));
     });
   });
+  updateZoom(0);
 
   dark.addEventListener("click", function () {
     var enabled = preview.dataset.dark !== "true";

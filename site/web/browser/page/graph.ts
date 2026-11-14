@@ -68,8 +68,6 @@ var graphModalPromise;
 var graphDrawFrame = 0;
 var graphResizeFrame;
 var graphLabelFrame = 0;
-var graphSettleTimer = 0;
-var graphDragActive = false;
 var graphHasPositions = false;
 var graphZoom = 2;
 var graphKeyboardCleanup;
@@ -373,9 +371,6 @@ function replay_graph_growth(chart) {
 
   finish_graph_timelapse();
   clear_graph_text_motion();
-  graphDragActive = false;
-  clearTimeout(graphSettleTimer);
-  graphSettleTimer = 0;
   if (!graphHasPositions) cache_graph_positions(chart);
   chart.setOption({
     series: [
@@ -386,7 +381,6 @@ function replay_graph_growth(chart) {
       },
     ],
   });
-  fit_graph(chart, 0.72);
   document.querySelectorAll(".graph-timelapse").forEach(function (button) {
     button.classList.add("is-playing");
   });
@@ -439,9 +433,7 @@ function replay_graph_growth(chart) {
     }
 
     if (beat === beats.length - 1 && phase === 2) {
-      chart.setOption({
-        series: [{ data: graphTimelineNodes, links: graphTimelineLinks }],
-      });
+      resume_graph_motion(chart);
       finish_graph_timelapse();
     } else if (!chart.isDisposed()) {
       graphTimelineFrame = requestAnimationFrame(reveal_nodes);
@@ -797,32 +789,10 @@ function fit_graph(chart, maxZoom = 1) {
   return fit;
 }
 
-function settle_graph(chart) {
-  clearTimeout(graphSettleTimer);
-  graphSettleTimer = 0;
-  graphDragActive = false;
-  if (!cache_graph_positions(chart) || chart.isDisposed()) return;
-  chart.setOption({
-    series: [
-      {
-        data: graph_label_data(graphZoom >= 2.8),
-        layout: "none",
-        links: graphTimelineLinks,
-      },
-    ],
-  });
-}
-
-function start_graph_drag_response(chart, params) {
-  if (params.dataType !== "node" || !chart || chart.isDisposed() || !option) {
+function resume_graph_motion(chart) {
+  if (!chart || chart.isDisposed() || !option) {
     return;
   }
-
-  finish_graph_timelapse();
-  clearTimeout(graphSettleTimer);
-  graphSettleTimer = 0;
-  cache_graph_positions(chart);
-  graphDragActive = true;
   var reducedMotion = window.matchMedia(
     "(prefers-reduced-motion: reduce)",
   ).matches;
@@ -834,28 +804,18 @@ function start_graph_drag_response(chart, params) {
           initLayout: "none",
           layoutAnimation: !reducedMotion,
         }),
-        layout: "force",
+        layout: reducedMotion ? "none" : "force",
         links: graphTimelineLinks,
       },
     ],
   });
-  graphSettleTimer = setTimeout(
-    function () {
-      settle_graph(chart);
-    },
-    reducedMotion ? 0 : 3000,
-  );
 }
 
-function release_graph_drag_response(chart) {
-  if (!graphDragActive || !chart || chart.isDisposed()) return;
-  clearTimeout(graphSettleTimer);
-  graphSettleTimer = setTimeout(
-    function () {
-      settle_graph(chart);
-    },
-    window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 180,
-  );
+function start_graph_drag_response(chart, params) {
+  if (params.dataType !== "node" || !chart || chart.isDisposed()) return;
+  finish_graph_timelapse();
+  cache_graph_positions(chart);
+  resume_graph_motion(chart);
 }
 
 function draw_graph(chart) {
@@ -874,13 +834,6 @@ function draw_graph(chart) {
       option.series[0].force.layoutAnimation = !reducedMotion;
       chart.setOption(option, { notMerge: true });
       if (cache_graph_positions(chart)) fit_graph(chart);
-      clearTimeout(graphSettleTimer);
-      graphSettleTimer = setTimeout(
-        function () {
-          settle_graph(chart);
-        },
-        reducedMotion ? 0 : hadPositions ? 260 : 700,
-      );
     }
   });
 
@@ -906,12 +859,6 @@ function draw_graph(chart) {
   });
   chart.on("mousedown", function (params) {
     start_graph_drag_response(chart, params);
-  });
-  chart.on("mouseup", function () {
-    release_graph_drag_response(chart);
-  });
-  chart.on("globalout", function () {
-    release_graph_drag_response(chart);
   });
   bind_graph_keyboard(chart, chart.getDom());
 }
@@ -1091,7 +1038,7 @@ function ensure_graph_modal() {
         '<button class="graph-tool graph-timelapse" type="button" title="Replay graph growth" aria-label="Replay graph growth">' +
         graphTimelapseIcon +
         "</button>" +
-        '<button class="graph-tool graph-close" type="button" title="Close graph" aria-label="Close graph">×</button>' +
+        '<button class="graph-tool graph-close ui-close" type="button" title="Close graph" aria-label="Close graph">×</button>' +
         "</div>" +
         "</div>" +
         "</div>",
@@ -1141,12 +1088,9 @@ function dispose_graph() {
   cancelAnimationFrame(graphDrawFrame);
   cancelAnimationFrame(graphResizeFrame);
   cancelAnimationFrame(graphLabelFrame);
-  clearTimeout(graphSettleTimer);
   graphDrawFrame = 0;
   graphResizeFrame = 0;
   graphLabelFrame = 0;
-  graphSettleTimer = 0;
-  graphDragActive = false;
   if (!myChart) return;
   cache_graph_positions(myChart);
   myChart.off?.();
