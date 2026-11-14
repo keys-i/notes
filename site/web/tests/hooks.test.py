@@ -2,15 +2,17 @@
 
 import json
 import os
+import tomllib
 import unittest
+from datetime import date
 from pathlib import Path
 from subprocess import CompletedProcess
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from hooks import browser
-from hooks.content import callouts, graph, plot
+from hooks import browser, tools
+from hooks.content import callouts, courses, graph, plot
 from hooks.publish import discovery, game
 from hooks.publish import site as site_hook
 
@@ -28,6 +30,429 @@ def setup():
     )
 
 
+def course_tree(root):
+    """Create the local routes required by the shared course cases"""
+    content = root / "content"
+    pages = {
+        "COMP/4702/index.md": """---
+title: Machine Learning
+learning:
+  topic-map: Lectures/index.md#topic-map
+  concepts: Lectures/index.md#core-concepts
+  worked-example: Tutorial/index.md#worked-example
+  practice: Tutorial/index.md#practice
+  misconceptions: Lectures/index.md#misconceptions
+  assessment: PY/index.md#assessment-connection
+---
+# Machine Learning
+""",
+        "COMP/4702/Lectures/index.md": """# Lectures
+This page maps the subject
+## Topic  map
+## Core concepts
+## Misconceptions
+""",
+        "COMP/4702/Tutorial/index.md": """# Tutorials
+## Worked example
+## {#practice}
+""",
+        "COMP/4702/PY/index.md": """# Past year papers
+## Assessment connection
+""",
+    }
+    for relative, source in pages.items():
+        path = content / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(source, encoding="utf-8")
+    for relative in ("docs/reviews/COMP4702.md", "docs/sources/COMP4702.md"):
+        path = root / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("# Check\n", encoding="utf-8")
+    return content
+
+
+def course_config(root, source):
+    """Write a course source under the same layout as the repository"""
+    path = root / "site/config/courses.toml"
+    path.parent.mkdir(parents=True)
+    path.write_text(source, encoding="utf-8")
+    return path
+
+
+def course_assets(root):
+    for relative in site_hook.COURSE_ASSET_BUDGETS:
+        path = root / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(b"")
+
+
+class CourseContractTests(unittest.TestCase):
+    def load_source(self, source, today=date(2026, 11, 13)):
+        """Load one isolated source with the standard local course tree"""
+        directory = TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        root = Path(directory.name)
+        content = course_tree(root)
+        return courses.load_courses(course_config(root, source), content, today)
+
+    def test_shared_rust_cases_have_the_same_result_in_python(self):
+        fixtures = tomllib.loads(
+            (ROOT / "site/config/tests/courses.toml").read_text(encoding="utf-8")
+        )
+        for case in fixtures["cases"]:
+            with self.subTest(case=case["name"]), TemporaryDirectory() as directory:
+                root = Path(directory)
+                content = course_tree(root)
+                path = course_config(root, case["source"])
+                try:
+                    courses.load_courses(path, content, date(2026, 11, 13))
+                except (TypeError, ValueError):
+                    valid = False
+                else:
+                    valid = True
+                self.assertEqual(valid, case["valid"])
+
+    def test_loader_derives_canonical_routes_and_stale_boundary(self):
+        loaded = courses.load_courses(
+            ROOT / "site/config/courses.toml",
+            ROOT / "content",
+            date(2026, 11, 13),
+        )
+        self.assertEqual(
+            [course["code"] for course in loaded], ["COMP4500", "COMP4702"]
+        )
+        self.assertNotIn("route", loaded[0])
+        self.assertEqual(loaded[0]["area"], "computing")
+        self.assertEqual(loaded[1]["route"], "/COMP/4702/")
+        self.assertEqual(loaded[1]["papers_route"], "/COMP/4702/PY/")
+        self.assertEqual(loaded[1]["capabilities"], ["notes", "source"])
+
+        source = """
+updated = "2025-01-01"
+
+[[courses]]
+code = "COMP4500"
+title = "Advanced Algorithms and Data Structures"
+maturity = "source"
+verified = "2025-01-01"
+catalogue-id = "COMP4500_7660_60785"
+"""
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            content = course_tree(root)
+            path = course_config(root, source)
+            before = courses.load_courses(path, content, date(2025, 12, 31))
+            boundary = courses.load_courses(path, content, date(2026, 1, 1))
+        self.assertFalse(before[0]["stale"])
+        self.assertTrue(boundary[0]["stale"])
+
+    def test_loader_rejects_missing_routes_and_teaching_anchors(self):
+        fixtures = tomllib.loads(
+            (ROOT / "site/config/tests/courses.toml").read_text(encoding="utf-8")
+        )["cases"]
+        source = next(
+            case["source"] for case in fixtures if case["name"] == "valid-learning"
+        )
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            content = course_tree(root)
+            path = course_config(root, source)
+            self.assertEqual(
+                courses.load_courses(path, content, date(2026, 11, 13))[0]["maturity"],
+                "learning",
+            )
+
+            tutorial = content / "COMP/4702/Tutorial/index.md"
+            tutorial.write_text(
+                "# Tutorials\n## Worked example\n## Drill\n", encoding="utf-8"
+            )
+            with self.assertRaisesRegex(ValueError, "practice"):
+                courses.load_courses(path, content, date(2026, 11, 13))
+
+            (content / "COMP/4702/index.md").unlink()
+            with self.assertRaisesRegex(ValueError, "route"):
+                courses.load_courses(path, content, date(2026, 11, 13))
+
+    def test_comp4702_draft_has_a_complete_learning_map(self):
+        courses._learning(ROOT / "content/COMP/4702", "COMP4702")
+
+    def test_loader_rejects_catalogue_and_field_boundaries(self):
+        source = """
+updated = "2026-11-13"
+
+[[courses]]
+code = "COMP4500"
+title = "Advanced Algorithms and Data Structures"
+maturity = "source"
+verified = "2026-11-13"
+catalogue-id = "COMP4500_7660_60785"
+"""
+        cases = {
+            "future catalogue": source.replace("2026-11-13", "2026-11-14", 1),
+            "empty catalogue": 'updated = "2026-11-13"\ncourses = []\n',
+            "wrong catalogue type": 'updated = "2026-11-13"\ncourses = "bad"\n',
+            "missing catalogue field": 'updated = "2026-11-13"\n',
+            "wrong course type": 'updated = "2026-11-13"\ncourses = ["bad"]\n',
+            "unknown prefix": source.replace("COMP4500", "LAWX4500"),
+            "invalid identifier": source.replace(
+                'catalogue-id = "COMP4500_7660_60785"', 'catalogue-id = "bad/id"'
+            ),
+            "invalid offering": source.replace(
+                'verified = "2026-11-13"',
+                'verified = "2026-11-13"\noffering = ""',
+            ),
+            "invalid date shape": source.replace(
+                'verified = "2026-11-13"', 'verified = "20261113"'
+            ),
+            "date before epoch": source.replace("2026-11-13", "1969-12-31"),
+        }
+        for name, candidate in cases.items():
+            with self.subTest(name=name), self.assertRaises((TypeError, ValueError)):
+                self.load_source(candidate)
+
+    def test_loader_accepts_safe_cheatsheet_and_folder_actions(self):
+        source = """
+updated = "2026-11-13"
+
+[[courses]]
+code = "COMP4702"
+title = "Machine Learning"
+maturity = "resources"
+verified = "2026-11-13"
+cheatsheet-route = "COMP/4702/CS/sheet.pdf"
+folder-code = "1IDoh1OmL_JWsZKx0BfssAL27weAwArv1?resourcekey=0123456789_safe"
+
+[courses.source-permission]
+status = "allowed"
+record = "docs/sources/COMP4702.md"
+expires = "2027-11-13"
+"""
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            content = course_tree(root)
+            sheet = content / "COMP/4702/CS/sheet.pdf"
+            sheet.parent.mkdir(parents=True)
+            sheet.write_bytes(b"%PDF")
+            loaded = courses.load_courses(
+                course_config(root, source), content, date(2026, 11, 13)
+            )[0]
+        self.assertEqual(loaded["capabilities"], ["cheatsheet", "source"])
+        self.assertEqual(loaded["cheatsheet_route"], "/COMP/4702/CS/sheet.pdf")
+        self.assertEqual(
+            loaded["source_url"],
+            "https://drive.google.com/drive/folders/"
+            "1IDoh1OmL_JWsZKx0BfssAL27weAwArv1?resourcekey=0123456789_safe",
+        )
+
+    def test_loader_rejects_unsafe_cheatsheet_and_folder_actions(self):
+        source = """
+updated = "2026-11-13"
+
+[[courses]]
+code = "COMP4702"
+title = "Machine Learning"
+maturity = "resources"
+verified = "2026-11-13"
+cheatsheet-route = "COMP/4702/CS/sheet.pdf"
+catalogue-id = "COMP4702_7620_21208"
+"""
+        route_cases = (
+            "COMP/4702/",
+            "COMP/4403/sheet.pdf",
+            "COMP/4702/../sheet.pdf",
+            "COMP/4702//sheet.pdf",
+            "COMP/4702/" + "x" * 241,
+        )
+        for route in route_cases:
+            candidate = source.replace("COMP/4702/CS/sheet.pdf", route)
+            with (
+                self.subTest(route=route),
+                self.assertRaisesRegex(ValueError, "cheatsheet route"),
+            ):
+                self.load_source(candidate)
+
+        folder_cases = (
+            "folder-code = 1",
+            'folder-code = "short"',
+            'folder-code = "0123456789?wrong=0123456789"',
+            'folder-code = "0123456789?resourcekey=short"',
+        )
+        for folder in folder_cases:
+            candidate = source.replace('maturity = "resources"', 'maturity = "source"')
+            candidate = candidate.replace(
+                'cheatsheet-route = "COMP/4702/CS/sheet.pdf"\n', ""
+            ).replace(
+                'catalogue-id = "COMP4702_7620_21208"',
+                f'catalogue-id = "COMP4702_7620_21208"\n{folder}',
+            )
+            with (
+                self.subTest(folder=folder),
+                self.assertRaisesRegex((TypeError, ValueError), "folder identifier"),
+            ):
+                self.load_source(candidate)
+
+    def test_loader_requires_current_permission_and_review_records(self):
+        fixtures = tomllib.loads(
+            (ROOT / "site/config/tests/courses.toml").read_text(encoding="utf-8")
+        )["cases"]
+        folder = next(
+            case["source"]
+            for case in fixtures
+            if case["name"] == "valid-folder-identity"
+        )
+        permission_cases = (
+            folder.replace('status = "allowed"', 'status = "denied"'),
+            folder.replace('record = "docs/sources/COMP4702.md"', 'record = "bad.md"'),
+            folder.replace('folder-code = "1IDoh1OmL_JWsZKx0BfssAL27weAwArv1"\n', ""),
+        )
+        for candidate in permission_cases:
+            with (
+                self.subTest(source=candidate),
+                self.assertRaisesRegex(ValueError, "source permission"),
+            ):
+                self.load_source(candidate)
+
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            content = course_tree(root)
+            (root / "docs/sources/COMP4702.md").unlink()
+            with self.assertRaisesRegex(ValueError, "permission record"):
+                courses.load_courses(
+                    course_config(root, folder), content, date(2026, 11, 13)
+                )
+
+        learning = next(
+            case["source"] for case in fixtures if case["name"] == "valid-learning"
+        )
+        review_cases = (
+            learning.replace(
+                'role = "independent subject-matter reviewer"', 'role = ""'
+            ),
+            learning.replace(
+                'record = "docs/reviews/COMP4702.md"', 'record = "bad.md"'
+            ),
+            learning.replace('date = "2026-11-13"', 'date = "2025-11-13"'),
+            learning.replace('date = "2026-11-13"', 'date = "2026-11-14"'),
+        )
+        for candidate in review_cases:
+            with (
+                self.subTest(source=candidate),
+                self.assertRaisesRegex(ValueError, "review"),
+            ):
+                self.load_source(candidate)
+
+        without_route = learning.replace('route = "COMP/4702/"\n', "")
+        with self.assertRaisesRegex(ValueError, "requires a route"):
+            self.load_source(without_route)
+
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            content = course_tree(root)
+            (root / "docs/reviews/COMP4702.md").unlink()
+            with self.assertRaisesRegex(ValueError, "review record"):
+                courses.load_courses(
+                    course_config(root, learning), content, date(2026, 11, 13)
+                )
+
+    def test_loader_rejects_incomplete_or_unsafe_learning_maps(self):
+        fixtures = tomllib.loads(
+            (ROOT / "site/config/tests/courses.toml").read_text(encoding="utf-8")
+        )["cases"]
+        source = next(
+            case["source"] for case in fixtures if case["name"] == "valid-learning"
+        )
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            content = course_tree(root)
+            path = course_config(root, source)
+            hub = content / "COMP/4702/index.md"
+            valid = hub.read_text(encoding="utf-8")
+            bad_maps = (
+                "# No front matter\n",
+                "---\nlearning:\n  topic-map: Lectures/index.md#topic-map\n",
+                valid.replace("  practice:", "  broken-line\n  practice:"),
+                valid.replace("Tutorial/index.md#practice", "../index.md#practice"),
+            )
+            for candidate in bad_maps:
+                hub.write_text(candidate, encoding="utf-8")
+                with self.subTest(source=candidate), self.assertRaises(ValueError):
+                    courses.load_courses(path, content, date(2026, 11, 13))
+            hub.write_text(
+                valid.replace("---\n# Machine", "title: Course\n---\n# Machine"),
+                encoding="utf-8",
+            )
+            self.assertEqual(
+                courses.load_courses(path, content, date(2026, 11, 13))[0]["code"],
+                "COMP4702",
+            )
+
+    def test_loader_rejects_a_response_over_96_kib(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            content = root / "content"
+            content.mkdir()
+            records = ['updated = "2026-11-13"\n']
+            for index in range(128):
+                code = f"COMP{index:04}"
+                route = f"COMP/{index:04}/"
+                sheet = f"{route}{'c' * 180}.pdf"
+                records.append(
+                    f"""
+[[courses]]
+code = "{code}"
+title = "{"T" * 120}"
+maturity = "resources"
+route = "{route}"
+verified = "2026-11-13"
+catalogue-id = "{"I" * 128}"
+offering = "{"O" * 120}"
+papers-route = "{route}PY/"
+cheatsheet-route = "{sheet}"
+"""
+                )
+                course = content / route
+                (course / "PY").mkdir(parents=True)
+                (course / "index.md").write_text("# Course\n", encoding="utf-8")
+                (course / "PY/index.md").write_text("# Papers\n", encoding="utf-8")
+                (content / sheet).write_bytes(b"%PDF")
+            with self.assertRaisesRegex(ValueError, "96 KiB"):
+                courses.load_courses(
+                    course_config(root, "".join(records)),
+                    content,
+                    date(2026, 11, 13),
+                )
+
+    def test_home_context_contains_only_validated_local_courses(self):
+        context = site_hook.on_page_context(
+            {}, SimpleNamespace(meta={}, is_homepage=True)
+        )
+        self.assertEqual(
+            [(course["code"], course["route"]) for course in context["course_catalog"]],
+            [
+                ("COMP4403", "/COMP/4403/"),
+                ("COMP4702", "/COMP/4702/"),
+                ("INFS2200", "/INFS/2200/"),
+                ("MECH2700", "/MECH/2700/"),
+            ],
+        )
+        self.assertEqual(
+            site_hook.on_page_context({}, SimpleNamespace(meta={}, is_homepage=False)),
+            {},
+        )
+
+
+class ToolTests(unittest.TestCase):
+    def test_serve_replaces_the_wrapper_with_mkdocs(self):
+        with patch.object(tools, "execvpe") as replace:
+            tools.serve()
+
+        program, command, environment = replace.call_args.args
+        self.assertEqual(program, "mkdocs")
+        self.assertEqual(command[:2], ["mkdocs", "serve"])
+        self.assertIn("site/web/hooks", command)
+        self.assertEqual(environment["NO_MKDOCS_2_WARNING"], "1")
+
+
 class HookTests(unittest.TestCase):
     def setUp(self):
         self.config = setup()
@@ -38,15 +463,23 @@ class HookTests(unittest.TestCase):
         self.assertEqual(site_hook.on_page_context({}, normal), {})
         for code in ("INFS2200", "MECH2700"):
             page = SimpleNamespace(meta={"papers": code})
-            body = site_hook.on_page_markdown("", page)
+            authored = "## Revision guide\n\nAttempt each paper before reading answers"
+            body = site_hook.on_page_markdown(authored, page)
             self.assertIn("# Past year papers", body)
             self.assertIn(f"Back to {code}", body)
             self.assertIn('class="papers__back"', body)
+            self.assertIn(authored, body)
             self.assertNotIn("← Back", body)
             catalog = site_hook.on_page_context({}, page)["paper_catalog"]
             self.assertEqual(catalog, {"course": code})
 
     def test_compact_routes_keep_urls_but_use_descriptive_navigation(self):
+        course_page = SimpleNamespace(
+            title="INFS2200 Relational Database Systems",
+            url="INFS/2200/",
+            children=[],
+            is_page=True,
+        )
         paper_page = SimpleNamespace(
             title="Past year papers", url="INFS/2200/PY/", children=[]
         )
@@ -60,8 +493,8 @@ class HookTests(unittest.TestCase):
         )
         course = SimpleNamespace(
             title="2200",
-            url="INFS/2200/",
-            children=[paper, cheatsheet, lecture],
+            url=None,
+            children=[course_page, paper, cheatsheet, lecture],
         )
         nav = SimpleNamespace(items=[course])
 
@@ -71,6 +504,7 @@ class HookTests(unittest.TestCase):
         self.assertEqual(cheatsheet.title, "Cheatsheet")
         self.assertEqual(cheatsheet_page.url, "INFS/2200/CS/")
         self.assertEqual(lecture.title, "Lectures")
+        self.assertEqual(course.title, "2200: Relational Database Systems")
 
     def test_cheatsheet_routes_share_accessible_local_reader(self):
         for code, pdf in site_hook.CHEATSHEETS.items():
@@ -84,7 +518,7 @@ class HookTests(unittest.TestCase):
                 self.assertIn(f"Back to {code}", body)
                 self.assertIn('class="cheatsheet__fullscreen"', body)
                 self.assertNotIn("Exam reference", body)
-                self.assertNotIn("cheatsheet__bar", body)
+                self.assertIn('class="cheatsheet__bar"', body)
 
     def test_game_config(self):
         settings = game.on_config(self.config).extra["game"]
@@ -140,6 +574,7 @@ class HookTests(unittest.TestCase):
     def test_site_build_rejects_unversioned_custom_assets(self):
         with TemporaryDirectory() as directory:
             root = Path(directory)
+            course_assets(root)
             version = "release123"
             markup = "\n".join(
                 f'url="{asset}?v={version}"' for asset in site_hook.VERSIONED_ASSETS
@@ -155,17 +590,18 @@ class HookTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "built assets lack version"):
                 site_hook.on_post_build(config)
 
-    def test_site_build_rejects_a_published_paper_catalog(self):
-        with TemporaryDirectory() as directory:
-            root = Path(directory)
-            leaked = root / "assets" / "papers.json"
-            leaked.parent.mkdir()
-            leaked.write_text("{}", encoding="utf-8")
+    def test_site_build_rejects_published_catalogues_and_source_toml(self):
+        for name in ("courses.json", "papers.json", "courses.toml", "papers.toml"):
+            with self.subTest(name=name), TemporaryDirectory() as directory:
+                root = Path(directory)
+                leaked = root / "assets" / name
+                leaked.parent.mkdir()
+                leaked.write_text("{}", encoding="utf-8")
 
-            with self.assertRaisesRegex(RuntimeError, "paper catalogue"):
-                site_hook.on_post_build(
-                    SimpleNamespace(site_dir=root, extra={"asset_version": "dev"})
-                )
+                with self.assertRaisesRegex(RuntimeError, "catalogue"):
+                    site_hook.on_post_build(
+                        SimpleNamespace(site_dir=root, extra={"asset_version": "dev"})
+                    )
 
     def test_game_rejects_attempt_overflow(self):
         source = (ROOT / "site/config/game.toml").read_text(encoding="utf-8")
@@ -456,6 +892,75 @@ class GraphCoverageTests(unittest.TestCase):
             self.assertEqual(len(moved["nodes"]), 2)
             self.assertEqual(moved["links"], [{"source": "0", "target": "1"}])
 
+    def test_graph_connects_home_to_each_course_root_once(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            graph_path = root / "assets/javascripts/graph.json"
+            graph_path.parent.mkdir(parents=True)
+            graph_path.write_text(
+                json.dumps(
+                    {
+                        "nodes": [
+                            {"id": "0", "value": "/", "symbolSize": 1},
+                            {
+                                "id": "1",
+                                "value": "/COMP/4403/",
+                                "symbolSize": 1,
+                            },
+                            {
+                                "id": "2",
+                                "value": "/INFS/2200/",
+                                "symbolSize": 0,
+                            },
+                            {
+                                "id": "3",
+                                "value": "/COMP/4403/Lectures/",
+                                "symbolSize": 0,
+                            },
+                            {
+                                "id": "4",
+                                "value": "/COMP/4403/Lectures/W1/",
+                                "symbolSize": 0,
+                            },
+                        ],
+                        "links": [
+                            {"source": "1", "target": "0"},
+                            {"source": "0", "target": "1"},
+                            {"source": "1", "target": "3"},
+                            {"source": "1", "target": "4"},
+                            {"source": "3", "target": "4"},
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            graph.on_post_build(SimpleNamespace(site_dir=root))
+            built = json.loads(
+                (root / "assets/js/page/graph.json").read_text(encoding="utf-8")
+            )
+
+        home_edges = [
+            link
+            for link in built["links"]
+            if "0" in {str(link["source"]), str(link["target"])}
+        ]
+        self.assertEqual(len(home_edges), 2)
+        self.assertIn({"source": "0", "target": "2"}, home_edges)
+        self.assertEqual(built["nodes"][0]["symbolSize"], 2)
+        self.assertEqual(built["nodes"][1]["symbolSize"], 2)
+        self.assertEqual(built["nodes"][2]["symbolSize"], 1)
+        self.assertFalse(any("3" in link.values() for link in home_edges))
+        self.assertEqual(
+            built["links"],
+            [
+                {"source": "1", "target": "0"},
+                {"source": "1", "target": "3"},
+                {"source": "3", "target": "4"},
+                {"source": "0", "target": "2"},
+            ],
+        )
+
 
 class PlotCoverageTests(unittest.TestCase):
     def test_parse_plot_accepts_the_bounded_contract(self):
@@ -630,6 +1135,7 @@ class SiteCoverageTests(unittest.TestCase):
     def test_post_build_creates_only_existing_subject_redirects(self):
         with TemporaryDirectory() as directory:
             public = Path(directory)
+            course_assets(public)
             page = public / "COMP/4403/Lectures/index.html"
             page.parent.mkdir(parents=True)
             page.write_text("page", encoding="utf-8")
@@ -645,13 +1151,24 @@ class SiteCoverageTests(unittest.TestCase):
 
 class BrowserCoverageTests(unittest.TestCase):
     def test_pre_build_compiles_browser_source_from_the_repository_root(self):
-        with patch.object(browser, "run") as run:
+        with (
+            patch.object(browser, "stale", return_value=True),
+            patch.object(browser, "run") as run,
+        ):
             browser.on_pre_build(ignored=True)
         run.assert_called_once_with(
             ["npm", "run", "--silent", "build:web"],
             cwd=browser.ROOT,
             check=True,
         )
+
+    def test_pre_build_keeps_current_browser_output_untouched(self):
+        with (
+            patch.object(browser, "stale", return_value=False),
+            patch.object(browser, "run") as run,
+        ):
+            browser.on_pre_build()
+        run.assert_not_called()
 
 
 if __name__ == "__main__":

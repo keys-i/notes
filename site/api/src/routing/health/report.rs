@@ -10,6 +10,10 @@ fn state(ready: bool) -> &'static str {
 
 fn service_report(service: Service, checks: Checks) -> Value {
     match service {
+        Service::Courses => json!({
+            "status": state(checks.courses),
+            "checks": {"configuration": state(checks.courses)},
+        }),
         Service::Koala => json!({
             "status": state(checks.koala.ready()),
             "version": koala::PROMPT_VERSION,
@@ -67,6 +71,7 @@ pub(super) fn report(probe: Probe, checks: Checks, checked_at_ms: u64) -> (Value
                     },
                     "stats": stats,
                     "services": {
+                        "courses": service_report(Service::Courses, checks),
                         "koala": service_report(Service::Koala, checks),
                         "manuals": service_report(Service::Manuals, checks),
                         "papers": service_report(Service::Papers, checks),
@@ -98,6 +103,7 @@ pub(super) fn report(probe: Probe, checks: Checks, checked_at_ms: u64) -> (Value
                     "checked_at_ms": checked_at_ms,
                     "stats": stats,
                     "services": {
+                        "courses": state(checks.courses),
                         "koala": state(checks.koala.ready()),
                         "manuals": state(checks.manuals),
                         "papers": state(checks.papers),
@@ -122,6 +128,7 @@ mod tests {
                 model: false,
                 rate_limit: true,
             },
+            courses: true,
             manuals: true,
             papers: true,
         }
@@ -133,9 +140,10 @@ mod tests {
         assert_eq!(status, 200);
         assert_eq!(body["service"], "notes-api");
         assert_eq!(body["status"], "degraded");
-        assert_eq!(body["stats"]["ready"], 2);
+        assert_eq!(body["stats"]["ready"], 3);
         assert_eq!(body["stats"]["unavailable"], 1);
         assert_eq!(body["services"]["koala"]["status"], "unavailable");
+        assert_eq!(body["services"]["courses"]["status"], "ok");
         assert_eq!(body["services"]["manuals"]["status"], "ok");
     }
 
@@ -150,5 +158,29 @@ mod tests {
         let (_, papers_status) = report(Probe::Health(Some(Service::Papers)), checks, 123);
         assert_eq!(koala_status, 503);
         assert_eq!(papers_status, 200);
+    }
+
+    #[test]
+    fn course_failure_does_not_hide_other_service_health() {
+        let checks = Checks {
+            koala: koala::Readiness {
+                model: true,
+                rate_limit: true,
+            },
+            courses: false,
+            manuals: true,
+            papers: true,
+        };
+        let (body, status) = report(Probe::Health(None), checks, 123);
+        assert_eq!(status, 200);
+        assert_eq!(body["status"], "degraded");
+        assert_eq!(body["stats"]["ready"], 3);
+        assert_eq!(body["services"]["courses"]["status"], "unavailable");
+        assert_eq!(body["services"]["papers"]["status"], "ok");
+
+        let (_, courses_status) = report(Probe::Health(Some(Service::Courses)), checks, 123);
+        let (_, manuals_status) = report(Probe::Health(Some(Service::Manuals)), checks, 123);
+        assert_eq!(courses_status, 503);
+        assert_eq!(manuals_status, 200);
     }
 }

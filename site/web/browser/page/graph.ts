@@ -20,7 +20,9 @@ function set_toc_marquees() {
     .querySelectorAll<HTMLElement>(".md-nav__link .md-ellipsis")
     .forEach(function (label) {
       label.removeAttribute("data-marquee");
-      if (label.scrollWidth > label.clientWidth) {
+      label.style.setProperty("--marquee-distance", "");
+      label.style.setProperty("--marquee-duration", "");
+      if (label.clientWidth > 0 && label.scrollWidth > label.clientWidth) {
         var distance = label.scrollWidth + 24;
         label.dataset.marquee = label.textContent.trim();
         label.style.setProperty("--marquee-distance", "-" + distance + "px");
@@ -33,6 +35,12 @@ function set_toc_marquees() {
 }
 
 requestAnimationFrame(set_toc_marquees);
+document.fonts?.ready.then(function () {
+  requestAnimationFrame(set_toc_marquees);
+});
+window.addEventListener("load", function () {
+  requestAnimationFrame(set_toc_marquees);
+});
 
 var graphScriptUrl = new URL(
   (document.currentScript as HTMLScriptElement).src,
@@ -321,8 +329,6 @@ function finish_graph_timelapse() {
   document.querySelectorAll(".graph-timelapse").forEach(function (button) {
     button.classList.remove("is-playing");
   });
-  var scene = document.querySelector<HTMLElement>(".graph-replay-scene");
-  if (scene) scene.hidden = true;
 }
 
 function show_graph_timeline_step(chart, steps, step, popScale?) {
@@ -400,8 +406,6 @@ function replay_graph_growth(chart) {
   var started = 0;
   var renderedBeat = -1;
   var renderedPhase = -1;
-  var scene = document.querySelector<HTMLElement>(".graph-replay-scene");
-  if (scene) scene.hidden = false;
   chart.setOption({ series: [{ data: [], links: [] }] });
 
   function reveal_nodes(now) {
@@ -424,16 +428,6 @@ function replay_graph_growth(chart) {
     var phase = progress >= 0.65 ? 2 : progress >= 0.15 ? 1 : 0;
 
     if (beat !== renderedBeat || phase !== renderedPhase) {
-      if (beat !== renderedBeat && scene) {
-        var current = graphTimelineNodes[steps[beat] - 1];
-        scene.querySelector<HTMLElement>("[data-graph-step]")!.textContent =
-          String(beat + 1).padStart(2, "0") + " / " + String(steps.length).padStart(2, "0");
-        scene.querySelector<HTMLElement>("[data-graph-name]")!.textContent = current.name;
-        scene.querySelector<HTMLElement>("[data-graph-year]")!.textContent =
-          String(current.created || "").slice(0, 4);
-        scene.querySelector<HTMLElement>("[data-graph-progress]")!.style.width =
-          Math.round((steps[beat] / graphTimelineNodes.length) * 100) + "%";
-      }
       show_graph_timeline_step(
         chart,
         steps,
@@ -1093,11 +1087,6 @@ function ensure_graph_modal() {
       '<div id="modal_background" role="dialog" aria-modal="true" aria-label="Obsidian graph" hidden>' +
         '<div class="graph-shell">' +
         '<div id="graph" class="modal_graph"></div>' +
-        '<div class="graph-replay-scene" aria-hidden="true" hidden>' +
-        '<span class="graph-replay-scene__step" data-graph-step></span>' +
-        '<strong data-graph-name></strong><span data-graph-year></span>' +
-        '<div class="graph-replay-scene__track"><span data-graph-progress></span></div>' +
-        '</div>' +
         '<div class="graph-tools">' +
         '<button class="graph-tool graph-timelapse" type="button" title="Replay graph growth" aria-label="Replay graph growth">' +
         graphTimelapseIcon +

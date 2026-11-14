@@ -16,6 +16,7 @@ nodes_by_url = {}
 edges = set()
 seen_links = 0
 PAPER_ROUTE = re.compile(r"^/(?:COMP|INFS|MECH)/\d{4}/PY/?$")
+COURSE_ROUTE = re.compile(r"^/(?:COMP|INFS|MECH)/\d{4}/?$")
 
 
 class LinkCollector(HTMLParser):
@@ -33,6 +34,23 @@ class LinkCollector(HTMLParser):
 
 
 page_url = lambda url: url.partition("#")[0].partition("?")[0].rstrip("/")
+
+
+def redundant_course_edge(source, target):
+    """Keep course graphs hierarchical instead of drawing every cross-reference"""
+    source_parts = source.strip("/").split("/")
+    target_parts = target.strip("/").split("/")
+    if (
+        len(source_parts) < 2
+        or len(target_parts) < 2
+        or source_parts[:2] != target_parts[:2]
+        or source_parts[0] not in {"COMP", "INFS", "MECH"}
+        or not source_parts[1].isdigit()
+    ):
+        return False
+    return not (
+        source_parts == target_parts[:-1] or target_parts == source_parts[:-1]
+    )
 
 
 def git(root, *args):
@@ -197,7 +215,7 @@ def on_page_content(html, page, config, **_):
 
 
 def on_post_build(config):
-    """Add creation dates and move the graph beside its script."""
+    """Add course links and creation dates, then move the graph beside its script"""
     site_dir = Path(config.site_dir)
     graph_path = site_dir / "assets" / "javascripts" / "graph.json"
     if not graph_path.is_file():
@@ -212,11 +230,46 @@ def on_post_build(config):
     graph["nodes"] = [
         node for node in graph.get("nodes", []) if str(node["id"]) not in paper_ids
     ]
-    graph["links"] = [
-        link
-        for link in graph.get("links", [])
-        if str(link["source"]) not in paper_ids and str(link["target"]) not in paper_ids
-    ]
+    nodes = {str(node["id"]): node for node in graph["nodes"]}
+    connected = set()
+    links = []
+    for link in graph.get("links", []):
+        source = str(link["source"])
+        target = str(link["target"])
+        edge = frozenset((source, target))
+        if (
+            source in paper_ids
+            or target in paper_ids
+            or len(edge) != 2
+            or edge in connected
+            or redundant_course_edge(
+                nodes.get(source, {}).get("value", ""),
+                nodes.get(target, {}).get("value", ""),
+            )
+        ):
+            continue
+        links.append(link)
+        connected.add(edge)
+    graph["links"] = links
+    home = next(
+        (node for node in graph["nodes"] if node.get("value") == "/"),
+        None,
+    )
+    if home:
+        home_id = str(home["id"])
+        for node in graph["nodes"]:
+            node_id = str(node["id"])
+            edge = frozenset((home_id, node_id))
+            if not COURSE_ROUTE.fullmatch(node.get("value", "")) or edge in connected:
+                continue
+            graph["links"].append({"source": home_id, "target": node_id})
+            connected.add(edge)
+    edge_counts = {node_id: 0 for node_id in nodes}
+    for link in graph["links"]:
+        edge_counts[str(link["source"])] += 1
+        edge_counts[str(link["target"])] += 1
+    for node_id, node in nodes.items():
+        node["symbolSize"] = edge_counts[node_id]
     for node in graph.get("nodes", []):
         if created := creation_dates_by_url.get(page_url(node.get("value", ""))):
             node["created"] = created

@@ -287,8 +287,8 @@ test("panic telemetry cycles modules, recovery text, and logo state", () => {
   );
   const runtime = panicRuntime();
   const context = runtime.base;
-  assert.equal(context.kernelScript().length > 60, true);
-  assert.match(context.bsdTrace({ x: 2, y: 4 }).join("\n"), /krad_route_fault/);
+  assert.equal(context.kernelScript().length > 40, true);
+  assert.match(context.bsdTrace({ x: 2, y: 4 }).join("\n"), /namei/);
   context.invalidateKernelScript();
 
   context.document.hidden = true;
@@ -447,7 +447,7 @@ function shellRuntime({
       base.player.x += x;
       base.player.y += y;
     },
-    ntDump: () => "trace dump",
+    routeDump: () => "trace dump",
     paused: false,
     pelletStarts: [1, 2, 3],
     pellets: new Set([1]),

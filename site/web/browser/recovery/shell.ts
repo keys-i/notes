@@ -160,13 +160,9 @@ var shell: any = {
     "kernel",
     "zfs.ko",
     "if_re.ko",
-    "pacman.ko",
-    "koala.ko",
-    "vrbik.ko",
-    "kradkrnl.ko",
-    "dingo.ko",
-    "eagle.ko",
-    "routecache.ko",
+    "if_tun.ko",
+    "pf.ko",
+    "nullfs.ko",
   ]),
   output: document.getElementById("shell-output"),
   oldcwd: "/",
@@ -518,7 +514,7 @@ function ddbCommand(source) {
       return bsdTrace().slice(1).join("\n");
     case "alltrace":
       return (
-        "Tracing command kradkrnl pid 404 tid " +
+        "Tracing command route-recovery pid 404 tid " +
         ((ghostTick || 0) + 100404) +
         "\n" +
         bsdTrace().slice(1).join("\n")
@@ -527,7 +523,7 @@ function ddbCommand(source) {
       return [
         "  pid  ppid  pgrp   uid  state   wmesg     command",
         "    0     0     0     0  DLs     -         kernel",
-        "  404     1   404     0  R+      maze0     kradkrnl.ko",
+        "  404     1   404     0  R+      maze0     route-recovery",
         "  528     1   528     0  S+      ttyin     /rescue/sh",
       ].join("\n");
     case "show":
@@ -555,7 +551,7 @@ function ddbCommand(source) {
           (position.x % 4) +
           "; curthread = 0x" +
           hex64(67) +
-          "; curproc = 404 (kradkrnl.ko)"
+          "; curproc = 404 (route-recovery)"
         );
       }
       if (argument === "allpcpu") {
@@ -565,7 +561,7 @@ function ddbCommand(source) {
               "cpuid " +
               cpu +
               ": " +
-              (cpu === position.x % 4 ? "current thread kradkrnl.ko" : "idle")
+              (cpu === position.x % 4 ? "current thread route-recovery" : "idle")
             );
           })
           .join("\n");
@@ -573,15 +569,15 @@ function ddbCommand(source) {
       if (argument === "all procs") return ddbCommand("ps");
       if (argument === "locks" || argument === "alllocks") {
         return (
-          "exclusive sleep mutex maze0-route (kradkrnl) r = 0 " +
+          "exclusive sleep mutex maze0-route (route-recovery) r = 0 " +
           "(0x" +
           hex64(68) +
-          ") locked @ krad_route_fault+0x404"
+          ") locked @ namei+0x404"
         );
       }
       if (argument === "thread") {
         return (
-          "Thread 404/100404: kradkrnl.ko at maze0 cell " +
+          "Thread 404/100404: route-recovery at maze0 cell " +
           position.x +
           "," +
           position.y
@@ -873,14 +869,14 @@ function shellCommand(source) {
         "KDB: enter: recovery console\n[ thread pid 404 tid " +
         ((ghostTick || 0) + 100404) +
         " ]\n" +
-        "Stopped at krad_route_fault+0x404: int3\nType help for commands."
+        "Stopped at namei+0x404: int3\nType help for commands."
       );
     case "kgdb":
       return (
         "Reading symbols from /boot/kernel/kernel...\n" +
         "0x" +
         hex64(81) +
-        " in krad_route_fault ()"
+        " in namei ()"
       );
     case "ps":
       return [
@@ -888,7 +884,7 @@ function shellCommand(source) {
         "   0  -  DLs  0:04 [kernel]",
         " 404 v0  R+   0:" +
           String(turn || 0).padStart(2, "0") +
-          " kradkrnl.ko --cell " +
+          " route-recovery --cell " +
           position.x +
           "," +
           position.y,
@@ -902,7 +898,7 @@ function shellCommand(source) {
         (position.x % 4) +
         "  " +
         (turn || 0) +
-        " 0:04 40.4% kradkrnl.ko"
+        " 0:04 40.4% route-recovery"
       );
     case "kldstat":
       return kldstat();
@@ -958,7 +954,7 @@ function shellCommand(source) {
             ? Array.from(shell.modules)[Number(target) - 1]
             : moduleName(target);
           if (!name) return "kldunload: can't find file " + target;
-          if (name === "kernel" || name === "kradkrnl.ko") {
+          if (name === "kernel") {
             return "kldunload: can't unload " + name + ": Device busy";
           }
           var moduleId = Array.from(shell.modules).indexOf(name) + 1;
@@ -1042,17 +1038,17 @@ function shellCommand(source) {
       return "hostname: recv\ndumpdev: AUTO\nfsck_y_enable: YES";
     case "service":
       return argument === "-e"
-        ? "/etc/rc.d/devd\n/etc/rc.d/savecore\n/etc/rc.d/krad"
+        ? "/etc/rc.d/devd\n/etc/rc.d/savecore\n/etc/rc.d/routing"
         : "usage: service [-j jail] -e | service name start|stop|status";
     case "sockstat":
       return (
         "USER COMMAND    PID FD PROTO LOCAL ADDRESS FOREIGN ADDRESS\n" +
-        "rad  kradkrnl  404  4  krad  maze0:*      *:*"
+        "rad  route-rec 404  4  udp4  127.0.0.1:*  *:*"
       );
     case "procstat":
       return (
         "  PID  PPID  PGID   SID  TSID THR LOGIN WCHAN  EMUL COMMAND\n" +
-        "  404     1   404   404   528   1 rad   maze0  FreeBSD kradkrnl.ko"
+        "  404     1   404   404   528   1 rad   maze0  FreeBSD route-recovery"
       );
     case "iostat":
       return (
@@ -1109,7 +1105,7 @@ function shellCommand(source) {
       return (
         "Dump header from device: /dev/ada0p3\n" +
         "Architecture: amd64\nPanic: route vnode 404 vanished\n" +
-        "Fault module: kradkrnl.ko\nCell: " +
+        "Current process: route-recovery\nCell: " +
         position.x +
         "," +
         position.y
@@ -1319,7 +1315,16 @@ function shellCommand(source) {
         gameAudio.start();
         return "koalactl: maze0 scheduler resumed";
       }
-      if (argument === "trace") return ntDump();
+      if (argument === "trace") return routeDump();
+      if (argument === "cheat" && parts[1] === "doom") {
+        var armed = armDoomPowerup();
+        statusElement.textContent = armed
+          ? "devd: armoured sorcerer override forced into maze0."
+          : "devd: armoured sorcerer override is already armed.";
+        return armed
+          ? "koalactl: secret armour signal armed"
+          : "koalactl: secret armour signal already present";
+      }
       if (argument === "reset" || argument === "restart") {
         resetGame();
         gameAudio.start();

@@ -79,7 +79,10 @@ mod tests {
         assert_eq!(contract["openapi"], "3.1.0");
         for path in [
             "/api/pet",
+            "/api/courses",
+            "/api/courses/{course}",
             "/api/papers/{course}",
+            "/api/papers/{course}/{document}/outline",
             "/api/manuals/freebsd",
             "/healthz",
             "/healthz/{service}",
@@ -89,5 +92,17 @@ mod tests {
         ] {
             assert!(contract["paths"].get(path).is_some(), "missing {path}");
         }
+        assert!(
+            contract["components"]["schemas"]
+                .get("CourseCatalogue")
+                .is_some()
+        );
+        assert!(
+            contract["paths"]["/healthz/{service}"]["get"]["parameters"][0]["schema"]["enum"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|service| service == "courses")
+        );
     }
 }

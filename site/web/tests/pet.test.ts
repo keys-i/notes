@@ -49,6 +49,18 @@ vm.runInContext(source.slice(0, source.indexOf("\n(function () {")), pure, {
   filename: petPath,
 });
 
+function nextIdleTimer(runtime) {
+  return [...runtime.timers.values()].find(
+    (entry) =>
+      (entry.delay >= 7000 && entry.delay <= 11000) ||
+      (entry.delay >= 30000 && entry.delay <= 42000),
+  );
+}
+
+function hasIdleTimer(runtime) {
+  return Boolean(nextIdleTimer(runtime));
+}
+
 test("reading helpers find a heading and keep grounded replies short", () => {
   const headings = [
     { id: "intro", offsetTop: 0, textContent: "Introduction" },
@@ -110,12 +122,17 @@ test("reading helpers find a heading and keep grounded replies short", () => {
     pure.dockPetStudyReply("Explain quantum entanglement", sections, 1, 3).text,
     /Thinking that through/,
   );
-  assert.equal(pure.dockPetIdlePlan(1).behavior, "scratch-head");
-  assert.equal(pure.dockPetIdlePlan(4).behavior, "scratch-bum");
-  assert.equal(pure.dockPetIdlePlan(5).message, "motivate");
-  assert.equal(pure.dockPetIdlePlan(6).message, "fact");
-  assert.ok(pure.dockPetIdleDelay(100000, 0) >= 45000);
-  assert.ok(pure.dockPetIdleDelay(100000, 0) <= 90000);
+  assert.equal(pure.dockPetIdlePlan(1).behavior, "stretch");
+  assert.equal(pure.dockPetIdlePlan(2).behavior, "scratch-head");
+  assert.equal(pure.dockPetIdlePlan(5).behavior, "scratch-bum");
+  assert.equal(pure.dockPetIdlePlan(7).message, "motivate");
+  assert.equal(pure.dockPetIdlePlan(8).message, "fact");
+  assert.equal(pure.dockPetIdleDuration("blink"), 220);
+  assert.equal(pure.dockPetIdleDuration("stretch"), 1800);
+  assert.ok(pure.dockPetIdleDelay(100000, 0) >= 7000);
+  assert.ok(pure.dockPetIdleDelay(100000, 0) <= 11000);
+  assert.ok(pure.dockPetIdleDelay(100000, 1) >= 30000);
+  assert.ok(pure.dockPetIdleDelay(100000, 1) <= 42000);
 });
 
 test("study replies handle empty notes, greetings, context, and phrasing", () => {
@@ -337,13 +354,16 @@ test("the koala is squat, asymmetric, and free of a skeletal rig", () => {
   assert.match(style, /--dock-pet-climb-angle/);
   assert.match(style, /dock-pet-climb-grip/);
   assert.match(style, /--dock-pet-rappel-angle/);
+  assert.match(style, /dock-pet-rappel-grip/);
   assert.match(style, /dock-pet-rappel-brace/);
+  assert.match(style, /dock-pet-idle-breathe/);
+  assert.match(style, /data-behavior="stretch"/);
   assert.match(style, /data-falling[\s\S]*z-index: 25/);
   const descentMotion = style.slice(
     style.indexOf("@keyframes dock-pet-climb-body"),
     style.indexOf("@keyframes dock-pet-joint-a"),
   );
-  assert.doesNotMatch(descentMotion, /translateY|translate\([^)]*,/);
+  assert.match(descentMotion, /translate\([^)]*,/);
   assert.match(style, /data-rope[\s\S]*dock-pet__harness[\s\S]*opacity: 1/);
   assert.match(style, /data-wandering[\s\S]*--dock-pet-walk-duration/);
   assert.match(style, /data-wandering[\s\S]*dock-pet__face/);
@@ -404,6 +424,7 @@ test("site chrome exposes progress and authored footer motion safely", () => {
   assert.match(siteConfig, /text: IBM Plex Sans/);
   assert.match(siteConfig, /code: IBM Plex Mono/);
   assert.match(siteConfig, /link: https:\/\/keysi\.dev/);
+  assert.match(siteConfig, /icon: material\/web/);
   assert.match(siteConfig, /link: https:\/\/linkedin\.com\/in\/radhesh-g/);
   assert.match(headerTemplate, /class="md-header__button md-logo site-home-link"/);
   assert.match(headerTemplate, /class="site-brand__name"/);
@@ -418,7 +439,7 @@ test("site chrome exposes progress and authored footer motion safely", () => {
     /Made with[\s\S]*site-footer-owner__heart[\s\S]*aria-label="love"[\s\S]*by[\s\S]*Radhesh/,
   );
   assert.match(footerTemplate, /site-footer-owner__rocket/);
-  assert.match(footerTemplate, /site-footer-network__wordmark/);
+  assert.doesNotMatch(footerTemplate, /site-footer-network__wordmark/);
   assert.match(footerTemplate, /site-footer-network__link--icon/);
   assert.match(footerTemplate, /social\.logo/);
   assert.doesNotMatch(footerTemplate, /❤️|❤|MIT licensed|social\.description/);
@@ -435,15 +456,11 @@ test("site chrome exposes progress and authored footer motion safely", () => {
   assert.match(siteStyle, /\.md-header__button:is\(:hover, :focus-visible\)/);
   assert.match(siteStyle, /\.site-footer-network__link--primary/);
   assert.match(siteStyle, /\.site-footer-owner__name/);
-  assert.match(
-    siteStyle,
-    /\.site-footer-network__wordmark[\s\S]*?font-family: Georgia, serif/,
-  );
-  assert.match(
-    siteStyle,
-    /text-decoration-color: var\(--color-accent-300\)/,
-  );
+  assert.doesNotMatch(siteStyle, /site-footer-network__wordmark/);
   assert.match(graphStyle, /width: min\(42rem, calc\(100% - 28rem\)\)/);
+  assert.match(graphStyle, /\.md-search__overlay[\s\S]*background: transparent/);
+  assert.match(graphStyle, /\.md-search__scrollwrap[\s\S]*width: 100%/);
+  assert.match(graphStyle, /max-height: min\(60vh, 28rem\)/);
   assert.match(siteStyle, /@property --theme-reveal/);
   assert.match(siteStyle, /@keyframes theme-wave-reveal/);
   assert.match(siteStyle, /@keyframes theme-fallback/);
@@ -464,6 +481,7 @@ test("site chrome exposes progress and authored footer motion safely", () => {
   assert.match(siteStyle, /@keyframes site-owner-rocket/);
   assert.match(siteStyle, /@keyframes site-minis-lift/);
   assert.match(siteStyle, /@keyframes site-minis-halo/);
+  assert.match(siteStyle, /site-footer-network__link--icon[\s\S]*scale\(1\.12\)/);
   assert.doesNotMatch(siteStyle, /site-minis-pop|rotate\(10deg\)/);
   assert.match(
     siteStyle,
@@ -2191,10 +2209,8 @@ test("visibility and media changes cancel work and settle live movement", async 
   hidden.documentHandlers.pointerdown({ composedPath: () => [] });
   hidden.document.hidden = false;
   hidden.documentHandlers.visibilitychange();
-  assert.equal(
-    [...hidden.timers.values()].some((entry) => entry.delay >= 45000),
-    true,
-  );
+  assert.equal(hidden.pet.dataset.paused, undefined);
+  assert.equal(hasIdleTimer(hidden), true);
 
   const falling = createRuntime();
   falling.petHandlers.pointerdown({
@@ -2280,10 +2296,7 @@ test("reduced motion suppresses reactions and resolves drops immediately", () =>
   assert.equal(runtime.pet.dataset.behavior, undefined);
   assert.equal(runtime.pet.dataset.wink, undefined);
   assert.equal(runtime.pet.dataset.grip, undefined);
-  assert.equal(
-    [...runtime.timers.values()].some((entry) => entry.delay >= 45000),
-    false,
-  );
+  assert.equal(hasIdleTimer(runtime), false);
 
   const drop = createRuntime({ reduced: true });
   drop.petHandlers.pointerdown({
@@ -2317,17 +2330,18 @@ test("reduced motion suppresses reactions and resolves drops immediately", () =>
 });
 
 test("one bounded idle scheduler animates expressions and pauses when hidden", () => {
-  const runtime = createRuntime();
+  const runtime = createRuntime({ cryptoDigest: new Uint8Array(32) });
   const runIdle = () => {
-    const timer = [...runtime.timers.values()].find(
-      (entry) => entry.delay >= 45000 && entry.delay <= 90000,
-    );
+    const timer = nextIdleTimer(runtime);
     assert.ok(timer);
     runtime.runTimer(timer.delay);
   };
   runIdle();
   assert.equal(runtime.pet.dataset.behavior, "blink");
   runtime.runTimer(220);
+  runIdle();
+  assert.equal(runtime.pet.dataset.behavior, "stretch");
+  runtime.runTimer(1800);
   runIdle();
   assert.equal(runtime.pet.dataset.behavior, "scratch-head");
   runtime.runTimer(1400);
@@ -2336,10 +2350,8 @@ test("one bounded idle scheduler animates expressions and pauses when hidden", (
   assert.match(runtime.bubbleText.textContent, /equation|definition|symbol/i);
   runtime.document.hidden = true;
   runtime.documentHandlers.visibilitychange();
-  assert.equal(
-    [...runtime.timers.values()].some((entry) => entry.delay >= 45000),
-    false,
-  );
+  assert.equal(runtime.pet.dataset.paused, "true");
+  assert.equal(hasIdleTimer(runtime), false);
 });
 
 test("automatic docking wanders on bounded ground and yields to people", () => {
@@ -2359,7 +2371,7 @@ test("automatic docking wanders on bounded ground and yields to people", () => {
   const duration = Number.parseFloat(
     runtime.pet.style["--dock-pet-walk-duration"],
   );
-  assert.ok(duration >= 1600 && duration <= 4200);
+  assert.ok(duration >= 1800 && duration <= 4800);
   runtime.runTimer(duration);
   assert.equal(runtime.pet.dataset.state, "perched");
   assert.equal(runtime.pet.dataset.wandering, undefined);
@@ -2435,11 +2447,9 @@ test("automatic docking wanders on bounded ground and yields to people", () => {
 });
 
 test("idle messages rotate through motivation and current-note facts", () => {
-  const runtime = createRuntime({ now: 103000 });
+  const runtime = createRuntime({ now: 97000 });
   const runIdle = () => {
-    const timer = [...runtime.timers.values()].find(
-      (entry) => entry.delay >= 45000 && entry.delay <= 90000,
-    );
+    const timer = nextIdleTimer(runtime);
     assert.ok(timer);
     runtime.runTimer(timer.delay);
   };
@@ -2453,21 +2463,14 @@ test("idle messages rotate through motivation and current-note facts", () => {
   assert.equal(runtime.bubble.hidden, true);
 
   const blocked = createRuntime();
-  const pending = [...blocked.timers.values()].find(
-    (entry) => entry.delay >= 45000 && entry.delay <= 90000,
-  );
+  const pending = nextIdleTimer(blocked);
   assert.ok(pending);
   blocked.document.hidden = true;
   blocked.runTimer(pending.delay);
-  assert.equal(
-    [...blocked.timers.values()].some((entry) => entry.delay >= 45000),
-    false,
-  );
+  assert.equal(hasIdleTimer(blocked), false);
 
-  const generalFact = createRuntime({ now: 104000 });
-  const factTimer = [...generalFact.timers.values()].find(
-    (entry) => entry.delay >= 45000 && entry.delay <= 90000,
-  );
+  const generalFact = createRuntime({ now: 98000 });
+  const factTimer = nextIdleTimer(generalFact);
   assert.ok(factTimer);
   generalFact.runTimer(factTimer.delay);
   assert.match(
@@ -2494,18 +2497,17 @@ test("pointer gaze settles back to neutral and idle clouds stay in view", () => 
     "translate(0.000 0.000)",
   );
 
-  const cloudRuntime = createRuntime({ viewportWidth: 320 });
-  [220, 1400].forEach((reactionDelay) => {
-    const idle = [...cloudRuntime.timers.values()].find(
-      (entry) => entry.delay >= 45000 && entry.delay <= 90000,
-    );
+  const cloudRuntime = createRuntime({
+    cryptoDigest: new Uint8Array(32),
+    viewportWidth: 320,
+  });
+  [220, 1800, 1400].forEach((reactionDelay) => {
+    const idle = nextIdleTimer(cloudRuntime);
     assert.ok(idle);
     cloudRuntime.runTimer(idle.delay);
     cloudRuntime.runTimer(reactionDelay);
   });
-  const idle = [...cloudRuntime.timers.values()].find(
-    (entry) => entry.delay >= 45000 && entry.delay <= 90000,
-  );
+  const idle = nextIdleTimer(cloudRuntime);
   assert.ok(idle);
   cloudRuntime.runTimer(idle.delay);
   cloudRuntime.runAnimationFrames();

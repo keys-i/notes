@@ -11,13 +11,14 @@
 │   │   ├── src/
 │   │   │   ├── routing/       # Worker entry, responses, health and telemetry
 │   │   │   ├── service/
+│   │   │   │   ├── courses/   # checked UQ course identities and safe routes
 │   │   │   │   ├── koala/     # route entry for study requests
 │   │   │   │   │   ├── request/ # input, files, output and response caching
 │   │   │   │   │   └── mcp/     # routing, reranking, prompts and LLM work
 │   │   │   │   ├── manuals/   # FreeBSD configuration and proxy
 │   │   │   │   └── papers/    # paper configuration and catalogue
 │   │   │   └── shared/cache/  # cache access, opaque keys and policies
-│   ├── config/           # editable game, paper and manual TOML
+│   ├── config/           # editable course, game, paper and manual TOML
 │   ├── web/              # authored website source
 │   │   ├── browser/      # TypeScript grouped by page, study and recovery work
 │   │   ├── hooks/        # Python content and publication build rules
@@ -73,6 +74,11 @@ public `/assets/...` URLs remain stable
 Course paper pages carry only their course code. The Worker reads
 `site/config/papers.toml`, expands validated Google resource codes and returns
 one course from `/api/papers/<course>` without publishing a whole-site JSON file
+
+Course discovery follows the same runtime ownership. The Worker reads
+`site/config/courses.toml`, validates checked identities and code-derived local
+routes, then builds `/api/courses` and `/api/courses/<course>` at request time
+No course or paper JSON file is written into the static site
 
 The same hook writes lightweight redirects from the former
 `/markdown/<subject>/...` URLs to the current subject paths. This keeps old
@@ -181,6 +187,7 @@ is build output and must never be edited directly
 | Work | Owner | Reason |
 | --- | --- | --- |
 | Note search, graph playback, themes and paper filtering | Static browser code | Immediate interaction with no network dependency or private state |
+| Course identity, route derivation, stale state and catalogue bounds | Worker course service | One checked TOML source produces bounded request-time JSON without generated data files |
 | Paper catalogue validation, primary-before-fallback deduplication and URL expansion | Worker paper service | One reproducible embedded catalogue per deployment with no Drive credential in the browser |
 | Koala inference, input validation, rate limiting, probes and operational telemetry | Cloudflare Worker | Secrets and abuse controls stay server-side while static notes remain available during failure |
 | PDF text extraction, OCR and question/subpart indexing | No current owner | Add a queued, cached document worker only after Drive access, retention, copyright and failure policy are authorised |
@@ -199,6 +206,7 @@ queue backpressure
 - Browser source is TypeScript under `site/web/browser/`
 - Web and MkDocs tests live under `site/web/tests/`
 - Generated `assets/js/` and `public/` files are disposable build output
-- The Worker serves `/api/pet`, `/api/papers/<course>`,
-  `/api/manuals/freebsd`, `/healthz`, `/livez` and `/readyz`
+- The Worker serves `/api/pet`, `/api/courses`, `/api/courses/<course>`,
+  `/api/papers/<course>`, `/api/manuals/freebsd`, `/healthz`,
+  `/healthz/courses`, `/livez` and `/readyz`
 - Private Minis routes stay separate

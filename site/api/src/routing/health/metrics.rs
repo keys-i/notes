@@ -74,10 +74,12 @@ notes_api_up 1\n\
 notes_api_ready {}\n\
 # HELP notes_api_service_ready Whether an API service can accept traffic\n\
 # TYPE notes_api_service_ready gauge\n\
+notes_api_service_ready{{service=\"courses\"}} {}\n\
 notes_api_service_ready{{service=\"koala\"}} {}\n\
 notes_api_service_ready{{service=\"manuals\"}} {}\n\
 notes_api_service_ready{{service=\"papers\"}} {}\n",
         gauge(checks.all_ready()),
+        gauge(checks.courses),
         gauge(checks.koala.ready()),
         gauge(checks.manuals),
         gauge(checks.papers),
@@ -106,12 +108,14 @@ mod tests {
                 model: false,
                 rate_limit: true,
             },
+            courses: true,
             manuals: true,
             papers: true,
         });
         assert!(body.contains("notes_api_up 1"));
         assert!(body.contains("notes_api_ready 0"));
         assert!(body.contains("notes_api_service_ready{service=\"koala\"} 0"));
+        assert!(body.contains("notes_api_service_ready{service=\"courses\"} 1"));
         assert!(body.contains("notes_api_service_ready{service=\"manuals\"} 1"));
         assert!(!body.contains("MODEL_API_KEY"));
     }

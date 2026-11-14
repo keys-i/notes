@@ -1,0 +1,312 @@
+[[cases]]
+name = "valid-source"
+valid = true
+source = '''
+updated = "2026-11-13"
+
+[[courses]]
+code = "COMP4500"
+title = "Advanced Algorithms and Data Structures"
+maturity = "source"
+verified = "2026-11-13"
+catalogue-id = "COMP4500_7660_60785"
+'''
+
+[[cases]]
+name = "valid-resources"
+valid = true
+source = '''
+updated = "2026-11-13"
+
+[[courses]]
+code = "COMP4702"
+title = "Machine Learning"
+maturity = "resources"
+route = "COMP/4702/"
+verified = "2026-11-13"
+catalogue-id = "COMP4702_7620_21208"
+papers-route = "COMP/4702/PY/"
+'''
+
+[[cases]]
+name = "valid-learning"
+valid = true
+source = '''
+updated = "2026-11-13"
+
+[[courses]]
+code = "COMP4702"
+title = "Machine Learning"
+maturity = "learning"
+route = "COMP/4702/"
+verified = "2026-11-13"
+catalogue-id = "COMP4702_7620_21208"
+
+[courses.review]
+role = "independent subject-matter reviewer"
+date = "2026-11-13"
+record = "docs/reviews/COMP4702.md"
+'''
+
+[[cases]]
+name = "valid-folder-identity"
+valid = true
+source = '''
+updated = "2026-11-13"
+
+[[courses]]
+code = "COMP4702"
+title = "Machine Learning"
+maturity = "source"
+verified = "2026-11-13"
+folder-code = "1IDoh1OmL_JWsZKx0BfssAL27weAwArv1"
+
+[courses.source-permission]
+status = "allowed"
+record = "docs/sources/COMP4702.md"
+expires = "2027-11-13"
+'''
+
+[[cases]]
+name = "valid-leap-day"
+valid = true
+source = '''
+updated = "2024-02-29"
+
+[[courses]]
+code = "COMP4702"
+title = "Machine Learning"
+maturity = "source"
+verified = "2024-02-29"
+catalogue-id = "COMP4702_7620_21208"
+'''
+
+[[cases]]
+name = "invalid-code"
+valid = false
+source = '''
+updated = "2026-11-13"
+
+[[courses]]
+code = "comp4702"
+title = "Machine Learning"
+maturity = "source"
+verified = "2026-11-13"
+catalogue-id = "COMP4702_7620_21208"
+'''
+
+[[cases]]
+name = "unknown-prefix"
+valid = false
+source = '''
+updated = "2026-11-13"
+
+[[courses]]
+code = "LAWX4702"
+title = "Unknown Subject"
+maturity = "source"
+verified = "2026-11-13"
+catalogue-id = "LAWX4702_0000_00000"
+'''
+
+[[cases]]
+name = "duplicate-code"
+valid = false
+source = '''
+updated = "2026-11-13"
+
+[[courses]]
+code = "COMP4702"
+title = "Machine Learning"
+maturity = "source"
+verified = "2026-11-13"
+catalogue-id = "COMP4702_7620_21208"
+
+[[courses]]
+code = "COMP4702"
+title = "Machine Learning Again"
+maturity = "source"
+verified = "2026-11-13"
+catalogue-id = "COMP4702_7620_21208"
+'''
+
+[[cases]]
+name = "unknown-field"
+valid = false
+source = '''
+updated = "2026-11-13"
+
+[[courses]]
+code = "COMP4702"
+title = "Machine Learning"
+maturity = "source"
+verified = "2026-11-13"
+catalogue-id = "COMP4702_7620_21208"
+colour = "purple"
+'''
+
+[[cases]]
+name = "impossible-date"
+valid = false
+source = '''
+updated = "2026-11-13"
+
+[[courses]]
+code = "COMP4702"
+title = "Machine Learning"
+maturity = "source"
+verified = "2026-02-29"
+catalogue-id = "COMP4702_7620_21208"
+'''
+
+[[cases]]
+name = "future-date"
+valid = false
+source = '''
+updated = "2026-11-13"
+
+[[courses]]
+code = "COMP4702"
+title = "Machine Learning"
+maturity = "source"
+verified = "2026-11-14"
+catalogue-id = "COMP4702_7620_21208"
+'''
+
+[[cases]]
+name = "missing-identity"
+valid = false
+source = '''
+updated = "2026-11-13"
+
+[[courses]]
+code = "COMP4702"
+title = "Machine Learning"
+maturity = "source"
+verified = "2026-11-13"
+'''
+
+[[cases]]
+name = "cross-course-route"
+valid = false
+source = '''
+updated = "2026-11-13"
+
+[[courses]]
+code = "COMP4702"
+title = "Machine Learning"
+maturity = "resources"
+route = "COMP/4403/"
+verified = "2026-11-13"
+catalogue-id = "COMP4702_7620_21208"
+'''
+
+[[cases]]
+name = "missing-review"
+valid = false
+source = '''
+updated = "2026-11-13"
+
+[[courses]]
+code = "COMP4702"
+title = "Machine Learning"
+maturity = "learning"
+route = "COMP/4702/"
+verified = "2026-11-13"
+catalogue-id = "COMP4702_7620_21208"
+'''
+
+[[cases]]
+name = "overlong-title"
+valid = false
+source = '''
+updated = "2026-11-13"
+
+[[courses]]
+code = "COMP4702"
+title = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+maturity = "source"
+verified = "2026-11-13"
+catalogue-id = "COMP4702_7620_21208"
+'''
+
+[[cases]]
+name = "expired-permission"
+valid = false
+source = '''
+updated = "2026-11-13"
+
+[[courses]]
+code = "COMP4702"
+title = "Machine Learning"
+maturity = "source"
+verified = "2026-11-13"
+folder-code = "1IDoh1OmL_JWsZKx0BfssAL27weAwArv1"
+
+[courses.source-permission]
+status = "allowed"
+record = "docs/sources/COMP4702.md"
+expires = "2026-11-12"
+'''
+
+[[cases]]
+name = "unsafe-folder-url"
+valid = false
+source = '''
+updated = "2026-11-13"
+
+[[courses]]
+code = "COMP4702"
+title = "Machine Learning"
+maturity = "source"
+verified = "2026-11-13"
+folder-code = "https://example.com/folder"
+
+[courses.source-permission]
+status = "allowed"
+record = "docs/sources/COMP4702.md"
+expires = "2027-11-13"
+'''
+
+[[cases]]
+name = "invalid-maturity"
+valid = false
+source = '''
+updated = "2026-11-13"
+
+[[courses]]
+code = "COMP4702"
+title = "Machine Learning"
+maturity = "complete"
+verified = "2026-11-13"
+catalogue-id = "COMP4702_7620_21208"
+'''
+
+[[cases]]
+name = "source-with-resources"
+valid = false
+source = '''
+updated = "2026-11-13"
+
+[[courses]]
+code = "COMP4702"
+title = "Machine Learning"
+maturity = "source"
+route = "COMP/4702/"
+verified = "2026-11-13"
+catalogue-id = "COMP4702_7620_21208"
+'''
+
+[[cases]]
+name = "resources-without-action"
+valid = false
+source = '''
+updated = "2026-11-13"
+
+[[courses]]
+code = "COMP4702"
+title = "Machine Learning"
+maturity = "resources"
+verified = "2026-11-13"
+catalogue-id = "COMP4702_7620_21208"
+'''

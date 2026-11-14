@@ -52,7 +52,7 @@ runtime; model inference does not use Workers AI. Privacy-safe structured
 metrics use Workers Logs with invocation logs disabled and query strings
 redacted. No model credential is stored in the repository. `workers_dev` is
 disabled and routes are limited to the study endpoint, course paper catalogues,
-the FreeBSD manual proxy and the three documented probe paths
+the checked course catalogue, the FreeBSD manual proxy and the documented probe paths
 
 Groq's free tier has quotas and no availability SLA. A quota, network or model
 failure returns the typed `model_unavailable` response, and the browser keeps
@@ -74,6 +74,7 @@ identity contract; browser roles or headers are never trusted as authority
 | Missing page or asset              | strict MkDocs build and `site/web/hooks/site.py`  |
 | Page renders but interaction fails | browser console and `site/web/tests/`             |
 | Koala falls back to local answers  | Worker route, Groq secret, free quota, rate limit |
+| Course catalogue is unavailable    | `/healthz/courses`, `site/config/courses.toml`     |
 | Worker build fails                 | Rust checks from the Study Worker section         |
 
 Generated output in `public/` and `assets/js/` is disposable. Fix the authored
@@ -93,6 +94,11 @@ The Worker rolls back independently: deploy `site/api/` from the last known-good
 commit or remove its narrow route while the static helper continues with its
 local grounded fallback
 
+Course catalogue changes use server-first rollout. Deploy the backward-compatible
+Worker response before a static page consumes it; roll back the static consumer
+before removing a Worker field or route. Keep existing local course paths live
+for at least the published 24-hour cache window after demotion
+
 ## Reliability contract
 
 The site has two independently deployable failure domains
@@ -109,7 +115,8 @@ Pause risky releases when either service exhausts its 28-day budget or burns fas
 ### Probes
 
 - `/healthz` and `/livez` prove the Worker isolate can execute and return a bounded response
-- `/readyz` proves the model secret and rate-limit binding are configured before traffic is accepted
+- `/healthz/courses` reports only course configuration readiness, so a bad catalogue does not hide koala, manual or paper health
+- `/readyz` proves every required configuration and binding is ready before traffic is accepted
 - Readiness deliberately does not spend a model request or make Groq availability part of Worker admission; provider failure returns a typed `503` and the browser keeps its local grounded fallback
 - GitHub Pages has no application process, database or queue, so its honest health check is an external HTTPS request to a representative generated page
 

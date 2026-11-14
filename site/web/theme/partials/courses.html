@@ -1,0 +1,26 @@
+<section class="course-catalog" aria-labelledby="course-catalog-title">
+  <header class="course-catalog__header">
+    <h2 id="course-catalog-title">Courses</h2>
+  </header>
+
+  <div class="course-catalog__list" id="course-list">
+    {% for course in course_catalog %}
+    <article class="course-catalog__item" data-course-code="{{ course.code }}">
+      <div class="course-catalog__identity">
+        <span class="course-catalog__code">{{ course.code }}</span>
+        <h3><a href="{{ course.route | url }}">{{ course.title }}</a></h3>
+        <p class="course-catalog__tags">
+          <span class="course-catalog__tag course-catalog__tag--area course-catalog__tag--{{ course.area }}">{{ course.area | replace('-', ' ') | title }}</span>
+          {% if course.offering %}<span class="course-catalog__tag course-catalog__tag--term">{{ course.offering }}</span>{% endif %}
+        </p>
+      </div>
+      <nav class="course-catalog__actions" aria-label="{{ course.code }} resources">
+        {% if course.route %}<a class="course-catalog__action course-catalog__action--notes" href="{{ course.route | url }}" aria-label="Open {{ course.code }} notes" title="Notes"></a>{% endif %}
+        {% if course.papers_route %}<a class="course-catalog__action course-catalog__action--papers" href="{{ course.papers_route | url }}" aria-label="Open {{ course.code }} past papers" title="Past papers"></a>{% endif %}
+        {% if course.cheatsheet_route %}<a class="course-catalog__action course-catalog__action--cheatsheet" href="{{ course.cheatsheet_route | url }}" aria-label="Open {{ course.code }} cheatsheet" title="Cheatsheet"></a>{% endif %}
+        {% if course.source_url %}<a class="course-catalog__action course-catalog__action--source" href="{{ course.source_url }}" rel="external" aria-label="Open {{ course.code }} course archive" title="Course archive"></a>{% elif course.catalogue_url %}<a class="course-catalog__action course-catalog__action--catalogue" href="{{ course.catalogue_url }}" rel="external" aria-label="{{ course.catalogue_label }}" title="UQ catalogue"></a>{% endif %}
+      </nav>
+    </article>
+    {% endfor %}
+  </div>
+</section>

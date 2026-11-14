@@ -171,6 +171,7 @@ class RuntimeElement {
 
   removeAttribute(name: string) {
     delete this.attributes[name];
+    if (name === "data-marquee") delete this.dataset.marquee;
   }
 
   replaceChildren(...children: RuntimeElement[]) {
@@ -784,6 +785,13 @@ test("graph helpers preserve routes, ordering, labels, and timeline state", asyn
   const call = (source: string) => vm.runInContext(source, graph.context);
   assert.equal(graph.labels[0].dataset.marquee, "Long label");
   assert.equal(graph.labels[1].dataset.marquee, undefined);
+  (graph.labels[0] as any).clientWidth = 180;
+  graph.handlers.resize[0]({});
+  assert.equal(graph.labels[0].dataset.marquee, undefined);
+  assert.equal(graph.labels[0].style["--marquee-distance"], "");
+  (graph.labels[0] as any).clientWidth = 80;
+  graph.handlers.load[0]({});
+  assert.equal(graph.labels[0].dataset.marquee, "Long label");
   assert.match(graph.launcherHtml(), /aria-label="Open graph"/);
   assert.doesNotMatch(graph.launcherHtml(), />Graph<\/span>/);
   assert.equal(call("graph_node_size(3, 2)"), 8.5);
@@ -1300,15 +1308,6 @@ test("graph replay is one cancellable frame loop and data failures retry", async
   (graph.context as any).cancelAnimationFrame = (id: number) =>
     cancelled.push(id);
   graph.window.matchMedia = () => ({ matches: false });
-  const sceneFields: Record<string, RuntimeElement> = Object.fromEntries(
-    ["[data-graph-step]", "[data-graph-name]", "[data-graph-year]", "[data-graph-progress]"].map(
-      (selector) => [selector, new RuntimeElement()],
-    ),
-  );
-  const scene = { hidden: true, querySelector: (selector: string) => sceneFields[selector] };
-  const originalQuery = (graph.context as any).document.querySelector.bind((graph.context as any).document);
-  (graph.context as any).document.querySelector = (selector: string) =>
-    selector === ".graph-replay-scene" ? scene : originalQuery(selector);
   let disposed = false;
   const chart = {
     isDisposed: () => disposed,
@@ -1329,11 +1328,8 @@ test("graph replay is one cancellable frame loop and data failures retry", async
   call("replay_graph_growth(replayChart)");
   assert.equal(chart.options.at(-3).series[0].layout, "none");
   assert.ok(chart.options.at(-2).series[0].zoom < 1);
-  assert.equal(scene.hidden, false);
   assert.deepEqual(cancelled, [1]);
   frames[1](1);
-  assert.equal(sceneFields["[data-graph-step]"].textContent, "01 / 02");
-  assert.equal(sceneFields["[data-graph-year]"].textContent, "2024");
   assert.deepEqual(
     chart.options.at(-1).series[0].data.map((node: any) => node.id),
     ["0", "1"],
@@ -1364,7 +1360,6 @@ test("graph replay is one cancellable frame loop and data failures retry", async
   frames[6](914);
   assert.equal(chart.options.at(-1).series[0].data.length, 3);
   assert.equal(graph.replay.classList.contains("is-playing"), false);
-  assert.equal(scene.hidden, true);
   assert.equal(call("graphTimelineFrame"), 0);
   assert.equal(graph.timers.size, 0);
   call("replay_graph_growth(replayChart)");

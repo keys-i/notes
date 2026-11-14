@@ -1,6 +1,6 @@
 """Project command entry points."""
 
-from os import environ
+from os import environ, execvpe
 from pathlib import Path
 from subprocess import call
 from sys import executable
@@ -48,8 +48,9 @@ def test():
     return call(["npm", "run", "--silent", "test:web"])
 
 
-serve = lambda: call(
-    [
+def serve():
+    """Run MkDocs as the foreground process so shutdown cannot orphan it"""
+    command = [
         "mkdocs",
         "serve",
         "--config-file",
@@ -66,6 +67,5 @@ serve = lambda: call(
         "site/web/styles",
         "-w",
         "site/web/hooks",
-    ],
-    env={**environ, "NO_MKDOCS_2_WARNING": "1"},
-)
+    ]
+    execvpe(command[0], command, {**environ, "NO_MKDOCS_2_WARNING": "1"})

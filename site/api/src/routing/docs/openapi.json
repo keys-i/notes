@@ -3,7 +3,7 @@
   "info": {
     "title": "Keysi Notes API",
     "version": "0.1.0",
-    "description": "Study assistance, past papers, FreeBSD manuals and operational health for uni.keysi.dev"
+    "description": "Course discovery, study assistance, past papers, FreeBSD manuals and operational health for uni.keysi.dev"
   },
   "servers": [
     {
@@ -13,6 +13,7 @@
   ],
   "tags": [
     { "name": "Koala", "description": "Grounded study answers" },
+    { "name": "Courses", "description": "Validated UQ course discovery" },
     { "name": "Papers", "description": "Validated past-paper catalogues" },
     { "name": "Manuals", "description": "FreeBSD manual lookup and search" },
     { "name": "Operations", "description": "Health, readiness and Prometheus metrics" }
@@ -50,6 +51,55 @@
         }
       }
     },
+    "/api/courses": {
+      "get": {
+        "tags": ["Courses"],
+        "operationId": "listCourses",
+        "summary": "List checked UQ courses and their available study routes",
+        "responses": {
+          "200": {
+            "description": "Course catalogue ordered by code",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CourseCatalogue" }
+              }
+            }
+          },
+          "405": { "$ref": "#/components/responses/MethodNotAllowed" },
+          "503": { "$ref": "#/components/responses/Unavailable" }
+        }
+      }
+    },
+    "/api/courses/{course}": {
+      "get": {
+        "tags": ["Courses"],
+        "operationId": "getCourse",
+        "summary": "Get one checked UQ course",
+        "parameters": [
+          {
+            "name": "course",
+            "in": "path",
+            "required": true,
+            "description": "Uppercase course code",
+            "schema": { "type": "string", "pattern": "^[A-Z]{4}[0-9]{4}$" },
+            "example": "COMP4702"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Checked course",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Course" }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "405": { "$ref": "#/components/responses/MethodNotAllowed" },
+          "503": { "$ref": "#/components/responses/Unavailable" }
+        }
+      }
+    },
     "/api/papers/{course}": {
       "get": {
         "tags": ["Papers"],
@@ -75,6 +125,42 @@
             }
           },
           "404": { "$ref": "#/components/responses/NotFound" },
+          "503": { "$ref": "#/components/responses/Unavailable" }
+        }
+      }
+    },
+    "/api/papers/{course}/{document}/outline": {
+      "get": {
+        "tags": ["Papers"],
+        "operationId": "getPaperOutline",
+        "summary": "Get the question outline for a configured Google Docs paper",
+        "parameters": [
+          {
+            "name": "course",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "pattern": "^[A-Z]{4}[0-9]{4}$" },
+            "example": "INFS2200"
+          },
+          {
+            "name": "document",
+            "in": "path",
+            "required": true,
+            "description": "Google document ID returned in a catalogue outline URL",
+            "schema": { "type": "string", "minLength": 10, "maxLength": 128 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Question headings in document order",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PaperOutline" }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "405": { "$ref": "#/components/responses/MethodNotAllowed" },
           "503": { "$ref": "#/components/responses/Unavailable" }
         }
       }
@@ -152,7 +238,7 @@
             "name": "service",
             "in": "path",
             "required": true,
-            "schema": { "type": "string", "enum": ["koala", "manuals", "papers"] }
+            "schema": { "type": "string", "enum": ["courses", "koala", "manuals", "papers"] }
           }
         ],
         "responses": {
@@ -247,6 +333,13 @@
       },
       "Invalid": {
         "description": "Request failed semantic validation",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+      },
+      "MethodNotAllowed": {
+        "description": "Method is not supported for this route",
+        "headers": {
+          "Allow": { "schema": { "type": "string" } }
+        },
         "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
       },
       "NotFound": {
@@ -355,6 +448,50 @@
           "mini": { "type": "string" }
         }
       },
+      "CourseCatalogue": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["updated", "courses"],
+        "properties": {
+          "updated": { "type": "string", "format": "date" },
+          "courses": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 128,
+            "items": { "$ref": "#/components/schemas/Course" }
+          }
+        }
+      },
+      "Course": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["code", "title", "area", "maturity", "verified", "stale", "source_label", "capabilities"],
+        "properties": {
+          "code": { "type": "string", "pattern": "^[A-Z]{4}[0-9]{4}$" },
+          "title": { "type": "string", "minLength": 1, "maxLength": 120 },
+          "area": {
+            "type": "string",
+            "enum": ["computing", "design", "engineering", "information-systems", "mathematics", "science", "security", "statistics"]
+          },
+          "maturity": { "type": "string", "enum": ["source", "resources", "learning"] },
+          "route": { "type": "string", "pattern": "^/[A-Z]{4}/[0-9]{4}/$" },
+          "verified": { "type": "string", "format": "date" },
+          "stale": { "type": "boolean" },
+          "catalogue_id": { "type": "string", "minLength": 10, "maxLength": 128 },
+          "catalogue_url": { "type": "string", "format": "uri", "const": "https://learn.uq.edu.au/ultra/catalog" },
+          "catalogue_label": { "type": "string" },
+          "source_label": { "type": "string", "enum": ["UQ catalogue", "Course archive"] },
+          "offering": { "type": "string", "maxLength": 120 },
+          "papers_route": { "type": "string", "pattern": "^/[A-Z]{4}/[0-9]{4}/PY/$" },
+          "cheatsheet_route": { "type": "string", "maxLength": 241 },
+          "source_url": { "type": "string", "format": "uri" },
+          "capabilities": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": { "type": "string", "enum": ["notes", "papers", "solutions", "cheatsheet", "source"] }
+          }
+        }
+      },
       "PaperCatalogue": {
         "type": "object",
         "required": ["updated", "folder", "items"],
@@ -366,12 +503,35 @@
             "type": "array",
             "items": {
               "type": "object",
-              "required": ["title", "year", "kind", "url"],
+              "required": ["title", "year", "kind", "url", "solutions"],
               "properties": {
                 "title": { "type": "string" },
                 "year": { "type": "integer" },
                 "kind": { "type": "string", "enum": ["paper", "practice", "solution"] },
-                "url": { "type": "string", "format": "uri" }
+                "url": { "type": "string", "format": "uri" },
+                "outline": { "type": "string", "pattern": "^/api/papers/[A-Z]{4}[0-9]{4}/[A-Za-z0-9_-]+/outline$" },
+                "solutions": { "type": "boolean" }
+              }
+            }
+          }
+        }
+      },
+      "PaperOutline": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["items"],
+        "properties": {
+          "items": {
+            "type": "array",
+            "maxItems": 64,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["label", "anchor", "level"],
+              "properties": {
+                "label": { "type": "string", "maxLength": 160 },
+                "anchor": { "type": "string", "pattern": "^h\\.[A-Za-z0-9._-]+$" },
+                "level": { "type": "integer", "minimum": 1, "maximum": 3 }
               }
             }
           }

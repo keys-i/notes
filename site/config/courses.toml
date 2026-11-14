@@ -1,0 +1,18 @@
+updated = "2026-11-13"
+
+[[courses]]
+code = "COMP4702"
+title = "Machine Learning"
+maturity = "resources"
+route = "COMP/4702/"
+verified = "2026-11-13"
+catalogue-id = "COMP4702_7620_21208"
+offering = "Semester 1, 2026"
+papers-route = "COMP/4702/PY/"
+
+[[courses]]
+code = "COMP4500"
+title = "Advanced Algorithms and Data Structures"
+maturity = "source"
+verified = "2026-11-13"
+catalogue-id = "COMP4500_7660_60785"

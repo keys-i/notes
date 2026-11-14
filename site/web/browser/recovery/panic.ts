@@ -26,15 +26,9 @@ function bsdTrace(position?) {
     "panic() at panic+0x43/frame 0x" + hex64(43, position),
     "trap_fatal() at trap_fatal+0x387/frame 0x" + hex64(44, position),
     "calltrap() at calltrap+0x8/frame 0x" + hex64(45, position),
-    "krad_route_fault() at krad_route_fault+0x404/frame 0x" +
-      hex64(46, position) +
-      " [kradkrnl.ko]",
-    "maze_step() at maze_step+0x19/frame 0x" +
-      hex64(47, position) +
-      " [pacman.ko]",
-    "koala_recover() at koala_recover+0x52/frame 0x" +
-      hex64(48, position) +
-      " [koala.ko]",
+    "namei() at namei+0x404/frame 0x" + hex64(46, position),
+    "kern_statat() at kern_statat+0x19/frame 0x" + hex64(47, position),
+    "amd64_syscall() at amd64_syscall+0x52/frame 0x" + hex64(48, position),
   ];
 }
 
@@ -46,16 +40,16 @@ function recoveryPhrases() {
     "GEOM: ada0: recovery GPT verified",
     "/dev/ada0p2: FILE SYSTEM CLEAN; SKIPPING CHECKS",
     "savecore: preserving vmcore." + String(turn || 0).padStart(3, "0"),
-    "kldload: kradkrnl.ko linked at 0x" + moduleBase(0x80500000, 23),
+    "route: writing recovery state at 0x" + moduleBase(0x80500000, 23),
     "fsck_ufs: maze0 clean; " +
       (pellets ? pellets.size : 0) +
       " route fragments",
     "KDB: stack backtrace for pid 404 at cell " + position.x + "," + position.y,
-    "devd: kradkrnl0 route event; notifying koala0",
+    "devd: route recovery event at cell " + position.x + "," + position.y,
     "mountroot: waiting for ufs:/dev/maze0",
-    "module_register_init: MOD_LOAD pacman.ko",
-    "module_register_init: MOD_LOAD koala.ko",
-    "module_register_init: MOD_LOAD vrbik.ko",
+    "route: default gateway is not in the table",
+    "vfs: vnode lookup returned ENOENT",
+    "init: route recovery game attached to ttyv0",
     "init: respawning recovery task rad on ttyv0",
   ];
 }
@@ -102,8 +96,7 @@ function kernelScript() {
       "PANIC",
       "processor eflags = interrupt enabled, resume, IOPL = 0",
     ],
-    ["FreeBSD/amd64", "PANIC", "current process = 404 (krad_recover)"],
-    ["FreeBSD/amd64", "PANIC", "faulting module = kradkrnl.ko"],
+    ["FreeBSD/amd64", "PANIC", "current process = 404 (route-recovery)"],
     ["FreeBSD/amd64", "PANIC", "trap number = 12"],
     ["FreeBSD/amd64", "PANIC", "panic: page fault in maze0 route vnode"],
     ["FreeBSD/amd64", "PANIC", "time = " + Math.floor(Date.now() / 1000)],
@@ -134,8 +127,8 @@ function kernelScript() {
     ["FreeBSD/amd64", "REBOOT", "Automatic reboot in 15 seconds..."],
     ["FreeBSD/amd64", "RECOVERY", "syncing disks... 404 buffers remaining"],
     ["FreeBSD/amd64", "REBOOT", "Rebooting..."],
-    ["FreeBSD/amd64", "BOOT", "FreeBSD 14.2-RECOVERY #404 KOALA amd64"],
-    ["FreeBSD/amd64", "BOOT", "ada0: <KOALA Recovery Disk> 404MB"],
+    ["FreeBSD/amd64", "BOOT", "FreeBSD 14.2-RELEASE-p3 GENERIC amd64"],
+    ["FreeBSD/amd64", "BOOT", "ada0: <QEMU HARDDISK 2.5+> 404MB"],
     [
       "FreeBSD/amd64",
       "MOUNTROOT",
@@ -148,52 +141,12 @@ function kernelScript() {
       "INIT",
       "Enter full pathname of shell or RETURN for /bin/sh: /rescue/sh",
     ],
-    ["FreeBSD/amd64", "MOD_UNLOAD", "kldunload -v dingo.ko"],
-    [
-      "FreeBSD/amd64",
-      "MOD_UNLOAD",
-      "Unloading dingo.ko, id=8",
-      "unload:dingo.ko",
-    ],
-    ["FreeBSD/amd64", "MOD_UNLOAD", "kldunload -v eagle.ko"],
-    [
-      "FreeBSD/amd64",
-      "MOD_UNLOAD",
-      "Unloading eagle.ko, id=9",
-      "unload:eagle.ko",
-    ],
-    ["FreeBSD/amd64", "MOD_UNLOAD", "kldunload -v routecache.ko"],
-    [
-      "FreeBSD/amd64",
-      "MOD_UNLOAD",
-      "Unloading routecache.ko, id=10",
-      "unload:routecache.ko",
-    ],
-    ["FreeBSD/amd64", "MOD_LOAD", "kldload -v pacman.ko"],
-    ["FreeBSD/amd64", "MOD_LOAD", "Loaded pacman.ko, id=4", "load:pacman.ko"],
-    ["FreeBSD/amd64", "MOD_LOAD", "module_register_init: MOD_LOAD pacman.ko"],
-    ["FreeBSD/amd64", "MOD_LOAD", "kldload -v koala.ko"],
-    ["FreeBSD/amd64", "MOD_LOAD", "Loaded koala.ko, id=5", "load:koala.ko"],
-    ["FreeBSD/amd64", "MOD_LOAD", "module_register_init: MOD_LOAD koala.ko"],
-    ["FreeBSD/amd64", "MOD_LOAD", "kldload -v vrbik.ko"],
-    ["FreeBSD/amd64", "MOD_LOAD", "Loaded vrbik.ko, id=6", "load:vrbik.ko"],
-    ["FreeBSD/amd64", "MOD_LOAD", "module_register_init: MOD_LOAD vrbik.ko"],
-    ["FreeBSD/amd64", "MOD_LOAD", "kldload -v kradkrnl.ko"],
-    [
-      "FreeBSD/amd64",
-      "MOD_LOAD",
-      "Loaded kradkrnl.ko, id=7",
-      "load:kradkrnl.ko",
-    ],
-    [
-      "FreeBSD/amd64",
-      "MOD_LOAD",
-      "kradkrnl0: maze0 attached at cell " + position.x + "," + position.y,
-    ],
+    ["FreeBSD/amd64", "ROUTE", "route: default gateway is not in the table"],
+    ["FreeBSD/amd64", "VFS", "lookup /requested/page: ENOENT"],
     [
       "FreeBSD/amd64",
       "INIT",
-      "devd: krad recovery modules online; restarting maze0",
+      "route-recovery: maze0 attached at cell " + position.x + "," + position.y,
     ],
     ["FreeBSD/amd64", "TRAP", "kernel trap 12 with interrupts disabled"],
     [
@@ -253,7 +206,7 @@ function emitKernelLine() {
   var action = entry[3] || "";
   if (action === "cycle") {
     telemetry.lines = telemetry.lines.slice(-12);
-    ["dingo.ko", "eagle.ko", "routecache.ko"].forEach(function (module) {
+    ["if_tun.ko", "pf.ko", "nullfs.ko"].forEach(function (module) {
       shell.modules.add(module);
     });
   } else if (action.startsWith("load:")) {

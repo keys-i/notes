@@ -90,7 +90,7 @@
           aria-label="{{ social.name | e }}"
           title="{{ social.name | e }}"
         >
-          {% if social.featured != "primary" %}
+          {% if social.logo or social.icon %}
           <span class="site-footer-network__icon md-icon" aria-hidden="true">
             {% if social.logo %}
             <img src="{{ social.logo | url }}" alt="" />
@@ -98,10 +98,7 @@
             %}
           </span>
           {% endif %} {% if social.featured %}
-          <strong
-            class="{% if social.featured == 'primary' %}site-footer-network__wordmark{% endif %}"
-            >{{ social.label }}</strong
-          >
+          <strong>{{ social.label }}</strong>
           {% endif %}
         </a>
         {% endfor %}

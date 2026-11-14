@@ -252,21 +252,33 @@ function dockPetStudyReply(query, sections, currentIndex, turn, contextIndex?) {
   };
 }
 
+var DOCK_PET_IDLE_PLAN = [
+  { behavior: "blink", message: "" },
+  { behavior: "stretch", message: "" },
+  { behavior: "scratch-head", message: "" },
+  { behavior: "curious", message: "banter" },
+  { behavior: "yawn", message: "" },
+  { behavior: "scratch-bum", message: "" },
+  { behavior: "scratch", message: "" },
+  { behavior: "peek", message: "motivate" },
+  { behavior: "blink", message: "fact" },
+];
+
 function dockPetIdlePlan(index) {
-  var plan = [
-    { behavior: "blink", message: "" },
-    { behavior: "scratch-head", message: "" },
-    { behavior: "curious", message: "banter" },
-    { behavior: "yawn", message: "" },
-    { behavior: "scratch-bum", message: "" },
-    { behavior: "peek", message: "motivate" },
-    { behavior: "blink", message: "fact" },
-  ];
-  return plan[index % plan.length];
+  return DOCK_PET_IDLE_PLAN[index % DOCK_PET_IDLE_PLAN.length];
 }
 
 function dockPetIdleDelay(now, index) {
-  return 45000 + ((Math.floor(now / 1000) + index * 7919) % 45001);
+  if (!index) return 7000 + (Math.floor(now / 1000) % 4001);
+  return 30000 + ((Math.floor(now / 1000) + index * 7919) % 12001);
+}
+
+function dockPetIdleDuration(behavior) {
+  if (behavior === "blink") return 220;
+  if (behavior === "stretch") return 1800;
+  if (behavior === "yawn") return 1600;
+  if (behavior === "scratch") return 1200;
+  return 1400;
 }
 
 function dockPetAppendInline(parent, value) {
@@ -569,7 +581,7 @@ function dockPetStudyError(code, timedOut?) {
   var suppressClick = false;
   var helpOpen = false;
   var idleIndex = 0;
-  var idleOffset = randomIndex(7);
+  var idleOffset = randomIndex(DOCK_PET_IDLE_PLAN.length);
   var idleMessages = 0;
   var studyTurn = 0;
   var studyCache = new Map<string, string>();
@@ -1352,7 +1364,7 @@ function dockPetStudyError(code, timedOut?) {
     }
     var plan = dockPetIdlePlan(idleIndex + idleOffset);
     idleIndex += 1;
-    react(plan.behavior, plan.behavior === "blink" ? 220 : 1400);
+    react(plan.behavior, dockPetIdleDuration(plan.behavior));
     if (plan.message && idleMessages < 4) {
       var message = idleMessage(plan.message);
       if (message === lastIdleMessage) message = idleMessage("banter");
@@ -1438,7 +1450,7 @@ function dockPetStudyError(code, timedOut?) {
     if (position.x - minimum < minimumStep) direction = 1;
     if (maximum - position.x < minimumStep) direction = -1;
     var target = clamp(position.x + direction * step, minimum, maximum);
-    var duration = clamp(Math.abs(target - position.x) * 14, 1600, 4200);
+    var duration = clamp(Math.abs(target - position.x) * 17, 1800, 4800);
     pet.dataset.direction = target > position.x ? "right" : "left";
     pet.dataset.state = "walking";
     pet.dataset.wandering = "true";
@@ -2111,10 +2123,12 @@ function dockPetStudyError(code, timedOut?) {
   window.addEventListener("scroll", scheduleScroll, { passive: true });
   document.addEventListener("visibilitychange", function () {
     if (!document.hidden) {
+      delete pet.dataset.paused;
       scheduleIdle();
       scheduleWander();
       return;
     }
+    pet.dataset.paused = "true";
     clearTimeout(idleTimer);
     idleTimer = 0;
     stopWander();

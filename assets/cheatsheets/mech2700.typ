@@ -3,7 +3,7 @@
 #show: body => sheet(
   "MECH2700",
   "Computational Engineering & Data Analysis",
-  "Cross-checked against the 2018–2025 paper map and current course notes · select the formula whose assumptions match the question",
+  "",
   body,
 )
 

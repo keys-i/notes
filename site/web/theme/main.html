@@ -36,6 +36,11 @@ set image = config.site_url ~ page.meta.image %} {% endif %}
   rel="stylesheet"
   href="{{ ('assets/styles/plot.min.css?v=' ~ asset_version) | url }}"
 />
+{% endif %} {% if course_catalog %}
+<link
+  rel="stylesheet"
+  href="{{ ('assets/styles/study/courses.min.css?v=' ~ asset_version) | url }}"
+/>
 {% endif %} {% if has_mermaid %}
 <link
   rel="stylesheet"
@@ -105,30 +110,12 @@ set image = config.site_url ~ page.meta.image %} {% endif %}
 {% endblock %} {% block content %} {% if page and page.meta and page.meta.wip ==
 true %}
 <div class="admonition warning">
-  <p class="admonition-title">🚧 Work in Progress 🚧</p>
-  <p>
-    Following page is work in progress. Feel free to contribute by clicking
-    <span class="twemoji"
-      ><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-        <path
-          d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25z"
-        ></path></svg
-    ></span>
-    icon located next to the title of this page. If you land on a GitHub 404
-    page, you may either not have logged into your GitHub account or not have
-    been added to a required GitHub group of writers. For the latter, tweet
-    <code>@{{ config.extra.twitter }}</code> to be added into a valid group.
-  </p>
-  <p>
-    <small>
-      Powered by
-      <a href="{{ config.repo_url }}/{{ config.extra.comments.type }}"
-        >GitHub {{ config.extra.comments.type }}</a
-      >
-    </small>
-  </p>
+  <p class="admonition-title">Draft note</p>
+  <p>This page is still being checked and may change</p>
 </div>
-{% endif %} {{ super() }} {% if paper_catalog %}
+{% endif %} {{ super() }} {% if course_catalog %}
+{% include "partials/courses.html" %}
+{% endif %} {% if paper_catalog %}
 {% include "partials/papers.html" %}
 {% endif %} {% if config.extra.comments.enabled and page and page.meta and
 page.meta.comments == false %}
@@ -261,4 +248,6 @@ page.meta.comments == false %}
 <script src="{{ 'assets/js/page/mermaid.min.js?v=20260512-resolution2' | url }}"></script>
 {% endif %} {% if paper_catalog %}
 <script src="{{ ('assets/js/study/papers.min.js?v=' ~ asset_version) | url }}"></script>
+{% endif %} {% if course_catalog %}
+<script src="{{ ('assets/js/study/courses.min.js?v=' ~ asset_version) | url }}"></script>
 {% endif %} {% endblock %}

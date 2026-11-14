@@ -50,6 +50,9 @@ struct Item {
     year: u16,
     kind: String,
     url: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    outline: Option<String>,
+    solutions: bool,
 }
 
 static CONFIG: LazyLock<Result<Config, String>> =
@@ -124,6 +127,12 @@ fn item_url(value: &str) -> Option<String> {
     Some(url)
 }
 
+fn document_id(value: &str) -> Option<&str> {
+    let (code, _) = split_code(value)?;
+    let (kind, identifier_value) = code.split_once('/')?;
+    (kind == "document" && identifier(identifier_value)).then_some(identifier_value)
+}
+
 fn valid_title(value: &str) -> bool {
     !value.trim().is_empty() && value.chars().count() <= 120 && !value.chars().any(char::is_control)
 }
@@ -158,6 +167,9 @@ pub(super) fn catalog(code: &str) -> Result<Option<Catalog>, ()> {
                     year: item.year,
                     kind: item.kind.clone(),
                     url: item_url(&item.url_code).ok_or(())?,
+                    outline: document_id(&item.url_code)
+                        .map(|id| format!("/api/papers/{code}/{id}/outline")),
+                    solutions: item.solutions,
                 });
             }
         }
@@ -178,13 +190,37 @@ pub(super) fn catalog(code: &str) -> Result<Option<Catalog>, ()> {
     }))
 }
 
+pub(super) fn outline_source(code: &str, id: &str) -> Result<Option<String>, ()> {
+    if !identifier(id) {
+        return Ok(None);
+    }
+    let config = CONFIG.as_ref().map_err(|_| ())?;
+    let Some(course) = config.courses.get(code) else {
+        return Ok(None);
+    };
+    let source = course
+        .items
+        .iter()
+        .find(|item| item.solutions && document_id(&item.url_code) == Some(id));
+    let Some(item) = source else {
+        return Ok(None);
+    };
+    let (_, resource) = split_code(&item.url_code).ok_or(())?;
+    let mut url = format!("https://docs.google.com/document/d/{id}/mobilebasic");
+    if let Some(resource) = resource {
+        url.push_str("?resourcekey=");
+        url.push_str(resource);
+    }
+    Ok(Some(url))
+}
+
 pub(super) fn ready() -> bool {
     *READY
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{catalog, item_url, ready};
+    use super::{catalog, item_url, outline_source, ready};
 
     #[test]
     fn catalogue_expands_only_safe_google_codes_and_prefers_primary_items() {
@@ -208,5 +244,32 @@ mod tests {
         );
         assert!(catalog("UNKNOWN").unwrap().is_none());
         assert!(item_url("https://example.test/file").is_none());
+        assert_eq!(
+            outline_source("INFS2200", "1e7k7XNExF3JvP1H9xm3u0etQwTq9HYSBPsmoL_Fppw8")
+                .unwrap()
+                .as_deref(),
+            Some(
+                "https://docs.google.com/document/d/1e7k7XNExF3JvP1H9xm3u0etQwTq9HYSBPsmoL_Fppw8/mobilebasic"
+            )
+        );
+        assert!(
+            outline_source("INFS2200", "not-configured")
+                .unwrap()
+                .is_none()
+        );
+    }
+
+    #[test]
+    fn solved_only_catalogue_marks_every_returned_item_as_solved() {
+        let value = serde_json::to_value(catalog("INFS2200").unwrap().unwrap()).unwrap();
+        let items = value["items"].as_array().unwrap();
+
+        assert!(items.iter().all(|item| item["solutions"] == true));
+        assert!(
+            !items
+                .iter()
+                .any(|item| item["year"] == 2025 && item["title"] == "Exam")
+        );
+        assert!(items.iter().any(|item| item["outline"].as_str().is_some()));
     }
 }

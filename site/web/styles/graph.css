@@ -84,63 +84,6 @@
   gap: 0.4rem;
 }
 
-.graph-replay-scene {
-  position: absolute;
-  bottom: 1.2rem;
-  left: 1.2rem;
-  z-index: 2;
-  width: min(19rem, calc(100% - 2.4rem));
-  padding: 0.9rem 1.1rem;
-  border: 1px solid var(--site-rule);
-  border-left: 0.2rem solid var(--graph-root-color);
-  border-radius: 0.65rem;
-  corner-shape: squircle;
-  color: var(--md-default-fg-color);
-  background: color-mix(in srgb, var(--graph-bg-color) 90%, transparent);
-  box-shadow: 0 0.5rem 1.4rem rgb(0 0 0 / 0.12);
-  backdrop-filter: blur(12px);
-  pointer-events: none;
-}
-
-.graph-replay-scene[hidden] {
-  display: none;
-}
-
-.graph-replay-scene :is(strong, span) {
-  display: block;
-}
-
-.graph-replay-scene__step {
-  color: var(--graph-root-color);
-  font-size: 0.67rem;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-}
-
-.graph-replay-scene strong {
-  margin: 0.25rem 0;
-  font-size: 1.2rem;
-  line-height: 1.15;
-}
-
-.graph-replay-scene [data-graph-year] {
-  color: var(--md-default-fg-color--light);
-  font-size: 0.72rem;
-}
-
-.graph-replay-scene__track {
-  height: 0.16rem;
-  margin-top: 0.65rem;
-  overflow: hidden;
-  background: var(--site-rule);
-}
-
-.graph-replay-scene__track span {
-  height: 100%;
-  background: var(--graph-root-color);
-  transition: width 220ms ease-out;
-}
-
 .graph-tool {
   display: grid;
   width: 2.35rem;
@@ -233,6 +176,9 @@
   }
 
   .md-nav__link:is(:hover, :focus-visible) .md-ellipsis[data-marquee] {
+    width: max-content;
+    min-width: max-content;
+    overflow: visible;
     text-overflow: clip;
     animation: nav-marquee var(--marquee-duration) linear infinite;
   }
@@ -322,11 +268,29 @@
     z-index: 1;
     display: block;
     pointer-events: none;
+    background: transparent;
   }
 
   .md-search:focus-within .md-search__overlay,
   #__search:checked ~ .md-header .md-search__overlay {
     pointer-events: auto;
+  }
+
+  .md-search__output {
+    top: calc(100% + 0.35rem);
+    border: 1px solid var(--site-panel-border);
+    border-radius: 0.55rem;
+    corner-shape: squircle;
+    box-shadow: var(--md-shadow-z2);
+  }
+
+  .md-search__scrollwrap {
+    width: 100%;
+    border-radius: inherit;
+  }
+
+  #__search:checked ~ .md-header .md-search__scrollwrap {
+    max-height: min(60vh, 28rem);
   }
 
   .md-header__option[data-md-component="palette"] {

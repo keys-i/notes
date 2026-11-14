@@ -7,7 +7,7 @@ slug: Exam
 
 ## What Past Papers Emphasise
 
-The 2021–2025 papers repeatedly test whether a numerical method can be selected,
+Past papers repeatedly test whether a numerical method can be selected,
 applied and checked rather than recalled in isolation
 
 | Topic                          | Recurring question styles                                                                 |

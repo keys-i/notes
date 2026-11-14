@@ -77,8 +77,16 @@ async fn dispatch(request: Request, env: Env, context: Context, started: u64) ->
     if let Some(asset) = docs::route(&path) {
         return docs::respond(&request, asset);
     }
-    if let Some(code) = path.strip_prefix("/api/papers/") {
-        return crate::service::papers::respond(&request, code);
+    if let Some(code) = course_route(&path) {
+        return crate::service::courses::respond(&request, code, started);
+    }
+    if let Some(route) = paper_route(&path) {
+        return match route {
+            PaperRoute::Catalog(code) => crate::service::papers::respond(&request, code),
+            PaperRoute::Outline { code, id } => {
+                crate::service::papers::outline(&request, code, id, &context).await
+            }
+        };
     }
     if path == "/api/manuals/freebsd" {
         return crate::service::manuals::respond(&request, &context).await;
@@ -87,4 +95,69 @@ async fn dispatch(request: Request, env: Env, context: Context, started: u64) ->
         return crate::service::koala::respond(request, env, context, started, origin).await;
     }
     json_error("not_found", "Route not found", 404, None)
+}
+
+#[derive(Debug, PartialEq, Eq)]
+enum PaperRoute<'a> {
+    Catalog(&'a str),
+    Outline { code: &'a str, id: &'a str },
+}
+
+fn paper_route(path: &str) -> Option<PaperRoute<'_>> {
+    let mut parts = path.strip_prefix("/api/papers/")?.split('/');
+    match (parts.next(), parts.next(), parts.next(), parts.next()) {
+        (Some(code), None, None, None) if !code.is_empty() => Some(PaperRoute::Catalog(code)),
+        (Some(code), Some(id), Some("outline"), None) if !code.is_empty() && !id.is_empty() => {
+            Some(PaperRoute::Outline { code, id })
+        }
+        _ => None,
+    }
+}
+
+fn course_route(path: &str) -> Option<Option<&str>> {
+    if path == "/api/courses" {
+        return Some(None);
+    }
+    path.strip_prefix("/api/courses/")
+        .filter(|code| !code.is_empty() && !code.contains('/'))
+        .map(Some)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{PaperRoute, course_route, paper_route};
+
+    #[test]
+    fn course_routes_match_only_the_list_and_one_code() {
+        assert_eq!(course_route("/api/courses"), Some(None));
+        assert_eq!(
+            course_route("/api/courses/COMP4702"),
+            Some(Some("COMP4702"))
+        );
+        assert_eq!(course_route("/api/courses/"), None);
+        assert_eq!(course_route("/api/courses/COMP4702/"), None);
+        assert_eq!(course_route("/api/courses/COMP4702/extra"), None);
+        assert_eq!(course_route("/api/course/COMP4702"), None);
+    }
+
+    #[test]
+    fn paper_routes_match_catalogues_and_one_outline() {
+        assert_eq!(
+            paper_route("/api/papers/INFS2200"),
+            Some(PaperRoute::Catalog("INFS2200"))
+        );
+        assert_eq!(
+            paper_route("/api/papers/INFS2200/doc-id/outline"),
+            Some(PaperRoute::Outline {
+                code: "INFS2200",
+                id: "doc-id"
+            })
+        );
+        assert_eq!(paper_route("/api/papers/INFS2200/"), None);
+        assert_eq!(paper_route("/api/papers/INFS2200/doc-id"), None);
+        assert_eq!(
+            paper_route("/api/papers/INFS2200/doc-id/outline/more"),
+            None
+        );
+    }
 }

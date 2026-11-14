@@ -22,5 +22,5 @@ modelling, analysing, and solving engineering problems.
 11. [Week 11 — Hyperbolic equations](W11.md)
 12. [Week 12 — Elliptic equations](W12.md)
 
-Use the [exam guide](Exam.md) for the 2021–2025 past-paper topic map,
+Use the [exam guide](Exam.md) for the past-paper topic map,
 method-selection checklist and final revision workflow

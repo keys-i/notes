@@ -1,6 +1,7 @@
 //! Course paper configuration, validation and responses
 
 mod config;
+mod outline;
 
 use crate::routing::response::{json_error, json_response, method_error, unavailable_error};
 use crate::shared::cache::policy::PAPERS;
@@ -23,4 +24,13 @@ pub(crate) fn respond(request: &Request, code: &str) -> Result<Response> {
             None,
         ),
     }
+}
+
+pub(crate) async fn outline(
+    request: &Request,
+    code: &str,
+    id: &str,
+    context: &worker::Context,
+) -> Result<Response> {
+    outline::respond(request, code, id, context).await
 }

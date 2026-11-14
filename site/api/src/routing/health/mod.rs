@@ -4,17 +4,18 @@ mod metrics;
 mod report;
 
 use super::response::{json_error, json_response};
-use crate::service::{koala, manuals, papers};
+use crate::service::{courses, koala, manuals, papers};
 use crate::shared::cache::policy::NO_STORE;
 use report::{live_report, report};
 use worker::{Date, Env, Method, Request, Response, Result};
 
 pub(super) const API_NAME: &str = "notes-api";
 pub(super) const API_VERSION: &str = env!("CARGO_PKG_VERSION");
-pub(super) const SERVICE_COUNT: u8 = 3;
+pub(super) const SERVICE_COUNT: u8 = 4;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum Service {
+    Courses,
     Koala,
     Manuals,
     Papers,
@@ -23,6 +24,7 @@ pub(crate) enum Service {
 impl Service {
     pub(super) fn name(self) -> &'static str {
         match self {
+            Self::Courses => "courses",
             Self::Koala => "koala",
             Self::Manuals => "manuals",
             Self::Papers => "papers",
@@ -45,6 +47,7 @@ pub(crate) enum Route {
 
 #[derive(Clone, Copy, Debug)]
 pub(super) struct Checks {
+    pub(super) courses: bool,
     pub(super) koala: koala::Readiness,
     pub(super) manuals: bool,
     pub(super) papers: bool,
@@ -53,6 +56,7 @@ pub(super) struct Checks {
 impl Checks {
     fn read(env: &Env) -> Self {
         Self {
+            courses: courses::ready(),
             koala: koala::readiness(env),
             manuals: manuals::ready(),
             papers: papers::ready(),
@@ -61,6 +65,7 @@ impl Checks {
 
     pub(super) fn service_ready(self, service: Service) -> bool {
         match service {
+            Service::Courses => self.courses,
             Service::Koala => self.koala.ready(),
             Service::Manuals => self.manuals,
             Service::Papers => self.papers,
@@ -68,7 +73,7 @@ impl Checks {
     }
 
     pub(super) fn ready_count(self) -> u8 {
-        [self.koala.ready(), self.manuals, self.papers]
+        [self.courses, self.koala.ready(), self.manuals, self.papers]
             .into_iter()
             .filter(|ready| *ready)
             .count() as u8
@@ -82,6 +87,7 @@ impl Checks {
 pub(crate) fn route(path: &str) -> Option<Route> {
     match path {
         "/healthz" => Some(Route::Probe(Probe::Health(None))),
+        "/healthz/courses" => Some(Route::Probe(Probe::Health(Some(Service::Courses)))),
         "/healthz/koala" => Some(Route::Probe(Probe::Health(Some(Service::Koala)))),
         "/healthz/manuals" => Some(Route::Probe(Probe::Health(Some(Service::Manuals)))),
         "/healthz/papers" => Some(Route::Probe(Probe::Health(Some(Service::Papers)))),
@@ -124,11 +130,16 @@ fn probe_response(request: &Request, env: &Env, probe: Probe) -> Result<Response
 
 #[cfg(test)]
 mod tests {
-    use super::{Probe, Route, Service, route};
+    use super::{Probe, Route, SERVICE_COUNT, Service, route};
 
     #[test]
     fn paths_separate_runtime_and_service_diagnostics() {
+        assert_eq!(SERVICE_COUNT, 4);
         assert_eq!(route("/healthz"), Some(Route::Probe(Probe::Health(None))));
+        assert_eq!(
+            route("/healthz/courses"),
+            Some(Route::Probe(Probe::Health(Some(Service::Courses))))
+        );
         assert_eq!(
             route("/healthz/koala"),
             Some(Route::Probe(Probe::Health(Some(Service::Koala))))

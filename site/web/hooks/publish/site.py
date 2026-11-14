@@ -4,9 +4,12 @@ import html
 import json
 import os
 import re
+from datetime import date
 from pathlib import Path
 
 from mkdocs.structure.files import File
+
+from hooks.content import site_courses
 
 ROOT = Path(__file__).parents[4]
 ASSETS = ROOT / "assets"
@@ -20,8 +23,15 @@ VERSIONED_ASSETS = (
     "assets/js/page/graph.min.js",
     "assets/js/study/koala.min.js",
     "assets/js/page/math.min.js",
+    "assets/styles/study/courses.min.css",
+    "assets/js/study/courses.min.js",
 )
+COURSE_ASSET_BUDGETS = {
+    "assets/js/study/courses.min.js": 12 * 1024,
+    "assets/styles/study/courses.min.css": 10 * 1024,
+}
 WEEK_TITLE = re.compile(r"^(?:W|Week\s+)(\d+)\b", re.IGNORECASE)
+COURSE_ROUTE = re.compile(r"^(COMP|INFS|MECH)/(\d{4})/?$")
 ROUTE_LABELS = {"PY": "Past years", "CS": "Cheatsheet"}
 CHEATSHEETS = {
     "INFS2200": "INFS2200-cheatsheet.pdf",
@@ -96,7 +106,13 @@ def _label_compact_routes(items):
         if not url and children:
             url = getattr(children[0], "url", "") or ""
         route = url.rstrip("/").rsplit("/", 1)[-1]
-        if route in ROUTE_LABELS:
+        course = COURSE_ROUTE.fullmatch(url)
+        if course and children:
+            code = "".join(course.groups())
+            title = str(getattr(children[0], "title", "")).removeprefix(f"{code} ")
+            if title:
+                item.title = f"{course.group(2)}: {title}"
+        elif route in ROUTE_LABELS:
             item.title = ROUTE_LABELS[route]
         if children:
             _label_compact_routes(children)
@@ -114,10 +130,17 @@ def on_nav(nav, **_):
 
 
 def on_page_context(context, page, **_):
-    """Expose the course code while the Worker owns the live catalogue"""
+    """Expose paper and mature course context without publishing source data"""
     code = page.meta.get("papers") if page.meta else None
     if code:
         context["paper_catalog"] = {"course": code}
+    if getattr(page, "is_homepage", False):
+        loaded = site_courses(
+            ROOT / "site/config/courses.toml",
+            ROOT / "content",
+            date.today(),
+        )
+        context["course_catalog"] = loaded
     return context
 
 
@@ -125,15 +148,15 @@ def on_page_markdown(markdown, page, **_):
     """Share generated resource pages while keeping one route file per course"""
     code = page.meta.get("papers") if page.meta else None
     if code:
-        return (
+        body = (
             '<nav class="papers__nav" aria-label="Course navigation">'
             f'<a class="papers__back" href="../" aria-label="Back to {code}" '
             f'title="Back to {code}">'
-            '<svg aria-hidden="true" viewBox="0 0 24 24">'
-            '<path d="m14.5 6-6 6 6 6M9 12h9" />'
-            "</svg></a></nav>\n\n"
-            "# Past year papers\n\nSolutions and worked answers, grouped by year\n"
+            f'<span aria-hidden="true">←</span><span>{code}</span></a></nav>\n\n'
+            "# Past year papers\n"
         )
+        authored = markdown.strip()
+        return f"{body}\n{authored}\n" if authored else body
     code = page.meta.get("cheatsheet") if page.meta else None
     if not code:
         return markdown
@@ -142,23 +165,24 @@ def on_page_markdown(markdown, page, **_):
         '<nav class="papers__nav" aria-label="Course navigation">'
         f'<a class="papers__back" href="../" aria-label="Back to {code}" '
         f'title="Back to {code}">'
-        '<svg aria-hidden="true" viewBox="0 0 24 24">'
-        '<path d="m14.5 6-6 6 6 6M9 12h9" />'
-        "</svg></a></nav>\n\n"
+        f'<span aria-hidden="true">←</span><span>{code}</span></a></nav>\n\n'
         f"# {code} Cheatsheet\n\n"
         "A printable formula sheet built from the course notes and past papers\n\n"
         f'<section class="cheatsheet" aria-label="{code} cheatsheet reader">'
+        '<header class="cheatsheet__bar"><strong>Reader</strong>'
+        '<nav class="cheatsheet__actions" aria-label="Reader controls">'
         f'<a class="cheatsheet__fullscreen" href="{pdf}" target="_blank" rel="noopener" '
         f'aria-label="Open {code} cheatsheet full screen" title="Full screen">'
         '<svg viewBox="0 0 24 24" aria-hidden="true"><path '
         'd="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></svg></a>'
-        '<div class="cheatsheet__viewer">'
-        f'<iframe src="{pdf}#view=FitH" title="{code} one-page cheatsheet" '
-        'loading="eager"></iframe>'
         f'<a class="cheatsheet__download" href="{pdf}" download '
         f'aria-label="Download {code} cheatsheet" title="Download">'
         '<svg viewBox="0 0 24 24" aria-hidden="true"><path '
         'd="M12 3v12m-5-5 5 5 5-5M5 20h14"/></svg></a>'
+        "</nav></header>"
+        '<div class="cheatsheet__viewer">'
+        f'<iframe src="{pdf}#view=FitH" title="{code} one-page cheatsheet" '
+        'loading="eager"></iframe>'
         "</div></section>"
     )
 
@@ -184,12 +208,18 @@ def _redirect(target):
 def on_post_build(config):
     """Redirect the former markdown subject paths to their stable pages"""
     site = Path(config.site_dir)
-    leaked_catalog = next(site.rglob("papers.json"), None)
-    if leaked_catalog:
-        raise RuntimeError(
-            f"built site contains the source paper catalogue: "
-            f"{leaked_catalog.relative_to(site)}"
-        )
+    blocked_catalogues = {
+        "courses.json": "course catalogue",
+        "papers.json": "source paper catalogue",
+        "courses.toml": "source course catalogue",
+        "papers.toml": "source paper catalogue",
+    }
+    for candidate in site.rglob("*"):
+        if candidate.is_file() and candidate.name in blocked_catalogues:
+            raise RuntimeError(
+                f"built site contains the {blocked_catalogues[candidate.name]}: "
+                f"{candidate.relative_to(site)}"
+            )
     index = site / "index.html"
     if index.is_file():
         markup = index.read_text(encoding="utf-8")
@@ -200,6 +230,14 @@ def on_post_build(config):
         if missing:
             raise RuntimeError(
                 f"built assets lack version {version}: {', '.join(missing)}"
+            )
+    for asset, budget in COURSE_ASSET_BUDGETS.items():
+        path = site / asset
+        if not path.is_file():
+            raise RuntimeError(f"built course catalogue asset is missing: {asset}")
+        if path.stat().st_size > budget:
+            raise RuntimeError(
+                f"built course catalogue asset exceeds {budget} bytes: {asset}"
             )
     for subject in SUBJECTS:
         subject_root = site / subject

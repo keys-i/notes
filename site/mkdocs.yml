@@ -3,7 +3,7 @@ site_name: Rad's Notes
 site_url: https://uni.keysi.dev
 site_dir: ../public
 docs_dir: ../content
-site_description: COMP4403 compilers and interpreters notes covering grammars, parsing, semantics, execution, runtime systems, tutorials, and assignments.
+site_description: UQ study notes, worked examples, cheatsheets and past papers for learning course concepts and preparing for assessment
 site_author: Radhesh Goel
 
 repo_name: keys-i/notes
@@ -61,6 +61,7 @@ extra:
     - link: https://keysi.dev
       name: Radhesh Goel's website
       label: Keysi.dev
+      icon: material/web
       featured: primary
     - logo: assets/images/minis.svg
       link: https://uni.keysi.dev/mini/
@@ -140,6 +141,7 @@ plugins:
         - assets/js/study/koala.js
         - assets/js/page/plot.js
         - assets/js/study/papers.js
+        - assets/js/study/courses.js
         - assets/js/page/mermaid.js
       css_files:
         - assets/styles/site.css
@@ -150,6 +152,7 @@ plugins:
         - assets/styles/graph.css
         - assets/styles/pet.css
         - assets/styles/plot.css
+        - assets/styles/study/courses.css
         - assets/styles/zoom.mermaid.css
   - git-authors:
       show_contribution: false
@@ -157,6 +160,7 @@ plugins:
       show_email_address: false
       count_empty_lines: false
       fallback_to_empty: false
+      strict: false
       sort_authors_by: name
       authorship_threshold_percent: 20
       exclude:
