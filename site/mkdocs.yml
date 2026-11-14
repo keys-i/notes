@@ -141,6 +141,7 @@ plugins:
         - assets/js/study/koala.js
         - assets/js/page/plot.js
         - assets/js/study/papers.js
+        - assets/js/study/cheatsheet.js
         - assets/js/study/courses.js
         - assets/js/page/mermaid.js
       css_files:

@@ -1,6 +1,7 @@
 {% extends "base.html" %} {% set has_mermaid = page and page.content and
 'class="mermaid"' in page.content %} {% set has_plot = page and page.content and
-'class="note-plot' in page.content %} {% set asset_version =
+'class="note-plot' in page.content %} {% set has_cheatsheet = page and page.meta
+and page.meta.cheatsheet %} {% set asset_version =
 config.extra.asset_version | default('dev') %} {% block extrahead %} {% set
 title = config.site_name %} {% if page and page.title and not page.is_homepage
 %} {% set title = (page.title | striptags) ~ " — " ~ config.site_name %} {%
@@ -248,6 +249,8 @@ page.meta.comments == false %}
 <script src="{{ 'assets/js/page/mermaid.min.js?v=20260512-resolution2' | url }}"></script>
 {% endif %} {% if paper_catalog %}
 <script src="{{ ('assets/js/study/papers.min.js?v=' ~ asset_version) | url }}"></script>
+{% endif %} {% if has_cheatsheet %}
+<script src="{{ ('assets/js/study/cheatsheet.min.js?v=' ~ asset_version) | url }}"></script>
 {% endif %} {% if course_catalog %}
 <script src="{{ ('assets/js/study/courses.min.js?v=' ~ asset_version) | url }}"></script>
 {% endif %} {% endblock %}

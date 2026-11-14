@@ -161,6 +161,7 @@ def on_page_markdown(markdown, page, **_):
     if not code:
         return markdown
     pdf = CHEATSHEETS[code]
+    preview = f"{Path(pdf).stem}-preview.webp"
     return (
         '<nav class="papers__nav" aria-label="Course navigation">'
         f'<a class="papers__back" href="../" aria-label="Back to {code}" '
@@ -169,21 +170,29 @@ def on_page_markdown(markdown, page, **_):
         f"# {code} Cheatsheet\n\n"
         "A printable formula sheet built from the course notes and past papers\n\n"
         f'<section class="cheatsheet" aria-label="{code} cheatsheet reader">'
-        '<header class="cheatsheet__bar"><strong>Reader</strong>'
-        '<nav class="cheatsheet__actions" aria-label="Reader controls">'
-        f'<a class="cheatsheet__fullscreen" href="{pdf}" target="_blank" rel="noopener" '
-        f'aria-label="Open {code} cheatsheet full screen" title="Full screen">'
-        '<svg viewBox="0 0 24 24" aria-hidden="true"><path '
-        'd="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></svg></a>'
+        f'<div class="cheatsheet__viewer" aria-label="{code} cheatsheet preview" '
+        'tabindex="0">'
+        f'<img class="cheatsheet__preview" src="{preview}" '
+        f'alt="{code} cheatsheet preview" width="2246" height="1588" '
+        'loading="eager"></div>'
+        '<nav class="cheatsheet__controls" aria-label="Preview controls">'
+        '<button type="button" data-cheatsheet-zoom="-1" aria-label="Zoom out" '
+        'title="Zoom out"><svg viewBox="0 0 24 24" aria-hidden="true">'
+        '<circle cx="9.5" cy="9.5" r="5.5"/><path d="M13.5 13.5 21 21M7 9.5h5"/>'
+        "</svg></button>"
+        '<button type="button" data-cheatsheet-zoom="1" aria-label="Zoom in" '
+        'title="Zoom in"><svg viewBox="0 0 24 24" aria-hidden="true">'
+        '<circle cx="9.5" cy="9.5" r="5.5"/><path d="M13.5 13.5 21 21M7 9.5h5M9.5 7v5"/>'
+        "</svg></button>"
+        f'<a class="cheatsheet__open" href="{pdf}" target="_blank" rel="noopener" '
+        f'aria-label="Open {code} PDF" title="Open PDF">'
+        '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" '
+        'height="16" rx="3"/><path d="M10 14 17 7m-5 0h5v5"/></svg></a>'
         f'<a class="cheatsheet__download" href="{pdf}" download '
         f'aria-label="Download {code} cheatsheet" title="Download">'
-        '<svg viewBox="0 0 24 24" aria-hidden="true"><path '
-        'd="M12 3v12m-5-5 5 5 5-5M5 20h14"/></svg></a>'
-        "</nav></header>"
-        '<div class="cheatsheet__viewer">'
-        f'<iframe src="{pdf}#view=FitH" title="{code} one-page cheatsheet" '
-        'loading="eager"></iframe>'
-        "</div></section>"
+        '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" '
+        'r="9"/><path d="M12 6v9m-4-4 4 4 4-4"/></svg></a>'
+        "</nav></section>"
     )
 
 

@@ -379,6 +379,7 @@ class SiteAssetTests(unittest.TestCase):
                 course = ROOT / "content" / subject / number
                 route = course / "CS/index.md"
                 pdf = route.with_name(filename)
+                preview = route.with_name(f"{pdf.stem}-preview.webp")
                 source = ROOT / "assets/cheatsheets" / f"{code.lower()}.typ"
 
                 self.assertIn(f"cheatsheet: {code}", route.read_text(encoding="utf-8"))
@@ -388,6 +389,8 @@ class SiteAssetTests(unittest.TestCase):
                 self.assertTrue(source.is_file())
                 self.assertTrue(pdf.read_bytes().startswith(b"%PDF-"))
                 self.assertGreater(pdf.stat().st_size, 100_000)
+                self.assertTrue(preview.read_bytes().startswith(b"RIFF"))
+                self.assertGreater(preview.stat().st_size, 100_000)
                 template_text = (ROOT / "assets/cheatsheets/template.typ").read_text(
                     encoding="utf-8"
                 )

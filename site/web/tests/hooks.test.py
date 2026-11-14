@@ -511,14 +511,17 @@ class HookTests(unittest.TestCase):
             with self.subTest(code=code):
                 page = SimpleNamespace(meta={"cheatsheet": code})
                 body = site_hook.on_page_markdown("", page)
+                preview = f"{Path(pdf).stem}-preview.webp"
                 self.assertIn(f"# {code} Cheatsheet", body)
-                self.assertIn(f'src="{pdf}#view=FitH"', body)
-                self.assertIn(f"Open {code} cheatsheet full screen", body)
+                self.assertIn(f'src="{preview}"', body)
+                self.assertNotIn("<iframe", body)
+                self.assertIn(f"Open {code} PDF", body)
                 self.assertIn(f"Download {code} cheatsheet", body)
                 self.assertIn(f"Back to {code}", body)
-                self.assertIn('class="cheatsheet__fullscreen"', body)
+                self.assertIn('class="cheatsheet__controls"', body)
+                self.assertEqual(body.count("data-cheatsheet-zoom"), 2)
                 self.assertNotIn("Exam reference", body)
-                self.assertIn('class="cheatsheet__bar"', body)
+                self.assertNotIn('class="cheatsheet__bar"', body)
 
     def test_game_config(self):
         settings = game.on_config(self.config).extra["game"]
