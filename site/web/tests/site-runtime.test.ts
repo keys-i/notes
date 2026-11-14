@@ -1299,6 +1299,11 @@ test("graph replay is one cancellable frame loop and data failures retry", async
     cancelled.push(id);
   graph.window.matchMedia = () => ({ matches: false });
   let disposed = false;
+  let layout = [
+    [0, 0],
+    [500, 0],
+    [1000, 0],
+  ];
   const chart = {
     isDisposed: () => disposed,
     options: [] as any[],
@@ -1306,7 +1311,7 @@ test("graph replay is one cancellable frame loop and data failures retry", async
     getHeight: () => 300,
     getModel: () => ({
       getSeriesByIndex: () => ({
-        getData: () => ({ getItemLayout: (index: number) => [index * 500, 0] }),
+        getData: () => ({ getItemLayout: (index: number) => layout[index] }),
       }),
     }),
     setOption(value: any) {
@@ -1315,7 +1320,16 @@ test("graph replay is one cancellable frame loop and data failures retry", async
   };
   (graph.context as any).replayChart = chart;
   call("replay_graph_growth(replayChart)");
+  layout = [
+    [10, 25],
+    [50, 28],
+    [90, 31],
+  ];
   call("replay_graph_growth(replayChart)");
+  assert.equal(
+    call("JSON.stringify(graphTimelineNodes.map(({x,y}) => [x,y]))"),
+    "[[10,25],[50,28],[90,31]]",
+  );
   assert.equal(chart.options.at(-2).series[0].layout, "none");
   assert.equal(chart.options.at(-2).series[0].animationDurationUpdate, 0);
   assert.equal(

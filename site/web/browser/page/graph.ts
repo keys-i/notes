@@ -364,7 +364,7 @@ function replay_graph_growth(chart) {
   finish_graph_timelapse();
   graphReplayStable = false;
   clear_graph_text_motion();
-  if (!graphHasPositions) cache_graph_positions(chart);
+  cache_graph_positions(chart);
   chart.setOption({
     series: [
       {
