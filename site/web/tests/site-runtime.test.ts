@@ -649,6 +649,8 @@ function graphHarness() {
     [0, 0],
     [10, 20],
   ];
+  const nodeGraphics = layouts.map(() => ({ ignore: false, dirty() {} }));
+  const edgeGraphics = [{ ignore: false, dirty() {} }];
   const chartHandlers: Record<string, (event: any) => void> = {};
   const chart = {
     actions: [] as any[],
@@ -666,7 +668,11 @@ function graphHarness() {
       return {
         getSeriesByIndex: () => ({
           getData: () => ({
+            getItemGraphicEl: (index: number) => nodeGraphics[index],
             getItemLayout: (index: number) => layouts[index],
+          }),
+          getEdgeData: () => ({
+            getItemGraphicEl: (index: number) => edgeGraphics[index],
           }),
         }),
       };
@@ -805,30 +811,6 @@ test("graph helpers preserve routes, ordering, labels, and timeline state", asyn
   assert.equal(call("graph_label_size(0)"), 18);
   assert.ok(call("graph_label_size(4)") < 18);
   assert.equal(call("graph_label_size(20)"), 12);
-  assert.deepEqual(
-    JSON.parse(
-      call(
-        "JSON.stringify(graph_timeline_nodes([{id:'1',finalSymbolSize:9,graphDepth:0,graphEdgeCount:1},{id:'2',finalSymbolSize:9,graphDepth:0,graphEdgeCount:1}],[{source:'1',target:'2'}]).map(node=>node.symbolSize))",
-      ),
-    ),
-    [9, 9],
-  );
-  assert.deepEqual(
-    JSON.parse(
-      call(
-        "JSON.stringify(graph_timeline_nodes([{id:'1',finalSymbolSize:9,graphDepth:0,graphEdgeCount:1}],[{source:'1',target:'2'}]).map(node=>node.symbolSize))",
-      ),
-    ),
-    [9],
-  );
-  assert.deepEqual(
-    JSON.parse(
-      call(
-        "JSON.stringify(graph_visible_links([{source:1,target:2},{source:2,target:3}], new Set(['1','2'])))",
-      ),
-    ),
-    [{ source: 1, target: 2 }],
-  );
   assert.equal(
     call(
       "graph_creation_order({created:'bad',value:'b'},{created:'bad',value:'a'})",
@@ -843,29 +825,35 @@ test("graph helpers preserve routes, ordering, labels, and timeline state", asyn
   );
   assert.equal(
     call(
-      "graph_next_timeline_index([{created:'a'},{created:'a'},{created:'b'}],0)",
+      "graph_next_timeline_index([{graphReplayStep:0},{graphReplayStep:1},{graphReplayStep:1}],0)",
     ),
-    2,
+    1,
   );
-  assert.equal(call("graph_next_timeline_index([{created:'a'}],1)"), 1);
+  assert.equal(call("graph_next_timeline_index([{graphReplayStep:0}],1)"), 1);
   assert.deepEqual(
     JSON.parse(
       call(
-        "JSON.stringify(graph_timeline_steps([{created:'a'},{created:'a'},{created:'b'}]))",
+        "JSON.stringify(graph_timeline_steps([{graphReplayStep:0},{graphReplayStep:1},{graphReplayStep:1}]))",
       ),
     ),
-    [2, 3],
+    [1, 3],
   );
   assert.deepEqual(
     JSON.parse(
       call(
-        "JSON.stringify(graph_timeline_beats([{created:'2024-01-01'},{created:'2024-01-01'},{created:'2024-01-02'}]))",
+        "JSON.stringify(graph_timeline_beats([{graphReplayStep:0},{graphReplayStep:1},{graphReplayStep:1}]))",
       ),
     ),
     [
-      { duration: 510, shown: 2 },
-      { duration: 620, shown: 3 },
+      { duration: 280, shown: 1 },
+      { duration: 280, shown: 3 },
     ],
+  );
+  assert.equal(
+    call(
+      "JSON.stringify(graph_tree_order([{id:'0',created:'2024-01-01',value:'/'},{id:'1',created:'2024-01-02',value:'/a'},{id:'2',created:'2024-01-03',value:'/b'},{id:'3',created:'2024-01-04',value:'/a/c'}],[{source:'0',target:'1'},{source:'0',target:'2'},{source:'1',target:'3'}],{id:'0',created:'2024-01-01',value:'/'}).map(node=>[node.id,node.graphReplayStep]))",
+    ),
+    '[["0",0],["1",1],["2",1],["3",2]]',
   );
   assert.equal(
     call(
@@ -974,7 +962,22 @@ test("graph helpers preserve routes, ordering, labels, and timeline state", asyn
   call("update_graph_labels(null)");
   call("update_graph_labels({isDisposed:()=>true})");
   call("replay_graph_growth(null)");
+  const replayNodes = Array.from({ length: 2 }, () => ({
+    ignore: false,
+    dirty() {},
+  }));
+  const replayLinks = [{ ignore: false, dirty() {} }];
   const chart = {
+    getModel: () => ({
+      getSeriesByIndex: () => ({
+        getData: () => ({
+          getItemGraphicEl: (index: number) => replayNodes[index],
+        }),
+        getEdgeData: () => ({
+          getItemGraphicEl: (index: number) => replayLinks[index],
+        }),
+      }),
+    }),
     isDisposed: () => false,
     options: [] as any[],
     setOption(option: any) {
@@ -992,11 +995,9 @@ test("graph helpers preserve routes, ordering, labels, and timeline state", asyn
   `);
   assert.equal(chart.options.length, 0);
   call("replay_graph_growth(testChart)");
-  assert.equal(
-    chart.options.filter((value) => value.series?.[0]?.data).at(-1).series[0]
-      .data.length,
-    2,
-  );
+  assert.deepEqual(replayNodes.map((node) => node.ignore), [false, false]);
+  assert.deepEqual(replayLinks.map((link) => link.ignore), [false]);
+  assert.equal(chart.options.length, 0);
   const modalPromise = call("open_graph(); graphModalPromise");
   await modalPromise;
   assert.equal(graph.elements.get("modal_background")!.hidden, false);
@@ -1299,11 +1300,20 @@ test("graph replay is one cancellable frame loop and data failures retry", async
     cancelled.push(id);
   graph.window.matchMedia = () => ({ matches: false });
   let disposed = false;
-  let layout = [
-    [0, 0],
-    [500, 0],
-    [1000, 0],
-  ];
+  const nodeGraphics = Array.from({ length: 3 }, () => ({
+    dirtyCalls: 0,
+    ignore: false,
+    dirty() {
+      this.dirtyCalls += 1;
+    },
+  }));
+  const edgeGraphics = Array.from({ length: 2 }, () => ({
+    dirtyCalls: 0,
+    ignore: false,
+    dirty() {
+      this.dirtyCalls += 1;
+    },
+  }));
   const chart = {
     isDisposed: () => disposed,
     options: [] as any[],
@@ -1311,7 +1321,13 @@ test("graph replay is one cancellable frame loop and data failures retry", async
     getHeight: () => 300,
     getModel: () => ({
       getSeriesByIndex: () => ({
-        getData: () => ({ getItemLayout: (index: number) => layout[index] }),
+        getData: () => ({
+          getItemGraphicEl: (index: number) => nodeGraphics[index],
+          getItemLayout: (index: number) => [index * 500, 0],
+        }),
+        getEdgeData: () => ({
+          getItemGraphicEl: (index: number) => edgeGraphics[index],
+        }),
       }),
     }),
     setOption(value: any) {
@@ -1320,63 +1336,40 @@ test("graph replay is one cancellable frame loop and data failures retry", async
   };
   (graph.context as any).replayChart = chart;
   call("replay_graph_growth(replayChart)");
-  layout = [
-    [10, 25],
-    [50, 28],
-    [90, 31],
-  ];
   call("replay_graph_growth(replayChart)");
-  assert.equal(
-    call("JSON.stringify(graphTimelineNodes.map(({x,y}) => [x,y]))"),
-    "[[10,25],[50,28],[90,31]]",
-  );
-  assert.equal(chart.options.at(-2).series[0].layout, "none");
-  assert.equal(chart.options.at(-2).series[0].animationDurationUpdate, 0);
-  assert.equal(
-    chart.options.some((value: any) => value.series?.[0]?.zoom !== undefined),
-    false,
-  );
+  assert.deepEqual(nodeGraphics.map((node) => node.ignore), [true, true, true]);
+  assert.deepEqual(edgeGraphics.map((edge) => edge.ignore), [true, true]);
+  assert.equal(chart.options.length, 0);
   assert.deepEqual(cancelled, [1]);
   frames[1](1);
-  assert.deepEqual(
-    chart.options.at(-1).series[0].data.map((node: any) => node.id),
-    ["0", "1"],
-  );
-  assert.equal(chart.options.at(-1).series[0].links.length, 1);
-  assert.equal(chart.options.at(-1).series[0].animationDurationUpdate, 0);
-  const firstSizes = chart.options
-    .at(-1)
-    .series[0].data.map((node: any) => node.symbolSize);
-  assert.ok(firstSizes.every((size: number) => size > 1 && size < 16));
-  const firstBeatOptions = chart.options.length;
+  assert.deepEqual(nodeGraphics.map((node) => node.ignore), [false, true, true]);
+  assert.deepEqual(edgeGraphics.map((edge) => edge.ignore), [true, true]);
+  const firstBeatDirties = nodeGraphics.map((node) => node.dirtyCalls);
   frames[2](80);
-  assert.equal(chart.options.length, firstBeatOptions);
-  frames[3](340);
-  assert.equal(chart.options.length, firstBeatOptions);
-  frames[4](511);
-  assert.equal(chart.options.at(-1).series[0].data.length, 3);
-  assert.equal(chart.options.at(-1).series[0].links.length, 2);
-  assert.ok(
-    chart.options
-      .at(-1)
-      .series[0].data.every(
-        (node: any) => node.symbolSize > 1 && node.symbolSize < 16,
-      ),
+  assert.deepEqual(
+    nodeGraphics.map((node) => node.dirtyCalls),
+    firstBeatDirties,
   );
-  const secondBeatOptions = chart.options.length;
-  frames[5](604);
-  assert.equal(chart.options.length, secondBeatOptions);
-  frames[6](914);
-  assert.equal(chart.options.at(-1).series[0].animationDurationUpdate, 360);
-  assert.equal(
-    chart.options.filter((value: any) => value.series?.[0]?.layout).at(-1)
-      .series[0].layout,
-    "none",
+  frames[3](200);
+  assert.deepEqual(
+    nodeGraphics.map((node) => node.dirtyCalls),
+    firstBeatDirties,
   );
-  assert.equal(
-    chart.options.some((value: any) => value.series?.[0]?.layout === "force"),
-    false,
+  frames[4](282);
+  assert.deepEqual(nodeGraphics.map((node) => node.ignore), [false, false, true]);
+  assert.deepEqual(edgeGraphics.map((edge) => edge.ignore), [false, true]);
+  const secondBeatDirties = nodeGraphics.map((node) => node.dirtyCalls);
+  frames[5](400);
+  assert.deepEqual(
+    nodeGraphics.map((node) => node.dirtyCalls),
+    secondBeatDirties,
   );
+  frames[6](562);
+  assert.deepEqual(nodeGraphics.map((node) => node.ignore), [false, false, false]);
+  assert.deepEqual(edgeGraphics.map((edge) => edge.ignore), [false, false]);
+  frames[7](745);
+  assert.equal(chart.options.length, 0);
+  assert.equal(call("option.series[0].layout"), "force");
   assert.equal(call("option.series[0].roam"), true);
   assert.equal(call("option.series[0].draggable"), true);
   assert.equal(call("graphReplayStable"), true);
@@ -1397,7 +1390,8 @@ test("graph replay is one cancellable frame loop and data failures retry", async
   graph.window.matchMedia = () => ({ matches: true });
   call("replay_graph_growth(replayChart)");
   assert.equal(frames.length, frameCount);
-  assert.equal(chart.options.at(-1).series[0].data.length, 3);
+  assert.deepEqual(nodeGraphics.map((node) => node.ignore), [false, false, false]);
+  assert.deepEqual(edgeGraphics.map((edge) => edge.ignore), [false, false]);
   assert.equal(call("graphReplayStable"), true);
   assert.equal(graph.replay.classList.contains("is-playing"), false);
 });

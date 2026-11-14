@@ -219,14 +219,6 @@ function reset_graph_node(chart, node, dataIndex) {
   next_reset_frame();
 }
 
-function graph_visible_links(links, visibleIds) {
-  return links.filter(function (link) {
-    return (
-      visibleIds.has(String(link.source)) && visibleIds.has(String(link.target))
-    );
-  });
-}
-
 function graph_node_size(edgeCount, depth) {
   return 5.5 + (edgeCount * 3) / (depth + 1);
 }
@@ -236,29 +228,6 @@ function graph_label_size(distance) {
     12,
     graphLabelBaseSize / Math.sqrt(1 + Math.max(0, distance) / 4),
   );
-}
-
-function graph_timeline_nodes(nodes, links) {
-  var visibleEdges = new Map();
-  links.forEach(function (link) {
-    var source = String(link.source);
-    var target = String(link.target);
-    visibleEdges.set(source, (visibleEdges.get(source) || 0) + 1);
-    visibleEdges.set(target, (visibleEdges.get(target) || 0) + 1);
-  });
-
-  return nodes.map(function (node) {
-    var baseSize = graph_node_size(0, node.graphDepth);
-    var size =
-      baseSize +
-      (node.finalSymbolSize - baseSize) *
-        Math.min(
-          1,
-          (visibleEdges.get(String(node.id)) || 0) /
-            Math.max(1, node.graphEdgeCount),
-        );
-    return Object.assign({}, node, { symbolSize: size });
-  });
 }
 
 function graph_creation_order(a, b) {
@@ -286,15 +255,73 @@ function graph_colour_hue(nodes) {
   return hash % 360;
 }
 
+function graph_tree_order(nodes, links, root) {
+  var byId = new Map(
+    nodes.map(function (node) {
+      return [String(node.id), node];
+    }),
+  );
+  var neighbours = new Map();
+  links.forEach(function (link) {
+    var source = String(link.source);
+    var target = String(link.target);
+    if (!neighbours.has(source)) neighbours.set(source, []);
+    if (!neighbours.has(target)) neighbours.set(target, []);
+    neighbours.get(source).push(target);
+    neighbours.get(target).push(source);
+  });
+  var ordered = [];
+  var seen = new Set();
+  var first = root || nodes[0];
+  var frontier = first ? [first] : [];
+  var step = 1;
+  if (first) {
+    first.graphReplayStep = 0;
+    ordered.push(first);
+    seen.add(String(first.id));
+  }
+  while (frontier.length) {
+    var next = [];
+    frontier.forEach(function (node) {
+      var children = (neighbours.get(String(node.id)) || [])
+        .map(function (id) {
+          return byId.get(id);
+        })
+        .filter(function (child) {
+          return child && !seen.has(String(child.id));
+        })
+        .sort(graph_creation_order);
+      children.forEach(function (child) {
+        seen.add(String(child.id));
+        child.graphReplayStep = step;
+        ordered.push(child);
+        next.push(child);
+      });
+      if (children.length) step += 1;
+    });
+    frontier = next;
+  }
+  nodes
+    .filter(function (node) {
+      return !seen.has(String(node.id));
+    })
+    .sort(graph_creation_order)
+    .forEach(function (node) {
+      node.graphReplayStep = step++;
+      ordered.push(node);
+    });
+  return ordered;
+}
+
 function graph_next_timeline_index(nodes, shown) {
   if (shown >= nodes.length) {
     return shown;
   }
 
-  var created = nodes[shown].created;
+  var step = nodes[shown].graphReplayStep;
   do {
     shown += 1;
-  } while (shown < nodes.length && nodes[shown].created === created);
+  } while (shown < nodes.length && nodes[shown].graphReplayStep === step);
   return shown;
 }
 
@@ -309,19 +336,8 @@ function graph_timeline_steps(nodes) {
 }
 
 function graph_timeline_beats(nodes) {
-  var steps = graph_timeline_steps(nodes);
-  return steps.map(function (shown, index) {
-    var current = Date.parse(nodes[shown - 1].created);
-    var nextShown = steps[index + 1];
-    var next = nextShown ? Date.parse(nodes[nextShown - 1].created) : NaN;
-    var gapDays = (next - current) / 86400000;
-    return {
-      duration:
-        Number.isFinite(gapDays) && gapDays > 0
-          ? Math.min(900, 420 + Math.log2(gapDays + 1) * 90)
-          : 620,
-      shown: shown,
-    };
+  return graph_timeline_steps(nodes).map(function (shown) {
+    return { duration: 280, shown: shown };
   });
 }
 
@@ -333,26 +349,28 @@ function finish_graph_timelapse() {
   });
 }
 
-function show_graph_timeline_step(chart, steps, step) {
-  var shown = steps[step - 1];
-  var nodes = graphTimelineNodes.slice(0, shown);
-  var visibleLinks = graph_visible_links(
-    graphTimelineLinks,
-    new Set(
-      nodes.map(function (node) {
-        return String(node.id);
-      }),
-    ),
+function show_graph_timeline_step(chart, shown) {
+  var series = chart.getModel().getSeriesByIndex(0);
+  var nodes = series.getData();
+  var links = series.getEdgeData();
+  var visibleIds = new Set(
+    graphTimelineNodes.slice(0, shown).map(function (node) {
+      return String(node.id);
+    }),
   );
-  chart.setOption({
-    series: [
-      {
-        animationDurationUpdate: 0,
-        data: graph_timeline_nodes(nodes, visibleLinks),
-        links: visibleLinks,
-        layout: "none",
-      },
-    ],
+  graphTimelineNodes.forEach(function (_node, index) {
+    var element = nodes.getItemGraphicEl(index);
+    if (!element) return;
+    element.ignore = index >= shown;
+    element.dirty();
+  });
+  graphTimelineLinks.forEach(function (link, index) {
+    var element = links.getItemGraphicEl(index);
+    if (!element) return;
+    element.ignore =
+      !visibleIds.has(String(link.source)) ||
+      !visibleIds.has(String(link.target));
+    element.dirty();
   });
 }
 
@@ -364,37 +382,21 @@ function replay_graph_growth(chart) {
   finish_graph_timelapse();
   graphReplayStable = false;
   clear_graph_text_motion();
-  cache_graph_positions(chart);
-  chart.setOption({
-    series: [
-      {
-        animationDurationUpdate: 0,
-        data: graphTimelineNodes,
-        layout: "none",
-        links: graphTimelineLinks,
-      },
-    ],
-  });
   document.querySelectorAll(".graph-timelapse").forEach(function (button) {
     button.classList.add("is-playing");
   });
 
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-    chart.setOption({
-      series: [{ data: graphTimelineNodes, links: graphTimelineLinks }],
-    });
+    show_graph_timeline_step(chart, graphTimelineNodes.length);
     graphReplayStable = true;
     finish_graph_timelapse();
     return;
   }
 
   var beats = graph_timeline_beats(graphTimelineNodes);
-  var steps = beats.map(function (beat) {
-    return beat.shown;
-  });
   var started = 0;
   var renderedBeat = -1;
-  chart.setOption({ series: [{ data: [], links: [] }] });
+  show_graph_timeline_step(chart, 0);
 
   function reveal_nodes(now) {
     if (chart.isDisposed()) {
@@ -415,14 +417,11 @@ function replay_graph_growth(chart) {
     var progress = (elapsed - beatStarted) / beats[beat].duration;
 
     if (beat !== renderedBeat) {
-      show_graph_timeline_step(chart, steps, beat + 1);
+      show_graph_timeline_step(chart, beats[beat].shown);
       renderedBeat = beat;
     }
 
     if (beat === beats.length - 1 && progress >= 0.65) {
-      chart.setOption({
-        series: [{ animationDurationUpdate: option.animationDurationUpdate }],
-      });
       graphReplayStable = true;
       finish_graph_timelapse();
     } else if (!chart.isDisposed()) {
@@ -905,8 +904,8 @@ function prepare_graph(graph) {
     link.target = link.target.split(" •")[0];
   });
 
-  graphTimelineNodes = graph.nodes.slice().sort(graph_creation_order);
   graphTimelineLinks = graph.links.slice();
+  graphTimelineNodes = graph_tree_order(graph.nodes, graphTimelineLinks, rootNode);
   style_graph_nodes();
   var colours = graph_colours();
 
