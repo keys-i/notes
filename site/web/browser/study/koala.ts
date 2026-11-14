@@ -1085,14 +1085,18 @@ function dockPetStudyError(code, timedOut?) {
     if (file.size > 64_000_000) throw new Error("attachment is too large");
     var video = document.createElement("video");
     var url = window.URL.createObjectURL(file);
-    if (!url.startsWith("blob:")) {
+    var parsedUrl = new URL(url);
+    if (
+      parsedUrl.protocol !== "blob:" ||
+      parsedUrl.origin !== window.location.origin
+    ) {
       window.URL.revokeObjectURL(url);
       throw new Error("media decode failed");
     }
     video.muted = true;
     video.preload = "metadata";
     video.playsInline = true;
-    video.src = url;
+    video.src = parsedUrl.href;
     try {
       var metadata = mediaEvent(video, "loadedmetadata");
       video.load();

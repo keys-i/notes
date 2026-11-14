@@ -327,17 +327,24 @@ test("catalogue never inserts untrusted routes or external URLs", async () => {
         catalogue_url: "https://evil.example/catalogue",
         source_url: "javascript:alert(1)",
       }),
+      record({ code: "EVIL0002", source_url: "data:text/html,unsafe" }),
+      record({ code: "EVIL0003", source_url: "vbscript:msgbox(1)" }),
       record(),
     ],
   });
   const links = runtime.list.querySelectorAll("a");
+  const allowedOrigins = new Set([
+    "https://drive.google.com",
+    "https://learn.uq.edu.au",
+    "https://uni.keysi.dev",
+  ]);
 
   assert.equal(runtime.list.children.length, 1);
   assert.ok(
-    links.every((link: any) =>
-      !String(link.href).includes("evil.example") &&
-      !String(link.href).startsWith("javascript:"),
-    ),
+    links.every((link: any) => {
+      const url = new URL(String(link.href), "https://uni.keysi.dev");
+      return url.protocol === "https:" && allowedOrigins.has(url.origin);
+    }),
   );
 });
 

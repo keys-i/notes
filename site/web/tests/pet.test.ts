@@ -1099,7 +1099,8 @@ function createRuntime({
   }
   if (mediaFiles?.video) {
     window.URL = {
-      createObjectURL: () => mediaFiles.video.url || "blob:attachment",
+      createObjectURL: () =>
+        mediaFiles.video.url || "blob:https://uni.keysi.dev/attachment",
       revokeObjectURL() {},
     };
   }
