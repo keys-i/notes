@@ -992,7 +992,11 @@ test("graph helpers preserve routes, ordering, labels, and timeline state", asyn
   `);
   assert.equal(chart.options.length, 0);
   call("replay_graph_growth(testChart)");
-  assert.equal(chart.options.at(-1).series[0].data.length, 2);
+  assert.equal(
+    chart.options.filter((value) => value.series?.[0]?.data).at(-1).series[0]
+      .data.length,
+    2,
+  );
   const modalPromise = call("open_graph(); graphModalPromise");
   await modalPromise;
   assert.equal(graph.elements.get("modal_background")!.hidden, false);
@@ -1349,13 +1353,28 @@ test("graph replay is one cancellable frame loop and data failures retry", async
   frames[5](604);
   assert.equal(chart.options.length, secondBeatOptions);
   frames[6](914);
-  assert.equal(chart.options.at(-1).series[0].data.length, 3);
-  assert.equal(chart.options.at(-1).series[0].layout, "force");
   assert.equal(chart.options.at(-1).series[0].animationDurationUpdate, 360);
+  assert.equal(
+    chart.options.filter((value: any) => value.series?.[0]?.layout).at(-1)
+      .series[0].layout,
+    "none",
+  );
+  assert.equal(
+    chart.options.some((value: any) => value.series?.[0]?.layout === "force"),
+    false,
+  );
+  assert.equal(call("option.series[0].roam"), true);
+  assert.equal(call("option.series[0].draggable"), true);
+  assert.equal(call("graphReplayStable"), true);
   assert.equal(graph.replay.classList.contains("is-playing"), false);
   assert.equal(call("graphTimelineFrame"), 0);
   assert.equal(graph.timers.size, 0);
+  const stableOptions = chart.options.length;
+  call("start_graph_drag_response(replayChart,{dataType:'node'})");
+  assert.equal(chart.options.length, stableOptions);
+  assert.equal(call("graphReplayStable"), true);
   call("replay_graph_growth(replayChart)");
+  assert.equal(call("graphReplayStable"), false);
   disposed = true;
   frames.at(-1)!(1000);
   assert.equal(graph.replay.classList.contains("is-playing"), false);
@@ -1365,6 +1384,7 @@ test("graph replay is one cancellable frame loop and data failures retry", async
   call("replay_graph_growth(replayChart)");
   assert.equal(frames.length, frameCount);
   assert.equal(chart.options.at(-1).series[0].data.length, 3);
+  assert.equal(call("graphReplayStable"), true);
   assert.equal(graph.replay.classList.contains("is-playing"), false);
 });
 

@@ -78,6 +78,7 @@ var graphDrawFrame = 0;
 var graphResizeFrame;
 var graphLabelFrame = 0;
 var graphHasPositions = false;
+var graphReplayStable = false;
 var graphZoom = 2;
 var graphKeyboardCleanup;
 var myChart;
@@ -361,6 +362,7 @@ function replay_graph_growth(chart) {
   }
 
   finish_graph_timelapse();
+  graphReplayStable = false;
   clear_graph_text_motion();
   if (!graphHasPositions) cache_graph_positions(chart);
   chart.setOption({
@@ -381,6 +383,7 @@ function replay_graph_growth(chart) {
     chart.setOption({
       series: [{ data: graphTimelineNodes, links: graphTimelineLinks }],
     });
+    graphReplayStable = true;
     finish_graph_timelapse();
     return;
   }
@@ -417,7 +420,10 @@ function replay_graph_growth(chart) {
     }
 
     if (beat === beats.length - 1 && progress >= 0.65) {
-      resume_graph_motion(chart);
+      chart.setOption({
+        series: [{ animationDurationUpdate: option.animationDurationUpdate }],
+      });
+      graphReplayStable = true;
       finish_graph_timelapse();
     } else if (!chart.isDisposed()) {
       graphTimelineFrame = requestAnimationFrame(reveal_nodes);
@@ -780,6 +786,7 @@ function resume_graph_motion(chart) {
   var reducedMotion = window.matchMedia(
     "(prefers-reduced-motion: reduce)",
   ).matches;
+  graphReplayStable = false;
   chart.setOption({
     series: [
       {
@@ -802,6 +809,7 @@ function start_graph_drag_response(chart, params) {
   if (params.dataType !== "node" || !chart || chart.isDisposed()) return;
   finish_graph_timelapse();
   cache_graph_positions(chart);
+  if (graphReplayStable) return;
   resume_graph_motion(chart);
 }
 
@@ -1070,6 +1078,7 @@ function open_graph() {
 
 function dispose_graph() {
   finish_graph_timelapse();
+  graphReplayStable = false;
   clear_graph_text_motion();
   graphKeyboardCleanup?.();
   cancelAnimationFrame(graphDrawFrame);
