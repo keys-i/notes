@@ -15,23 +15,30 @@ var graphTimelapseIcon =
   <circle cx="15" cy="13.5" r="1" fill="currentColor" stroke="none"/> \
 </svg>';
 
+function set_toc_marquee(label: HTMLElement) {
+  label.removeAttribute("data-marquee");
+  label.style.setProperty("--marquee-distance", "");
+  label.style.setProperty("--marquee-duration", "");
+  if (label.clientWidth <= 0 || label.scrollWidth <= label.clientWidth) return;
+  var distance = label.scrollWidth + 24;
+  label.dataset.marquee = label.textContent.trim();
+  label.style.setProperty("--marquee-distance", "-" + distance + "px");
+  label.style.setProperty(
+    "--marquee-duration",
+    Math.max(4, distance / 30) + "s",
+  );
+}
+
 function set_toc_marquees() {
   document
     .querySelectorAll<HTMLElement>(".md-nav__link .md-ellipsis")
-    .forEach(function (label) {
-      label.removeAttribute("data-marquee");
-      label.style.setProperty("--marquee-distance", "");
-      label.style.setProperty("--marquee-duration", "");
-      if (label.clientWidth > 0 && label.scrollWidth > label.clientWidth) {
-        var distance = label.scrollWidth + 24;
-        label.dataset.marquee = label.textContent.trim();
-        label.style.setProperty("--marquee-distance", "-" + distance + "px");
-        label.style.setProperty(
-          "--marquee-duration",
-          Math.max(4, distance / 30) + "s",
-        );
-      }
-    });
+    .forEach(set_toc_marquee);
+}
+
+function refresh_toc_marquee(event: Event) {
+  if (!(event.target instanceof Element)) return;
+  var label = event.target.closest<HTMLElement>(".md-ellipsis");
+  if (label) set_toc_marquee(label);
 }
 
 requestAnimationFrame(set_toc_marquees);
@@ -41,6 +48,8 @@ document.fonts?.ready.then(function () {
 window.addEventListener("load", function () {
   requestAnimationFrame(set_toc_marquees);
 });
+document.addEventListener("pointerover", refresh_toc_marquee);
+document.addEventListener("focusin", refresh_toc_marquee);
 
 var graphScriptUrl = new URL(
   (document.currentScript as HTMLScriptElement).src,

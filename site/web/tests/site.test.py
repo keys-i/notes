@@ -406,6 +406,8 @@ class SiteAssetTests(unittest.TestCase):
         )
         self.assertIn('id="papers-search"', template)
         self.assertIn("latest paper", template)
+        self.assertIn(">Open source ↗</a>", template)
+        self.assertNotIn("Paper not loading", template)
         self.assertNotIn("papers__years", template)
 
     def test_paper_titles_are_direct_human_labels(self):

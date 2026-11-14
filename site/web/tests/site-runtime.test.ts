@@ -571,6 +571,7 @@ function graphHarness() {
   const graphButton = new RuntimeElement();
   graphButton.id = "graph_button";
   const labels = [new RuntimeElement(), new RuntimeElement()];
+  labels.forEach((label) => { label.className = "md-ellipsis"; });
   labels[0].textContent = "Long label";
   (labels[0] as any).scrollWidth = 140;
   (labels[0] as any).clientWidth = 80;
@@ -785,6 +786,12 @@ test("graph helpers preserve routes, ordering, labels, and timeline state", asyn
   const call = (source: string) => vm.runInContext(source, graph.context);
   assert.equal(graph.labels[0].dataset.marquee, "Long label");
   assert.equal(graph.labels[1].dataset.marquee, undefined);
+  (graph.labels[0] as any).clientWidth = 180;
+  graph.handlers.pointerover[0]({ target: graph.labels[0] });
+  assert.equal(graph.labels[0].dataset.marquee, undefined);
+  (graph.labels[0] as any).clientWidth = 80;
+  graph.handlers.focusin[0]({ target: graph.labels[0] });
+  assert.equal(graph.labels[0].dataset.marquee, "Long label");
   (graph.labels[0] as any).clientWidth = 180;
   graph.handlers.resize[0]({});
   assert.equal(graph.labels[0].dataset.marquee, undefined);
