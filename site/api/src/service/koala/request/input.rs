@@ -154,7 +154,7 @@ pub struct PetReply {
 pub fn validate(input: PetRequest) -> Result<PetRequest, &'static str> {
     valid_text(&input.title, 160, false).ok_or("invalid title")?;
     valid_text(&input.locale, 40, false).ok_or("invalid locale")?;
-    if input.sections.is_empty() || input.sections.len() > 6 {
+    if input.sections.len() > 6 {
         return Err("invalid sections");
     }
     if input.messages.is_empty() || input.messages.len() > 8 {

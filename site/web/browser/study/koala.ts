@@ -489,6 +489,10 @@ function dockPetStudyError(code, timedOut?) {
     return "I couldn’t hear usable speech in that recording. Try a clearer clip";
   if (code === "analysis_failed")
     return "I couldn’t verify what was in that image. Try a clearer frame";
+  if (code === "guard_unavailable")
+    return "Koa’s safety check is unavailable right now. Try again shortly";
+  if (code === "backend_unconfigured")
+    return "Koa’s model connection is not configured";
   if (code === "unsafe_input")
     return "I can’t use that request safely. Rephrase it as a study question";
   return "The study service is offline right now. Try again shortly";
@@ -1190,13 +1194,8 @@ function dockPetStudyError(code, timedOut?) {
         kind: selectedAttachment.kind,
       };
     }
-    if (!context.length || typeof window.fetch !== "function") {
-      finishStudy(
-        task,
-        reply.key.startsWith("absent:")
-          ? "There isn’t enough page context to answer that here"
-          : reply.text,
-      );
+    if (typeof window.fetch !== "function") {
+      finishStudy(task, reply.text);
       return;
     }
 
@@ -1267,15 +1266,15 @@ function dockPetStudyError(code, timedOut?) {
           aborted ||
           [
             "model_unavailable",
+            "guard_unavailable",
+            "backend_unconfigured",
             "retrieval_unavailable",
             "service_unavailable",
           ].includes(code);
         finishStudy(
           task,
-          !selectedAttachment && unavailable
-            ? reply.key.startsWith("absent:")
-              ? "There isn’t enough page context to answer that here"
-              : reply.text
+          !selectedAttachment && unavailable && !reply.key.startsWith("absent:")
+            ? reply.text
             : dockPetStudyError(code, timedOut || aborted),
         );
       }

@@ -365,7 +365,7 @@ class SiteAssetTests(unittest.TestCase):
                 )
                 self.assertEqual(context["paper_catalog"], {"course": code})
                 body = site.on_page_markdown("", SimpleNamespace(meta={"papers": code}))
-                self.assertIn("Solutions and worked answers", body)
+                self.assertNotIn("Solutions and worked answers", body)
                 self.assertIn(f"Back to {code}", body)
         self.assertEqual(
             {item.get("source", "fallback") for item in catalog["MECH2700"]["items"]},

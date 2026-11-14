@@ -17,6 +17,14 @@ fn accepts_a_bounded_grounded_thread() {
 }
 
 #[test]
+fn accepts_general_conversation_without_page_sections() {
+    let mut input = request();
+    input.sections.clear();
+    input.messages[0].content = "Who are you?".into();
+    assert!(validate(input).is_ok());
+}
+
+#[test]
 fn rejects_unbounded_or_malformed_context() {
     let mut empty = request();
     empty.messages[0].content.clear();

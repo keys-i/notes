@@ -34,8 +34,9 @@ fn tokens(value: &str) -> Vec<String> {
         .filter(|term| term.chars().count() > 2)
         .filter(|term| {
             ![
-                "and", "are", "for", "how", "that", "the", "this", "what", "when", "where",
-                "which", "why", "with",
+                "and", "are", "can", "could", "define", "explain", "for", "going", "how", "me",
+                "please", "should", "tell", "that", "the", "this", "what", "when", "where",
+                "which", "who", "why", "with", "would", "you", "your",
             ]
             .contains(term)
         })

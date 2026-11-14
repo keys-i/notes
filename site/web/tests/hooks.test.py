@@ -1048,7 +1048,7 @@ class PlotCoverageTests(unittest.TestCase):
                 self.assertNotIn("note-plot__control", html)
 
 
-class SiteCoverageTests(unittest.TestCase):
+class SiteEdgeCoverageTests(unittest.TestCase):
     def test_navigation_keeps_non_weeks_stable_and_sorts_numbered_weeks(self):
         def page(title):
             return SimpleNamespace(
@@ -1150,6 +1150,35 @@ class SiteCoverageTests(unittest.TestCase):
 
 
 class BrowserCoverageTests(unittest.TestCase):
+    def test_stale_compares_every_browser_source_with_shared_inputs(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "browser"
+            output = root / "js"
+            source.mkdir()
+            output.mkdir()
+            config = root / "tsconfig.json"
+            declaration = source / "globals.d.ts"
+            script = source / "study.ts"
+            built = output / "study.js"
+            for path in (config, declaration, script, built):
+                path.write_text("", encoding="utf-8")
+            os.utime(config, ns=(10, 10))
+            os.utime(declaration, ns=(20, 20))
+            os.utime(script, ns=(30, 30))
+            os.utime(built, ns=(40, 40))
+
+            with (
+                patch.object(browser, "CONFIG", config),
+                patch.object(browser, "SOURCE", source),
+                patch.object(browser, "OUTPUT", output),
+            ):
+                self.assertFalse(browser.stale())
+                os.utime(built, ns=(15, 15))
+                self.assertTrue(browser.stale())
+                built.unlink()
+                self.assertTrue(browser.stale())
+
     def test_pre_build_compiles_browser_source_from_the_repository_root(self):
         with (
             patch.object(browser, "stale", return_value=True),
@@ -1169,6 +1198,123 @@ class BrowserCoverageTests(unittest.TestCase):
         ):
             browser.on_pre_build()
         run.assert_not_called()
+
+
+class CourseCoverageTests(unittest.TestCase):
+    def test_discovered_courses_skip_non_pages_and_derive_local_actions(self):
+        source = """
+updated = "2026-11-13"
+
+[[courses]]
+code = "COMP4500"
+title = "Advanced Algorithms and Data Structures"
+maturity = "source"
+verified = "2026-11-13"
+catalogue-id = "COMP4500_7660_60785"
+"""
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            content = root / "content"
+            local = content / "MATH/1051"
+            (local / "PY").mkdir(parents=True)
+            (local / "CS").mkdir()
+            (local / "index.md").write_text(
+                "---\ntitle: MATH1051 Calculus and Linear Algebra I\n---\n",
+                encoding="utf-8",
+            )
+            (local / "PY/index.md").write_text("# Papers\n", encoding="utf-8")
+            (local / "CS/index.md").write_text("# Cheatsheet\n", encoding="utf-8")
+            notes_only = content / "STAT/1201"
+            notes_only.mkdir(parents=True)
+            (notes_only / "index.md").write_text(
+                "---\ntitle: Analysis of Scientific Data\n---\n", encoding="utf-8"
+            )
+            (content / "MATH/README.md").write_text("skip", encoding="utf-8")
+            loaded = courses.site_courses(
+                course_config(root, source), content, date(2026, 11, 13)
+            )
+
+        math = next(course for course in loaded if course["code"] == "MATH1051")
+        self.assertEqual(math["title"], "Calculus and Linear Algebra I")
+        self.assertEqual(math["area"], "mathematics")
+        self.assertEqual(math["capabilities"], ["notes", "papers", "cheatsheet"])
+        statistics = next(course for course in loaded if course["code"] == "STAT1201")
+        self.assertEqual(statistics["capabilities"], ["notes"])
+
+    def test_discovered_course_rejects_an_unknown_subject_area(self):
+        source = """
+updated = "2026-11-13"
+
+[[courses]]
+code = "COMP4500"
+title = "Advanced Algorithms and Data Structures"
+maturity = "source"
+verified = "2026-11-13"
+catalogue-id = "COMP4500_7660_60785"
+"""
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            content = root / "content"
+            unknown = content / "LAWX/1234"
+            unknown.mkdir(parents=True)
+            (unknown / "index.md").write_text(
+                "---\ntitle: Unknown course\n---\n", encoding="utf-8"
+            )
+            with self.assertRaisesRegex(ValueError, "area"):
+                courses.site_courses(
+                    course_config(root, source), content, date(2026, 11, 13)
+                )
+
+    def test_local_titles_and_teaching_references_fail_clearly(self):
+        for source, message in (
+            ("# Missing front matter\n", "no front matter"),
+            ("---\ntitle: Course\n", "invalid front matter"),
+            ("---\ntitle: \n---\n", "title is invalid"),
+        ):
+            with (
+                self.subTest(source=source),
+                self.assertRaisesRegex(ValueError, message),
+            ):
+                courses._title(source, "MATH1051")
+
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            with self.assertRaisesRegex(ValueError, "does not exist"):
+                courses._teaching_anchor(
+                    root, "assessment", "PY/missing.md", "COMP4702"
+                )
+            (root / "Lectures").mkdir()
+            (root / "Lectures/index.md").write_text("# Lectures\n", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "reference is invalid"):
+                courses._teaching_anchor(
+                    root, "concepts", "Lectures/index.md", "COMP4702"
+                )
+
+
+class SiteCoverageTests(unittest.TestCase):
+    def test_compact_route_without_a_course_title_is_left_unchanged(self):
+        child = SimpleNamespace(title="INFS2200 ", url="INFS/2200/", children=[])
+        course = SimpleNamespace(title="2200", url=None, children=[child])
+        leaf = SimpleNamespace(title="Other", url="other/", children=[])
+        site_hook._label_compact_routes([course, leaf])
+        self.assertEqual(course.title, "2200")
+        self.assertEqual(leaf.title, "Other")
+
+    def test_post_build_rejects_missing_and_oversized_course_assets(self):
+        for failure in ("missing", "oversized"):
+            with self.subTest(failure=failure), TemporaryDirectory() as directory:
+                root = Path(directory)
+                course_assets(root)
+                asset, budget = next(iter(site_hook.COURSE_ASSET_BUDGETS.items()))
+                path = root / asset
+                if failure == "missing":
+                    path.unlink()
+                    message = "is missing"
+                else:
+                    path.write_bytes(b"x" * (budget + 1))
+                    message = "exceeds"
+                with self.assertRaisesRegex(RuntimeError, message):
+                    site_hook.on_post_build(SimpleNamespace(site_dir=root, extra={}))
 
 
 if __name__ == "__main__":

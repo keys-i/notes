@@ -4,13 +4,13 @@ use super::super::request::{AttachmentKind, PetRequest, ReplyKind, Role, latest_
 use super::rank::terms;
 use std::collections::HashSet;
 
-pub(crate) const PROMPT_VERSION: &str = "pet-v17";
+pub(crate) const PROMPT_VERSION: &str = "pet-v18";
 pub(crate) const QUICK_MODEL: &str = "openai/gpt-oss-20b";
 pub(crate) const FAST_MODEL: &str = "qwen/qwen3.8-27b";
 pub(crate) const DEEP_MODEL: &str = "openai/gpt-oss-120b";
 pub(crate) const IMAGE_MODEL: &str = FAST_MODEL;
 pub(crate) const AUDIO_MODEL: &str = "whisper-large-v3-turbo";
-pub(crate) const GUARD_MODEL: &str = "meta-llama/llama-prompt-guard-2-86m";
+pub(crate) const GUARD_MODEL: &str = "openai/gpt-oss-safeguard-20b";
 /// Server-owned model class selected for a validated request
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum ModelRoute {
@@ -69,18 +69,16 @@ fn contains_phrase(tokens: &[&str], phrase: &str) -> bool {
     tokens.windows(phrase.len()).any(|words| words == phrase)
 }
 
+fn is_course_code(value: &str) -> bool {
+    let bytes = value.as_bytes();
+    bytes.len() == 8
+        && bytes[..4].iter().all(u8::is_ascii_alphabetic)
+        && bytes[4..].iter().all(u8::is_ascii_digit)
+}
+
 /// Keeps note questions grounded while allowing ordinary study conversation
 pub fn answer_kind(input: &PetRequest) -> ReplyKind {
     let question = latest_question(input);
-    let query_terms = terms(question);
-    let matches_note = input.sections.iter().any(|section| {
-        !query_terms.is_empty()
-            && (!query_terms.is_disjoint(&terms(&section.heading))
-                || !query_terms.is_disjoint(&terms(&section.text)))
-    });
-    if matches_note {
-        return ReplyKind::Note;
-    }
     let lower = question.to_lowercase();
     let tokens = lower
         .split(|character: char| !character.is_alphanumeric())
@@ -102,6 +100,21 @@ pub fn answer_kind(input: &PetRequest) -> ReplyKind {
     .iter()
     .any(|phrase| contains_phrase(&tokens, phrase));
     let words = tokens.iter().copied().collect::<HashSet<_>>();
+    let query_terms = terms(question);
+    let matches_note = input.sections.iter().any(|section| {
+        !query_terms.is_empty()
+            && (!query_terms.is_disjoint(&terms(&section.heading))
+                || !query_terms.is_disjoint(&terms(&section.text)))
+    });
+    let asks_for_catalogue = words.iter().any(|word| {
+        ["course", "courses", "note", "notes", "paper", "papers"].contains(word)
+            || is_course_code(word)
+    });
+    if matches_note
+        && (!input.title.eq_ignore_ascii_case("home") || points_to_page || asks_for_catalogue)
+    {
+        return ReplyKind::Note;
+    }
     let references_context = ["this", "that", "it", "these", "those", "again"]
         .iter()
         .any(|word| words.contains(word))
@@ -135,7 +148,7 @@ pub fn answer_kind(input: &PetRequest) -> ReplyKind {
 
 #[cfg(test)]
 mod tests {
-    use super::ModelRoute;
+    use super::{GUARD_MODEL, ModelRoute};
 
     #[test]
     fn model_routes_use_the_owned_free_tier_identifiers() {
@@ -144,5 +157,6 @@ mod tests {
         assert_eq!(ModelRoute::Deep.name(), "openai/gpt-oss-120b");
         assert_eq!(ModelRoute::Image.name(), "qwen/qwen3.8-27b");
         assert_eq!(ModelRoute::Audio.name(), "whisper-large-v3-turbo");
+        assert_eq!(GUARD_MODEL, "openai/gpt-oss-safeguard-20b");
     }
 }

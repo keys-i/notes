@@ -169,7 +169,7 @@ pub(crate) async fn answer(
             return model_unavailable(
                 &env,
                 "guard_unavailable",
-                route.name(),
+                GUARD_MODEL,
                 "Study classifier request failed",
                 "The study safety check is unavailable",
                 started,

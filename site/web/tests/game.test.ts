@@ -1239,7 +1239,7 @@ test("Pac-Man foreground cues finish before music resumes and scenes lock it out
   assert.ok(chewing.audios.at(-1).paused, "chomping stops when pickups stop");
 });
 
-test("story chapters stay linear while repeat powers stay on the board", () => {
+test("authored scenes run once while repeat powers stay on the board", () => {
   const timers = new Map();
   let timerId = 0;
   let stopped = 0;
@@ -1280,17 +1280,17 @@ test("story chapters stay linear while repeat powers stay on the board", () => {
   };
   const context = vm.createContext({
     SCENE_DURATIONS: JSON.parse(JSON.stringify(game.SCENE_DURATIONS)),
-    STORY: JSON.parse(JSON.stringify(game.STORY)),
-    STORY_CHAPTERS: [...game.STORY_CHAPTERS],
-    JOURNEY_CALLOUTS: [...game.JOURNEY_CALLOUTS],
+    SCENE_CAPTIONS: JSON.parse(JSON.stringify(game.SCENE_CAPTIONS)),
+    AUSSIE_SLANG: [...game.AUSSIE_SLANG],
+    INTRO: JSON.parse(JSON.stringify(game.INTRO)),
     gameScene: "",
     gameSceneExitTimer: 0,
     gameSceneTimer: 0,
     gameReactionTimer: 0,
     gameStarted: false,
     sceneTake: 0,
+    sceneTakes: new Map(),
     sceneBags: new Map(),
-    storyChapter: 0,
     effectsRandom: () => 0,
     running: true,
     paused: false,
@@ -1324,7 +1324,7 @@ test("story chapters stay linear while repeat powers stay on the board", () => {
   });
   runFunctions(context, [
     "clearGameScene",
-    "isStoryChapter",
+    "isPowerScene",
     "sceneStageKind",
     "powerSceneCallout",
     "populateSceneHunters",
@@ -1381,10 +1381,16 @@ test("story chapters stay linear while repeat powers stay on the board", () => {
   context.finishGameScene();
   delete context.matchMedia;
 
-  const powers = ["vegemite", "dragon", "combined"];
-  for (const [index, chapter] of context.STORY_CHAPTERS.entries()) {
-    assert.equal(context.triggerPowerScene(powers[index]), true);
-    assert.equal(context.gameScene, chapter);
+  for (const kind of [
+    "vegemite",
+    "dragon",
+    "combined",
+    "weak",
+    "ultra",
+    "hakai",
+  ]) {
+    assert.equal(context.triggerPowerScene(kind), true);
+    assert.equal(context.gameScene, kind);
     assert.equal(scene.hidden, false);
     assert.equal(cues.at(-1), "power");
     assert.equal(
@@ -1392,20 +1398,19 @@ test("story chapters stay linear while repeat powers stay on the board", () => {
       2,
       "each scene gets exactly two hunters",
     );
-    assert.equal([...timers.values()][0].ms, context.SCENE_DURATIONS[chapter]);
+    assert.equal([...timers.values()][0].ms, context.SCENE_DURATIONS[kind]);
     assert.equal(sceneNode(".game-scene__skip").textContent, "Skip");
     assert.equal(
       sceneNode(".game-scene__skip").attributes.get("aria-label"),
-      "Skip story chapter",
+      "Skip power-up",
     );
-    assert.equal(
-      sceneNode("[data-scene-line]").textContent,
-      context.STORY[chapter].line,
-    );
-    assert.equal(
-      sceneNode("[data-scene-sign]").textContent,
-      context.STORY[chapter].sign,
-    );
+    if (kind === "vegemite") {
+      assert.ok(
+        context.AUSSIE_SLANG.includes(
+          sceneNode(".scene-vegemite__slang").textContent,
+        ),
+      );
+    }
     assert.doesNotThrow(
       () => context.movePlayer(1, 0),
       "scene blocks player physics",
@@ -1418,26 +1423,26 @@ test("story chapters stay linear while repeat powers stay on the board", () => {
     assert.equal(scene.hidden, true);
     assert.equal(context.gameScene, "");
     assert.equal(timers.size, 0);
-  }
 
-  assert.equal(context.triggerPowerScene("hakai"), false);
-  assert.equal(context.gameScene, "");
-  assert.equal(context.board.dataset.reaction, "power-hakai");
-  assert.ok(context.board.dataset.callout);
-  assert.equal(effects.at(-1), "power");
-  const reaction = [...timers.values()][0];
-  assert.equal(reaction.ms, 420);
-  reaction.fn();
-  assert.equal(context.board.dataset.reaction, undefined);
-  assert.equal(context.board.dataset.callout, undefined);
-  timers.clear();
+    assert.equal(context.triggerPowerScene(kind), false);
+    assert.equal(context.gameScene, "");
+    assert.equal(context.board.dataset.reaction, "power-" + kind);
+    assert.ok(context.board.dataset.callout);
+    assert.equal(effects.at(-1), "power");
+    const reaction = [...timers.values()][0];
+    assert.equal(reaction.ms, 420);
+    reaction.fn();
+    assert.equal(context.board.dataset.reaction, undefined);
+    assert.equal(context.board.dataset.callout, undefined);
+    timers.clear();
+  }
 
   context.startGameScene("ready");
   const replaced = [...timers.values()][0].fn;
-  context.startGameScene("map");
+  context.startGameScene("vegemite");
   replaced();
-  assert.equal(context.gameScene, "map");
-  assert.equal(context.board.dataset.scene, "map");
+  assert.equal(context.gameScene, "vegemite");
+  assert.equal(context.board.dataset.scene, "vegemite");
   assert.equal(scene.hidden, false);
   assert.equal(timers.size, 1, "an old scene cannot finish its replacement");
   context.finishGameScene();

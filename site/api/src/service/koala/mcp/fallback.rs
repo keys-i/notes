@@ -6,7 +6,7 @@ use worker::{Env, Response, Result};
 
 pub(super) fn model_unavailable(
     env: &Env,
-    outcome: &str,
+    outcome: &'static str,
     model: &str,
     log: &str,
     message: &'static str,
@@ -15,5 +15,5 @@ pub(super) fn model_unavailable(
 ) -> Result<Response> {
     worker::console_error!("{log}");
     metric(env, outcome, model, false, started);
-    unavailable_error("model_unavailable", message, origin)
+    unavailable_error(outcome, message, origin)
 }

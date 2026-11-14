@@ -30,7 +30,7 @@ pub(crate) async fn answer_image(
             return model_unavailable(
                 env,
                 "guard_unavailable",
-                IMAGE_MODEL,
+                GUARD_MODEL,
                 "Study classifier request failed",
                 "The study safety check is unavailable",
                 started,

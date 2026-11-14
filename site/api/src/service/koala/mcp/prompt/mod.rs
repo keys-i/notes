@@ -139,7 +139,7 @@ pub(crate) fn generation_request(
     AiRequest {
         messages: model_messages(input, evidence, kind),
         max_tokens: 900,
-        temperature: if kind == ReplyKind::Note { 0.0 } else { 0.15 },
+        temperature: if kind == ReplyKind::Note { 0.0 } else { 0.35 },
     }
 }
 
@@ -219,7 +219,7 @@ mod tests {
         );
         assert_eq!(
             generation_request(&input(), &[], ReplyKind::General).temperature,
-            0.15
+            0.35
         );
     }
 }

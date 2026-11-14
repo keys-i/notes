@@ -447,7 +447,7 @@ function shellRuntime({
       base.player.x += x;
       base.player.y += y;
     },
-    routeDump: () => "trace dump",
+    ntDump: () => "trace dump",
     paused: false,
     pelletStarts: [1, 2, 3],
     pellets: new Set([1]),

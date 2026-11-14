@@ -81,3 +81,23 @@ fn note_questions_stay_grounded_while_general_questions_remain_conversational() 
     });
     assert_eq!(answer_kind(&input), ReplyKind::General);
 }
+
+#[test]
+fn home_catalogue_does_not_hijack_conversation_or_general_definitions() {
+    let mut input = request();
+    input.title = "Home".into();
+    input.sections = vec![Section {
+        heading: "Home".into(),
+        text: "COMP4702 Machine Learning and COMP4403 Compilers and Interpreters".into(),
+    }];
+
+    for question in ["Who are you?", "How are you?", "What is machine learning?"] {
+        input.messages[0].content = question.into();
+        assert_eq!(answer_kind(&input), ReplyKind::General, "{question}");
+    }
+
+    input.messages[0].content = "Which courses cover machine learning?".into();
+    assert_eq!(answer_kind(&input), ReplyKind::Note);
+    input.messages[0].content = "What is COMP4702?".into();
+    assert_eq!(answer_kind(&input), ReplyKind::Note);
+}

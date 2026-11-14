@@ -48,9 +48,7 @@ def redundant_course_edge(source, target):
         or not source_parts[1].isdigit()
     ):
         return False
-    return not (
-        source_parts == target_parts[:-1] or target_parts == source_parts[:-1]
-    )
+    return not (source_parts == target_parts[:-1] or target_parts == source_parts[:-1])
 
 
 def git(root, *args):

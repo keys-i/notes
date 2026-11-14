@@ -310,6 +310,8 @@ test("media helpers accept browser-decodable formats and explain failures", () =
   assert.match(pure.dockPetStudyError("no_evidence"), /this note/);
   assert.match(pure.dockPetStudyError("invalid_audio"), /clearer clip/);
   assert.match(pure.dockPetStudyError("analysis_failed"), /clearer frame/);
+  assert.match(pure.dockPetStudyError("guard_unavailable"), /safety check/);
+  assert.match(pure.dockPetStudyError("backend_unconfigured"), /not configured/);
   assert.match(pure.dockPetStudyError("unsafe_input"), /safely/);
   assert.match(pure.dockPetStudyError("", true), /longer than expected/);
 });
@@ -1743,7 +1745,7 @@ test("hosted study recovers safely and reuses bounded session answers", async ()
     if (options.fetchOk === false)
       assert.equal(
         runtime.threadItems[1].textContent,
-        "There isn’t enough page context to answer that here",
+        "The study service is offline right now. Try again shortly",
       );
   }
 });

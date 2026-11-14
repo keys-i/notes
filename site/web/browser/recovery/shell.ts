@@ -1315,16 +1315,7 @@ function shellCommand(source) {
         gameAudio.start();
         return "koalactl: maze0 scheduler resumed";
       }
-      if (argument === "trace") return routeDump();
-      if (argument === "cheat" && parts[1] === "doom") {
-        var armed = armDoomPowerup();
-        statusElement.textContent = armed
-          ? "devd: armoured sorcerer override forced into maze0."
-          : "devd: armoured sorcerer override is already armed.";
-        return armed
-          ? "koalactl: secret armour signal armed"
-          : "koalactl: secret armour signal already present";
-      }
+      if (argument === "trace") return ntDump();
       if (argument === "reset" || argument === "restart") {
         resetGame();
         gameAudio.start();
