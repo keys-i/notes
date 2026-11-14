@@ -808,18 +808,18 @@ test("graph helpers preserve routes, ordering, labels, and timeline state", asyn
   assert.deepEqual(
     JSON.parse(
       call(
-        "JSON.stringify(graph_timeline_nodes([{id:'1',finalSymbolSize:9,graphDepth:0,graphEdgeCount:1},{id:'2',finalSymbolSize:9,graphDepth:0,graphEdgeCount:1}],[{source:'1',target:'2'}],new Set(['1']),1.8).map(node=>node.symbolSize))",
+        "JSON.stringify(graph_timeline_nodes([{id:'1',finalSymbolSize:9,graphDepth:0,graphEdgeCount:1},{id:'2',finalSymbolSize:9,graphDepth:0,graphEdgeCount:1}],[{source:'1',target:'2'}]).map(node=>node.symbolSize))",
       ),
     ),
-    [16.2, 9],
+    [9, 9],
   );
   assert.deepEqual(
     JSON.parse(
       call(
-        "JSON.stringify(graph_timeline_nodes([{id:'1',finalSymbolSize:9,graphDepth:0,graphEdgeCount:1}],[{source:'1',target:'2'}],new Set(['1'])).map(node=>node.symbolSize))",
+        "JSON.stringify(graph_timeline_nodes([{id:'1',finalSymbolSize:9,graphDepth:0,graphEdgeCount:1}],[{source:'1',target:'2'}]).map(node=>node.symbolSize))",
       ),
     ),
-    [1],
+    [9],
   );
   assert.deepEqual(
     JSON.parse(
@@ -1313,6 +1313,7 @@ test("graph replay is one cancellable frame loop and data failures retry", async
   call("replay_graph_growth(replayChart)");
   call("replay_graph_growth(replayChart)");
   assert.equal(chart.options.at(-2).series[0].layout, "none");
+  assert.equal(chart.options.at(-2).series[0].animationDurationUpdate, 0);
   assert.equal(
     chart.options.some((value: any) => value.series?.[0]?.zoom !== undefined),
     false,
@@ -1324,31 +1325,33 @@ test("graph replay is one cancellable frame loop and data failures retry", async
     ["0", "1"],
   );
   assert.equal(chart.options.at(-1).series[0].links.length, 1);
-  assert.deepEqual(
-    chart.options.at(-1).series[0].data.map((node: any) => node.symbolSize),
-    [1, 1],
-  );
+  assert.equal(chart.options.at(-1).series[0].animationDurationUpdate, 0);
+  const firstSizes = chart.options
+    .at(-1)
+    .series[0].data.map((node: any) => node.symbolSize);
+  assert.ok(firstSizes.every((size: number) => size > 1 && size < 16));
+  const firstBeatOptions = chart.options.length;
   frames[2](80);
-  assert.ok(
-    chart.options
-      .at(-1)
-      .series[0].data.every((node: any) => node.symbolSize >= 16),
-  );
+  assert.equal(chart.options.length, firstBeatOptions);
   frames[3](340);
-  assert.ok(
-    chart.options
-      .at(-1)
-      .series[0].data.every((node: any) => node.symbolSize < 16),
-  );
+  assert.equal(chart.options.length, firstBeatOptions);
   frames[4](511);
   assert.equal(chart.options.at(-1).series[0].data.length, 3);
   assert.equal(chart.options.at(-1).series[0].links.length, 2);
-  assert.equal(chart.options.at(-1).series[0].data.at(-1).symbolSize, 1);
+  assert.ok(
+    chart.options
+      .at(-1)
+      .series[0].data.every(
+        (node: any) => node.symbolSize > 1 && node.symbolSize < 16,
+      ),
+  );
+  const secondBeatOptions = chart.options.length;
   frames[5](604);
-  assert.ok(chart.options.at(-1).series[0].data.at(-1).symbolSize >= 16);
+  assert.equal(chart.options.length, secondBeatOptions);
   frames[6](914);
   assert.equal(chart.options.at(-1).series[0].data.length, 3);
   assert.equal(chart.options.at(-1).series[0].layout, "force");
+  assert.equal(chart.options.at(-1).series[0].animationDurationUpdate, 360);
   assert.equal(graph.replay.classList.contains("is-playing"), false);
   assert.equal(call("graphTimelineFrame"), 0);
   assert.equal(graph.timers.size, 0);

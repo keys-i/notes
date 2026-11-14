@@ -237,7 +237,7 @@ function graph_label_size(distance) {
   );
 }
 
-function graph_timeline_nodes(nodes, links, appearingIds, popScale?) {
+function graph_timeline_nodes(nodes, links) {
   var visibleEdges = new Map();
   links.forEach(function (link) {
     var source = String(link.source);
@@ -247,22 +247,16 @@ function graph_timeline_nodes(nodes, links, appearingIds, popScale?) {
   });
 
   return nodes.map(function (node) {
-    var id = String(node.id);
     var baseSize = graph_node_size(0, node.graphDepth);
     var size =
       baseSize +
       (node.finalSymbolSize - baseSize) *
         Math.min(
           1,
-          (visibleEdges.get(id) || 0) / Math.max(1, node.graphEdgeCount),
+          (visibleEdges.get(String(node.id)) || 0) /
+            Math.max(1, node.graphEdgeCount),
         );
-    return Object.assign({}, node, {
-      symbolSize: appearingIds.has(id)
-        ? popScale
-          ? Math.max(16, size * popScale)
-          : 1
-        : size,
-    });
+    return Object.assign({}, node, { symbolSize: size });
   });
 }
 
@@ -338,9 +332,8 @@ function finish_graph_timelapse() {
   });
 }
 
-function show_graph_timeline_step(chart, steps, step, popScale?) {
+function show_graph_timeline_step(chart, steps, step) {
   var shown = steps[step - 1];
-  var previousShown = step === 1 ? 0 : steps[step - 2];
   var nodes = graphTimelineNodes.slice(0, shown);
   var visibleLinks = graph_visible_links(
     graphTimelineLinks,
@@ -350,22 +343,11 @@ function show_graph_timeline_step(chart, steps, step, popScale?) {
       }),
     ),
   );
-  var appearingIds = popScale === undefined
-    ? new Set()
-    : new Set(
-        nodes.slice(previousShown).map(function (node) {
-          return String(node.id);
-        }),
-      );
   chart.setOption({
     series: [
       {
-        data: graph_timeline_nodes(
-          nodes,
-          visibleLinks,
-          appearingIds,
-          popScale,
-        ),
+        animationDurationUpdate: 0,
+        data: graph_timeline_nodes(nodes, visibleLinks),
         links: visibleLinks,
         layout: "none",
       },
@@ -384,6 +366,7 @@ function replay_graph_growth(chart) {
   chart.setOption({
     series: [
       {
+        animationDurationUpdate: 0,
         data: graphTimelineNodes,
         layout: "none",
         links: graphTimelineLinks,
@@ -408,7 +391,6 @@ function replay_graph_growth(chart) {
   });
   var started = 0;
   var renderedBeat = -1;
-  var renderedPhase = -1;
   chart.setOption({ series: [{ data: [], links: [] }] });
 
   function reveal_nodes(now) {
@@ -428,20 +410,13 @@ function replay_graph_growth(chart) {
       beat += 1;
     }
     var progress = (elapsed - beatStarted) / beats[beat].duration;
-    var phase = progress >= 0.65 ? 2 : progress >= 0.15 ? 1 : 0;
 
-    if (beat !== renderedBeat || phase !== renderedPhase) {
-      show_graph_timeline_step(
-        chart,
-        steps,
-        beat + 1,
-        phase === 1 ? 1.8 : phase === 0 ? 0 : undefined,
-      );
+    if (beat !== renderedBeat) {
+      show_graph_timeline_step(chart, steps, beat + 1);
       renderedBeat = beat;
-      renderedPhase = phase;
     }
 
-    if (beat === beats.length - 1 && phase === 2) {
+    if (beat === beats.length - 1 && progress >= 0.65) {
       resume_graph_motion(chart);
       finish_graph_timelapse();
     } else if (!chart.isDisposed()) {
@@ -808,6 +783,9 @@ function resume_graph_motion(chart) {
   chart.setOption({
     series: [
       {
+        animationDurationUpdate: reducedMotion
+          ? 0
+          : option.animationDurationUpdate,
         data: graph_label_data(graphZoom >= 2.8),
         force: Object.assign({}, option.series[0].force, {
           initLayout: "none",
