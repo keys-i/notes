@@ -406,6 +406,61 @@ class SiteAssetTests(unittest.TestCase):
                 self.assertIn(filename, body)
                 self.assertNotIn("printable formula sheet", body)
 
+    def test_mech2700_practicals_ship_solved_pdfs_and_plain_python(self):
+        config = tomllib.loads(
+            (ROOT / "site/config/materials.toml").read_text(encoding="utf-8")
+        )
+        catalogue = next(
+            item
+            for item in config["catalogues"]
+            if item["course"] == "MECH2700" and item["type"] == "prac"
+        )
+        self.assertEqual(catalogue["route"], "/MECH/2700/Practical/")
+        self.assertEqual(len(catalogue["items"]), 12)
+
+        typst_count = 0
+        for item in catalogue["items"]:
+            page_route = ROOT / "content" / item["page"].strip("/")
+            page = page_route.parent / f"{page_route.name}.md"
+            python = ROOT / item["python"].removeprefix("/")
+            page_text = page.read_text(encoding="utf-8")
+
+            self.assertTrue(page.is_file())
+            self.assertTrue(python.is_file())
+            self.assertNotIn(".adv.py", item["python"])
+            self.assertIn(item["python"].removeprefix("/"), page_text)
+
+            if typst_route := item.get("typst"):
+                typst_count += 1
+                typst = ROOT / typst_route.removeprefix("/")
+                pdf = ROOT / "content" / item["pdf"].removeprefix("/")
+                self.assertTrue(typst.is_file())
+                self.assertTrue(pdf.read_bytes().startswith(b"%PDF-"))
+                self.assertGreater(pdf.stat().st_size, 20_000)
+                self.assertIn(pdf.name, page_text)
+
+        self.assertEqual(typst_count, 11)
+        self.assertFalse(any((ROOT / "assets/materials").rglob("*.adv.py")))
+        self.assertIn(
+            "[Practicals](Practical/index.md)",
+            (ROOT / "content/MECH/2700/index.md").read_text(encoding="utf-8"),
+        )
+
+    def test_mech2700_workshops_use_the_contact_session_material(self):
+        workshop = ROOT / "content/MECH/2700/Tutorial"
+        index = (workshop / "index.md").read_text(encoding="utf-8")
+        week4 = (workshop / "W4.md").read_text(encoding="utf-8")
+        week9 = (workshop / "W9.md").read_text(encoding="utf-8")
+
+        self.assertIn("slug: Workshops", index)
+        self.assertIn("fit_vortex_pressure.py", week4)
+        self.assertIn("minimum_width", week4)
+        self.assertIn("LBM_opt.npz", week9)
+        self.assertIn("10^5\\hat p(a)", week9)
+        self.assertNotIn("outer diameter", week9.lower())
+        self.assertEqual(site.ROUTE_LABELS["Tutorial"], "Workshops")
+        self.assertEqual(site.ROUTE_LABELS["Practical"], "Practicals")
+
     def test_paper_library_uses_one_natural_language_search(self):
         template = (ROOT / "site/web/theme/partials/papers.html").read_text(
             encoding="utf-8"
