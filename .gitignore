@@ -37,6 +37,7 @@ __pycache__/
 /site/api/target/
 /public/
 /work/
+/superpowers/
 /docs/superpowers/
 /goldfish_review_report.md
 *.log
