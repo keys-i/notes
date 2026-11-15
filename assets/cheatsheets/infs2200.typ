@@ -1,11 +1,6 @@
 #import "template.typ": sheet, topic, rule
 
-#show: body => sheet(
-  "INFS2200",
-  "Relational Database Systems",
-  "Cross-checked against accessible 2021–2024 papers and current course notes · diagrams and image-only equations still need the source paper",
-  body,
-)
+#show: body => sheet(body)
 
 #topic("Disk geometry & capacity")[(Use consistent byte units)
 
@@ -39,7 +34,9 @@ $b = ceil(r/"bfr")$ blocks
 
 Spanned lower bound: $b = ceil(r R/B)$
 
-$R$ is record bytes and $r$ is record count]
+$R$ is record bytes and $r$ is record count
+
+Heap: fast insert/scan · ordered: binary/range search · hash: equality search]
 
 #topic("Index storage")[$E = K + P$ bytes/index entry
 
@@ -121,7 +118,15 @@ Keep join attributes until after the join]
 
 Then compare physical access costs; fewer logical operators does not imply less I/O]
 
-#topic("Dependencies & normal forms")[$X^+$: start with $X$, repeatedly add RHS attributes whose LHS is contained in the closure
+#topic("Views, constraints & FDs")[Virtual view stores a query; materialised view stores results and needs refresh
+
+Simple single-table view is updateable when each visible row maps to one base row; keys help preserve that mapping
+
+Static constraint limits a state; dynamic constraint limits a transition
+
+Prefer key / `CHECK` / FK; use a trigger for multi-row or transition rules
+
+$X^+$: start with $X$, repeatedly add RHS attributes whose LHS is contained in the closure
 
 $X$ is a superkey iff $X^+$ contains every relation attribute
 
@@ -129,7 +134,9 @@ $X$ is a superkey iff $X^+$ contains every relation attribute
 
 #rule("BCNF", [for every non-trivial $X arrow A$, $X$ is a superkey])]
 
-#topic("Schedule tests")[(1) preserve each transaction's operation order
+#topic("Schedule tests")[ACID: atomicity · consistency · isolation · durability
+
+(1) preserve each transaction's operation order
 
 (2) conflict only across transactions, on the same item, with at least one write
 

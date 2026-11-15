@@ -19,5 +19,3 @@ DBMS exercises.
 8. [Tutorial 9 — Query optimisation](T9.md)
 9. [Tutorial 10 — Transaction schedules](T10.md)
 10. [Tutorial 11 — Concurrency control](T11.md)
-
-There was no Tutorial 3 in the supplied material

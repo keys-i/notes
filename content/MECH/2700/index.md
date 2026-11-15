@@ -10,7 +10,7 @@ Use these notes to move from mathematical modelling and numerical foundations
 through differential equations, optimisation, and computational engineering.
 
 1. [Lecture notes](Lectures/index.md)
-2. [Tutorials](Tutorial/index.md)
+2. [Workshops](Tutorial/index.md)
 3. [Assignments](Assignment/index.md)
 4. [Past year papers](PY/index.md)
 5. [Cheatsheet](CS/index.md)

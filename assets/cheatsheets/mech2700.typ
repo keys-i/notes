@@ -1,11 +1,6 @@
 #import "template.typ": sheet, topic, rule
 
-#show: body => sheet(
-  "MECH2700",
-  "Computational Engineering & Data Analysis",
-  "",
-  body,
-)
+#show: body => sheet(body)
 
 #topic("Error & convergence")[$E_a=abs(x-hat(x))$ · $E_r=E_a/abs(x)$ · $E_%=100E_r$
 
@@ -178,6 +173,16 @@ $u_i^(n+1)=2u_i^n-u_i^(n-1)+C^2(u_(i+1)^n-2u_i^n+u_(i-1)^n)$
 2D adds $C_x^2(u_(i+1,j)^n-2u_(i,j)^n+u_(i-1,j)^n)+C_y^2(u_(i,j+1)^n-2u_(i,j)^n+u_(i,j-1)^n)$
 
 1D CFL $abs(C)<=1$; 2D requires $C_x^2+C_y^2<=1$]
+
+#topic("Nonlinear convection")[$u_t+u u_x=0 = u_t+(u^2/2)_x$
+
+For positive flow:
+$u_j^(m+1)=u_j^m-Delta t/(2Delta x)[(u_j^m)^2-(u_(j-1)^m)^2]$
+
+Shock speed:
+$s=(F(u_R)-F(u_L))/(u_R-u_L)=(u_L+u_R)/2$
+
+Use the conservative flux form when shocks can form]
 
 #topic("Elliptic / Laplace")[$u_(x x)+u_(y y)=0$
 
