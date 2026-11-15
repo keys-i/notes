@@ -8,6 +8,7 @@ routes = [
   { pattern = "uni.keysi.dev/api/reference.js", zone_name = "keysi.dev" },
   { pattern = "uni.keysi.dev/api/theme.css", zone_name = "keysi.dev" },
   { pattern = "uni.keysi.dev/api/pet", zone_name = "keysi.dev" },
+  { pattern = "uni.keysi.dev/api/courses*", zone_name = "keysi.dev" },
   { pattern = "uni.keysi.dev/api/papers/*", zone_name = "keysi.dev" },
   { pattern = "uni.keysi.dev/api/manuals/freebsd*", zone_name = "keysi.dev" },
   { pattern = "uni.keysi.dev/healthz", zone_name = "keysi.dev" },

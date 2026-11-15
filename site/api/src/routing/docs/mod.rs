@@ -81,6 +81,7 @@ mod tests {
             "/api/pet",
             "/api/courses",
             "/api/courses/{course}",
+            "/api/courses/{course}/{type}",
             "/api/papers/{course}",
             "/api/papers/{course}/{document}/outline",
             "/api/manuals/freebsd",
@@ -95,6 +96,11 @@ mod tests {
         assert!(
             contract["components"]["schemas"]
                 .get("CourseCatalogue")
+                .is_some()
+        );
+        assert!(
+            contract["components"]["schemas"]
+                .get("MaterialCatalogue")
                 .is_some()
         );
         assert!(

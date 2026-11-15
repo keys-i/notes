@@ -1,13 +1,14 @@
 //! UQ course catalogue configuration and responses
 
 mod config;
+mod materials;
 
 use crate::routing::response::{json_error, json_response, method_error, unavailable_error};
 use crate::shared::cache::policy::COURSES;
 use worker::{Method, Request, Response, Result};
 
 pub(crate) fn ready() -> bool {
-    config::ready()
+    config::ready() && materials::ready()
 }
 
 pub(crate) fn respond(request: &Request, code: Option<&str>, now_ms: u64) -> Result<Response> {
@@ -24,6 +25,17 @@ pub(crate) fn respond(request: &Request, code: Option<&str>, now_ms: u64) -> Res
             Ok(catalog) => json_response(&catalog, 200, None, COURSES),
             Err(_) => unavailable(),
         },
+    }
+}
+
+pub(crate) fn respond_materials(request: &Request, course: &str, kind: &str) -> Result<Response> {
+    if request.method() != Method::Get {
+        return method_error("Use GET for course materials", "GET, OPTIONS", None);
+    }
+    match materials::catalogue(course, kind) {
+        Ok(Some(catalogue)) => json_response(&catalogue, 200, None, COURSES),
+        Ok(None) => json_error("not_found", "Course materials not found", 404, None),
+        Err(_) => unavailable(),
     }
 }
 

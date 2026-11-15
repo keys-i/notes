@@ -353,7 +353,7 @@ fn identifier(value: &str) -> bool {
             .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_'))
 }
 
-fn course_code(value: &str) -> bool {
+pub(super) fn course_code(value: &str) -> bool {
     value.len() == 8
         && value.as_bytes()[..4].iter().all(u8::is_ascii_uppercase)
         && value.as_bytes()[4..].iter().all(u8::is_ascii_digit)
@@ -373,11 +373,11 @@ fn course_area(code: &str) -> Option<&'static str> {
     }
 }
 
-fn text(value: &str, max: usize) -> bool {
+pub(super) fn text(value: &str, max: usize) -> bool {
     !value.trim().is_empty() && value.chars().count() <= max && !value.chars().any(char::is_control)
 }
 
-fn date_ms(value: &str) -> Option<u64> {
+pub(super) fn date_ms(value: &str) -> Option<u64> {
     let bytes = value.as_bytes();
     if bytes.len() != 10
         || bytes[4] != b'-'

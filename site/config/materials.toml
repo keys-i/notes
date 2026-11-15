@@ -1,0 +1,89 @@
+updated = "2026-11-15"
+
+[[catalogues]]
+course = "MECH2700"
+type = "prac"
+route = "/MECH/2700/Practical/"
+source = "https://github.com/keys-i/MECH2700/tree/main/prac"
+
+[[catalogues.items]]
+label = "Week 1"
+page = "/MECH/2700/Practical/W1/"
+typst = "/assets/materials/mech2700/prac/week_01.typ"
+pdf = "/MECH/2700/Practical/week_01.pdf"
+python = "/assets/materials/mech2700/prac/week_01.py"
+
+[[catalogues.items]]
+label = "Week 2"
+page = "/MECH/2700/Practical/W2/"
+typst = "/assets/materials/mech2700/prac/week_02.typ"
+pdf = "/MECH/2700/Practical/week_02.pdf"
+python = "/assets/materials/mech2700/prac/week_02.py"
+
+[[catalogues.items]]
+label = "Week 3"
+page = "/MECH/2700/Practical/W3/"
+typst = "/assets/materials/mech2700/prac/week_03.typ"
+pdf = "/MECH/2700/Practical/week_03.pdf"
+python = "/assets/materials/mech2700/prac/week_03.py"
+
+[[catalogues.items]]
+label = "Week 4"
+page = "/MECH/2700/Practical/W4/"
+typst = "/assets/materials/mech2700/prac/week_04.typ"
+pdf = "/MECH/2700/Practical/week_04.pdf"
+python = "/assets/materials/mech2700/prac/week_04.py"
+
+[[catalogues.items]]
+label = "Week 5"
+page = "/MECH/2700/Practical/W5/"
+typst = "/assets/materials/mech2700/prac/week_05.typ"
+pdf = "/MECH/2700/Practical/week_05.pdf"
+python = "/assets/materials/mech2700/prac/week_05.py"
+
+[[catalogues.items]]
+label = "Week 6"
+page = "/MECH/2700/Practical/W6/"
+typst = "/assets/materials/mech2700/prac/week_06.typ"
+pdf = "/MECH/2700/Practical/week_06.pdf"
+python = "/assets/materials/mech2700/prac/week_06.py"
+
+[[catalogues.items]]
+label = "Week 7"
+page = "/MECH/2700/Practical/W7/"
+typst = "/assets/materials/mech2700/prac/week_07.typ"
+pdf = "/MECH/2700/Practical/week_07.pdf"
+python = "/assets/materials/mech2700/prac/week_07.py"
+
+[[catalogues.items]]
+label = "Week 8"
+page = "/MECH/2700/Practical/W8/"
+typst = "/assets/materials/mech2700/prac/week_08.typ"
+pdf = "/MECH/2700/Practical/week_08.pdf"
+python = "/assets/materials/mech2700/prac/week_08.py"
+
+[[catalogues.items]]
+label = "Week 9"
+page = "/MECH/2700/Practical/W9/"
+typst = "/assets/materials/mech2700/prac/week_09.typ"
+pdf = "/MECH/2700/Practical/week_09.pdf"
+python = "/assets/materials/mech2700/prac/week_09.py"
+
+[[catalogues.items]]
+label = "Week 10"
+page = "/MECH/2700/Practical/W10/"
+typst = "/assets/materials/mech2700/prac/week_10.typ"
+pdf = "/MECH/2700/Practical/week_10.pdf"
+python = "/assets/materials/mech2700/prac/week_10.py"
+
+[[catalogues.items]]
+label = "Week 12"
+page = "/MECH/2700/Practical/W12/"
+typst = "/assets/materials/mech2700/prac/week_12.typ"
+pdf = "/MECH/2700/Practical/week_12.pdf"
+python = "/assets/materials/mech2700/prac/week_12.py"
+
+[[catalogues.items]]
+label = "Week 13"
+page = "/MECH/2700/Practical/W13/"
+python = "/assets/materials/mech2700/prac/week_13.py"

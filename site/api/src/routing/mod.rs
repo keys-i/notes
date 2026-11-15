@@ -77,8 +77,13 @@ async fn dispatch(request: Request, env: Env, context: Context, started: u64) ->
     if let Some(asset) = docs::route(&path) {
         return docs::respond(&request, asset);
     }
-    if let Some(code) = course_route(&path) {
-        return crate::service::courses::respond(&request, code, started);
+    if let Some(route) = course_route(&path) {
+        return match route {
+            CourseRoute::Catalog(code) => crate::service::courses::respond(&request, code, started),
+            CourseRoute::Materials { course, kind } => {
+                crate::service::courses::respond_materials(&request, course, kind)
+            }
+        };
     }
     if let Some(route) = paper_route(&path) {
         return match route {
@@ -103,6 +108,12 @@ enum PaperRoute<'a> {
     Outline { code: &'a str, id: &'a str },
 }
 
+#[derive(Debug, PartialEq, Eq)]
+enum CourseRoute<'a> {
+    Catalog(Option<&'a str>),
+    Materials { course: &'a str, kind: &'a str },
+}
+
 fn paper_route(path: &str) -> Option<PaperRoute<'_>> {
     let mut parts = path.strip_prefix("/api/papers/")?.split('/');
     match (parts.next(), parts.next(), parts.next(), parts.next()) {
@@ -114,29 +125,46 @@ fn paper_route(path: &str) -> Option<PaperRoute<'_>> {
     }
 }
 
-fn course_route(path: &str) -> Option<Option<&str>> {
+fn course_route(path: &str) -> Option<CourseRoute<'_>> {
     if path == "/api/courses" {
-        return Some(None);
+        return Some(CourseRoute::Catalog(None));
     }
-    path.strip_prefix("/api/courses/")
-        .filter(|code| !code.is_empty() && !code.contains('/'))
-        .map(Some)
+    let mut parts = path.strip_prefix("/api/courses/")?.split('/');
+    match (parts.next(), parts.next(), parts.next()) {
+        (Some(course), None, None) if !course.is_empty() => {
+            Some(CourseRoute::Catalog(Some(course)))
+        }
+        (Some(course), Some(kind), None) if !course.is_empty() && !kind.is_empty() => {
+            Some(CourseRoute::Materials { course, kind })
+        }
+        _ => None,
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{PaperRoute, course_route, paper_route};
+    use super::{CourseRoute, PaperRoute, course_route, paper_route};
 
     #[test]
     fn course_routes_match_only_the_list_and_one_code() {
-        assert_eq!(course_route("/api/courses"), Some(None));
+        assert_eq!(
+            course_route("/api/courses"),
+            Some(CourseRoute::Catalog(None))
+        );
         assert_eq!(
             course_route("/api/courses/COMP4702"),
-            Some(Some("COMP4702"))
+            Some(CourseRoute::Catalog(Some("COMP4702")))
+        );
+        assert_eq!(
+            course_route("/api/courses/MECH2700/prac"),
+            Some(CourseRoute::Materials {
+                course: "MECH2700",
+                kind: "prac"
+            })
         );
         assert_eq!(course_route("/api/courses/"), None);
         assert_eq!(course_route("/api/courses/COMP4702/"), None);
-        assert_eq!(course_route("/api/courses/COMP4702/extra"), None);
+        assert_eq!(course_route("/api/courses/COMP4702/prac/extra"), None);
         assert_eq!(course_route("/api/course/COMP4702"), None);
     }
 
