@@ -17,7 +17,8 @@ dependencies = [
     "mkdocs-callouts>=1.17.1,<2.0.0",
     "mkdocs-git-authors-plugin (>=0.10.0,<0.11.0)",
     "mkdocs-obsidian-support-plugin (>=1.4.1,<2.0.0)",
-    "mkdocs-print-site-plugin>=2.9,<3.0"
+    "mkdocs-print-site-plugin>=2.9,<3.0",
+    "pillow>=12.0.0,<13.0.0",
 ]
 
 [project.scripts]
@@ -54,6 +55,7 @@ ignore = ["E731"]
 [tool.coverage.run]
 branch = true
 source = [
+    "hooks.cheatsheets",
     "hooks.browser",
     "hooks.content.callouts",
     "hooks.content.courses",

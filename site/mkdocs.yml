@@ -12,6 +12,7 @@ edit_uri: edit/main/content/
 
 hooks:
   - web/hooks/browser.py
+  - web/hooks/cheatsheets.py
   - web/hooks/publish/site.py
   - web/hooks/publish/game.py
   - web/hooks/content/callouts.py

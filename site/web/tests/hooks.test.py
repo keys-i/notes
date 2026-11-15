@@ -11,7 +11,7 @@ from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from hooks import browser, tools
+from hooks import browser, cheatsheets, tools
 from hooks.content import callouts, courses, graph, plot
 from hooks.publish import discovery, game
 from hooks.publish import site as site_hook
@@ -84,6 +84,92 @@ def course_assets(root):
         path = root / relative
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(b"")
+
+
+class CheatsheetHookTests(unittest.TestCase):
+    def tree(self, root, code="INFS2200"):
+        route = root / "content" / code[:4] / code[4:] / "Cheatsheets"
+        route.mkdir(parents=True)
+        page = route / "index.md"
+        page.write_text(f"---\ncheatsheet: {code}\n---\n", encoding="utf-8")
+        source = root / "assets" / "cheatsheets" / f"{code.lower()}.typ"
+        source.parent.mkdir(parents=True)
+        source.write_text("#set page(width: 1cm)\n", encoding="utf-8")
+        return page, source
+
+    def test_jobs_validate_routes_and_sources(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            page, source = self.tree(root)
+            self.assertEqual(
+                cheatsheets.jobs(root),
+                (
+                    (
+                        source,
+                        page.with_name("cheatsheet.pdf"),
+                        page.with_name("cheatsheet-preview.webp"),
+                    ),
+                ),
+            )
+            self.assertEqual(cheatsheets.jobs(root / "empty"), ())
+
+            page.write_text("# Missing metadata\n", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "no course code"):
+                cheatsheets.jobs(root)
+            page.write_text("---\ncheatsheet: MECH2700\n---\n", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "does not match"):
+                cheatsheets.jobs(root)
+            page.write_text("---\ncheatsheet: INFS2200\n---\n", encoding="utf-8")
+            source.unlink()
+            with self.assertRaisesRegex(FileNotFoundError, "does not exist"):
+                cheatsheets.jobs(root)
+
+    def test_build_compiles_and_reuses_stable_outputs(self):
+        class Preview:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_):
+                return False
+
+            def save(self, target, *_args, **_kwargs):
+                Path(target).write_bytes(b"webp")
+
+        def compile(command, **_):
+            Path(command[-1]).write_bytes(
+                b"pdf" if command[-1].endswith(".pdf") else b"png"
+            )
+
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            page, source = self.tree(root)
+            pdf = page.with_name("cheatsheet.pdf")
+            preview = page.with_name("cheatsheet-preview.webp")
+            with (
+                patch.object(cheatsheets, "run", side_effect=compile) as run,
+                patch.object(cheatsheets.Image, "open", return_value=Preview()),
+            ):
+                cheatsheets.build(source, pdf, preview, root)
+                cheatsheets.build(source, pdf, preview, root)
+
+            self.assertEqual(run.call_count, 4)
+            self.assertEqual(pdf.read_bytes(), b"pdf")
+            self.assertEqual(preview.read_bytes(), b"webp")
+            replacement = root / "replacement"
+            replacement.write_bytes(b"new")
+            cheatsheets._install(replacement, pdf)
+            self.assertEqual(pdf.read_bytes(), b"new")
+
+    def test_pre_build_runs_each_job(self):
+        job = (Path("source.typ"), Path("cheatsheet.pdf"), Path("preview.webp"))
+        with (
+            patch.object(cheatsheets, "jobs", return_value=(job,)) as jobs,
+            patch.object(cheatsheets, "build") as build,
+        ):
+            cheatsheets.on_pre_build()
+
+        jobs.assert_called_once_with(cheatsheets.ROOT)
+        build.assert_called_once_with(*job, cheatsheets.ROOT)
 
 
 class CourseContractTests(unittest.TestCase):
@@ -1275,9 +1361,7 @@ catalogue-id = "COMP4500_7660_60785"
                 "---\ntitle: MATH1051 Calculus and Linear Algebra I\n---\n",
                 encoding="utf-8",
             )
-            (local / "PastYears/index.md").write_text(
-                "# Papers\n", encoding="utf-8"
-            )
+            (local / "PastYears/index.md").write_text("# Papers\n", encoding="utf-8")
             (local / "Cheatsheets/index.md").write_text(
                 "# Cheatsheet\n", encoding="utf-8"
             )

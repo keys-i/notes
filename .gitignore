@@ -33,6 +33,8 @@ __pycache__/
 /node_modules/
 *.tsbuildinfo
 /assets/js/
+/content/*/*/Cheatsheets/cheatsheet.pdf
+/content/*/*/Cheatsheets/cheatsheet-preview.webp
 /site/api/build/
 /site/api/target/
 /public/
