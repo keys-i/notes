@@ -90,7 +90,10 @@ markdown_extensions:
   - sane_lists
   - footnotes # Adds support for footnotes
   - attr_list # Allows adding attributes to elements
-  - pymdownx.highlight # Enhances syntax highlighting
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
   - pymdownx.superfences: # Provides advanced code block fencing
       custom_fences:
         - name: mermaid
