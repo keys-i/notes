@@ -163,12 +163,6 @@ def on_page_markdown(markdown, page, **_):
     pdf = CHEATSHEETS[code]
     preview = f"{Path(pdf).stem}-preview.webp"
     return (
-        '<nav class="papers__nav" aria-label="Course navigation">'
-        f'<a class="papers__back" href="../" aria-label="Back to {code}" '
-        f'title="Back to {code}">'
-        f'<span aria-hidden="true">←</span><span>{code}</span></a></nav>\n\n'
-        f"# {code} Cheatsheet\n\n"
-        "A printable formula sheet built from the course notes and past papers\n\n"
         f'<section class="cheatsheet" aria-label="{code} cheatsheet reader">'
         f'<div class="cheatsheet__viewer" aria-label="{code} cheatsheet preview" '
         'tabindex="0">'

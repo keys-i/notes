@@ -170,6 +170,7 @@ class SiteAssetTests(unittest.TestCase):
         self.assertIn(".md-header__inner > .md-search:focus-within", theme)
         self.assertIn("transform: translateX(-50%)", theme)
         self.assertIn("body:has(.papers__preview:not([hidden])) #dock-pet", theme)
+        self.assertIn(".md-content__inner:has(.cheatsheet) > h1", theme)
         self.assertIn("text: IBM Plex Sans", config)
         self.assertIn("code: IBM Plex Mono", config)
         self.assertNotIn("language:", config)
@@ -396,12 +397,14 @@ class SiteAssetTests(unittest.TestCase):
                 )
                 self.assertIn("columns(3", template_text)
                 self.assertIn("flipped: true", template_text)
+                self.assertNotIn("EXAM CHEATSHEET", template_text)
+                self.assertNotIn("Write the symbolic form first", template_text)
 
                 body = site.on_page_markdown(
                     "", SimpleNamespace(meta={"cheatsheet": code})
                 )
                 self.assertIn(filename, body)
-                self.assertIn("printable formula sheet", body)
+                self.assertNotIn("printable formula sheet", body)
 
     def test_paper_library_uses_one_natural_language_search(self):
         template = (ROOT / "site/web/theme/partials/papers.html").read_text(
@@ -409,7 +412,7 @@ class SiteAssetTests(unittest.TestCase):
         )
         self.assertIn('id="papers-search"', template)
         self.assertIn("latest paper", template)
-        self.assertIn(">Open source ↗</a>", template)
+        self.assertRegex(template, r">\s*Open source ↗</a\s*>")
         self.assertNotIn("Paper not loading", template)
         self.assertNotIn("papers__years", template)
 
