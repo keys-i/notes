@@ -25,7 +25,7 @@ maturity = "resources"
 route = "COMP/4702/"
 verified = "2026-11-13"
 catalogue-id = "COMP4702_7620_21208"
-papers-route = "COMP/4702/PY/"
+papers-route = "COMP/4702/PastYears/"
 '''
 
 [[cases]]

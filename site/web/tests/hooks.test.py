@@ -39,10 +39,10 @@ title: Machine Learning
 learning:
   topic-map: Lectures/index.md#topic-map
   concepts: Lectures/index.md#core-concepts
-  worked-example: Tutorial/index.md#worked-example
-  practice: Tutorial/index.md#practice
+  worked-example: Tutorials/index.md#worked-example
+  practice: Tutorials/index.md#practice
   misconceptions: Lectures/index.md#misconceptions
-  assessment: PY/index.md#assessment-connection
+  assessment: PastYears/index.md#assessment-connection
 ---
 # Machine Learning
 """,
@@ -52,11 +52,11 @@ This page maps the subject
 ## Core concepts
 ## Misconceptions
 """,
-        "COMP/4702/Tutorial/index.md": """# Tutorials
+        "COMP/4702/Tutorials/index.md": """# Tutorials
 ## Worked example
 ## {#practice}
 """,
-        "COMP/4702/PY/index.md": """# Past year papers
+        "COMP/4702/PastYears/index.md": """# Past year papers
 ## Assessment connection
 """,
     }
@@ -124,7 +124,7 @@ class CourseContractTests(unittest.TestCase):
         self.assertNotIn("route", loaded[0])
         self.assertEqual(loaded[0]["area"], "computing")
         self.assertEqual(loaded[1]["route"], "/COMP/4702/")
-        self.assertEqual(loaded[1]["papers_route"], "/COMP/4702/PY/")
+        self.assertEqual(loaded[1]["papers_route"], "/COMP/4702/PastYears/")
         self.assertEqual(loaded[1]["capabilities"], ["notes", "source"])
 
         source = """
@@ -162,7 +162,7 @@ catalogue-id = "COMP4500_7660_60785"
                 "learning",
             )
 
-            tutorial = content / "COMP/4702/Tutorial/index.md"
+            tutorial = content / "COMP/4702/Tutorials/index.md"
             tutorial.write_text(
                 "# Tutorials\n## Worked example\n## Drill\n", encoding="utf-8"
             )
@@ -219,7 +219,7 @@ code = "COMP4702"
 title = "Machine Learning"
 maturity = "resources"
 verified = "2026-11-13"
-cheatsheet-route = "COMP/4702/CS/sheet.pdf"
+cheatsheet-route = "COMP/4702/Cheatsheets/sheet.pdf"
 folder-code = "1IDoh1OmL_JWsZKx0BfssAL27weAwArv1?resourcekey=0123456789_safe"
 
 [courses.source-permission]
@@ -230,14 +230,14 @@ expires = "2027-11-13"
         with TemporaryDirectory() as directory:
             root = Path(directory)
             content = course_tree(root)
-            sheet = content / "COMP/4702/CS/sheet.pdf"
+            sheet = content / "COMP/4702/Cheatsheets/sheet.pdf"
             sheet.parent.mkdir(parents=True)
             sheet.write_bytes(b"%PDF")
             loaded = courses.load_courses(
                 course_config(root, source), content, date(2026, 11, 13)
             )[0]
         self.assertEqual(loaded["capabilities"], ["cheatsheet", "source"])
-        self.assertEqual(loaded["cheatsheet_route"], "/COMP/4702/CS/sheet.pdf")
+        self.assertEqual(loaded["cheatsheet_route"], "/COMP/4702/Cheatsheets/sheet.pdf")
         self.assertEqual(
             loaded["source_url"],
             "https://drive.google.com/drive/folders/"
@@ -253,7 +253,7 @@ code = "COMP4702"
 title = "Machine Learning"
 maturity = "resources"
 verified = "2026-11-13"
-cheatsheet-route = "COMP/4702/CS/sheet.pdf"
+cheatsheet-route = "COMP/4702/Cheatsheets/sheet.pdf"
 catalogue-id = "COMP4702_7620_21208"
 """
         route_cases = (
@@ -264,7 +264,7 @@ catalogue-id = "COMP4702_7620_21208"
             "COMP/4702/" + "x" * 241,
         )
         for route in route_cases:
-            candidate = source.replace("COMP/4702/CS/sheet.pdf", route)
+            candidate = source.replace("COMP/4702/Cheatsheets/sheet.pdf", route)
             with (
                 self.subTest(route=route),
                 self.assertRaisesRegex(ValueError, "cheatsheet route"),
@@ -280,7 +280,7 @@ catalogue-id = "COMP4702_7620_21208"
         for folder in folder_cases:
             candidate = source.replace('maturity = "resources"', 'maturity = "source"')
             candidate = candidate.replace(
-                'cheatsheet-route = "COMP/4702/CS/sheet.pdf"\n', ""
+                'cheatsheet-route = "COMP/4702/Cheatsheets/sheet.pdf"\n', ""
             ).replace(
                 'catalogue-id = "COMP4702_7620_21208"',
                 f'catalogue-id = "COMP4702_7620_21208"\n{folder}',
@@ -371,7 +371,7 @@ catalogue-id = "COMP4702_7620_21208"
                 "# No front matter\n",
                 "---\nlearning:\n  topic-map: Lectures/index.md#topic-map\n",
                 valid.replace("  practice:", "  broken-line\n  practice:"),
-                valid.replace("Tutorial/index.md#practice", "../index.md#practice"),
+                valid.replace("Tutorials/index.md#practice", "../index.md#practice"),
             )
             for candidate in bad_maps:
                 hub.write_text(candidate, encoding="utf-8")
@@ -406,14 +406,16 @@ route = "{route}"
 verified = "2026-11-13"
 catalogue-id = "{"I" * 128}"
 offering = "{"O" * 120}"
-papers-route = "{route}PY/"
+papers-route = "{route}PastYears/"
 cheatsheet-route = "{sheet}"
 """
                 )
                 course = content / route
-                (course / "PY").mkdir(parents=True)
+                (course / "PastYears").mkdir(parents=True)
                 (course / "index.md").write_text("# Course\n", encoding="utf-8")
-                (course / "PY/index.md").write_text("# Papers\n", encoding="utf-8")
+                (course / "PastYears/index.md").write_text(
+                    "# Papers\n", encoding="utf-8"
+                )
                 (content / sheet).write_bytes(b"%PDF")
             with self.assertRaisesRegex(ValueError, "96 KiB"):
                 courses.load_courses(
@@ -473,7 +475,7 @@ class HookTests(unittest.TestCase):
             catalog = site_hook.on_page_context({}, page)["paper_catalog"]
             self.assertEqual(catalog, {"course": code})
 
-    def test_compact_routes_keep_urls_but_use_descriptive_navigation(self):
+    def test_plural_routes_need_only_the_past_years_navigation_label(self):
         course_page = SimpleNamespace(
             title="INFS2200 Relational Database Systems",
             url="INFS/2200/",
@@ -481,36 +483,48 @@ class HookTests(unittest.TestCase):
             is_page=True,
         )
         paper_page = SimpleNamespace(
-            title="Past year papers", url="INFS/2200/PY/", children=[]
+            title="Past year papers", url="INFS/2200/PastYears/", children=[]
         )
         cheatsheet_page = SimpleNamespace(
-            title="INFS2200 Cheatsheet", url="INFS/2200/CS/", children=[]
+            title="INFS2200 Cheatsheets", url="INFS/2200/Cheatsheets/", children=[]
         )
-        paper = SimpleNamespace(title="PY", url=None, children=[paper_page])
-        cheatsheet = SimpleNamespace(title="CS", url=None, children=[cheatsheet_page])
+        paper = SimpleNamespace(title="PastYears", url=None, children=[paper_page])
+        cheatsheet = SimpleNamespace(
+            title="Cheatsheets", url=None, children=[cheatsheet_page]
+        )
         lecture = SimpleNamespace(
             title="Lectures", url="INFS/2200/Lectures/", children=[]
+        )
+        tutorial = SimpleNamespace(
+            title="Tutorials", url="INFS/2200/Tutorials/", children=[]
         )
         course = SimpleNamespace(
             title="2200",
             url=None,
-            children=[course_page, paper, cheatsheet, lecture],
+            children=[course_page, paper, cheatsheet, lecture, tutorial],
         )
-        nav = SimpleNamespace(items=[course])
+        workshop = SimpleNamespace(
+            title="Workshops", url="MECH/2700/Workshops/", children=[]
+        )
+        nav = SimpleNamespace(items=[course, workshop])
 
         self.assertIs(site_hook.on_nav(nav), nav)
-        self.assertEqual(paper.title, "Past years")
-        self.assertEqual(paper_page.url, "INFS/2200/PY/")
-        self.assertEqual(cheatsheet.title, "Cheatsheet")
-        self.assertEqual(cheatsheet_page.url, "INFS/2200/CS/")
+        self.assertEqual(paper.title, "Past Years")
+        self.assertEqual(paper_page.url, "INFS/2200/PastYears/")
+        self.assertEqual(cheatsheet.title, "Cheatsheets")
+        self.assertEqual(cheatsheet_page.url, "INFS/2200/Cheatsheets/")
         self.assertEqual(lecture.title, "Lectures")
+        self.assertEqual(tutorial.title, "Tutorials")
+        self.assertEqual(workshop.title, "Workshops")
+        self.assertNotEqual(workshop.title, "Tutorials")
         self.assertEqual(course.title, "2200: Relational Database Systems")
 
     def test_cheatsheet_routes_share_accessible_local_reader(self):
-        for code, pdf in site_hook.CHEATSHEETS.items():
+        for code in ("INFS2200", "MECH2700"):
             with self.subTest(code=code):
                 page = SimpleNamespace(meta={"cheatsheet": code})
                 body = site_hook.on_page_markdown("", page)
+                pdf = site_hook.CHEATSHEET_PDF
                 preview = f"{Path(pdf).stem}-preview.webp"
                 self.assertIn(f'src="{preview}"', body)
                 self.assertNotIn("<iframe", body)
@@ -899,7 +913,7 @@ class GraphCoverageTests(unittest.TestCase):
                         "nodes": [
                             {"id": "0", "value": "/source/#part"},
                             {"id": "1", "value": "/unknown/"},
-                            {"id": "2", "value": "/INFS/2200/PY/"},
+                            {"id": "2", "value": "/INFS/2200/PastYears/"},
                         ],
                         "links": [
                             {"source": "0", "target": "1"},
@@ -1255,14 +1269,18 @@ catalogue-id = "COMP4500_7660_60785"
             root = Path(directory)
             content = root / "content"
             local = content / "MATH/1051"
-            (local / "PY").mkdir(parents=True)
-            (local / "CS").mkdir()
+            (local / "PastYears").mkdir(parents=True)
+            (local / "Cheatsheets").mkdir()
             (local / "index.md").write_text(
                 "---\ntitle: MATH1051 Calculus and Linear Algebra I\n---\n",
                 encoding="utf-8",
             )
-            (local / "PY/index.md").write_text("# Papers\n", encoding="utf-8")
-            (local / "CS/index.md").write_text("# Cheatsheet\n", encoding="utf-8")
+            (local / "PastYears/index.md").write_text(
+                "# Papers\n", encoding="utf-8"
+            )
+            (local / "Cheatsheets/index.md").write_text(
+                "# Cheatsheet\n", encoding="utf-8"
+            )
             notes_only = content / "STAT/1201"
             notes_only.mkdir(parents=True)
             (notes_only / "index.md").write_text(
@@ -1320,7 +1338,7 @@ catalogue-id = "COMP4500_7660_60785"
             root = Path(directory)
             with self.assertRaisesRegex(ValueError, "does not exist"):
                 courses._teaching_anchor(
-                    root, "assessment", "PY/missing.md", "COMP4702"
+                    root, "assessment", "PastYears/missing.md", "COMP4702"
                 )
             (root / "Lectures").mkdir()
             (root / "Lectures/index.md").write_text("# Lectures\n", encoding="utf-8")

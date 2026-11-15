@@ -117,5 +117,5 @@ $$
 - keep the test set untouched until the procedure is fixed
 
 [Next: unsupervised learning](unsupervised.md) ·
-[Worked model-selection example](../Tutorial/index.md#worked-example) ·
-[Past papers](../PY/index.md)
+[Worked model-selection example](../Tutorials/index.md#worked-example) ·
+[Past papers](../PastYears/index.md)

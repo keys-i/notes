@@ -349,7 +349,7 @@ class SiteAssetTests(unittest.TestCase):
         for code, course in catalog.items():
             with self.subTest(course=code):
                 subject, number = code[:4], code[4:]
-                page = ROOT / "content" / subject / number / "PY/index.md"
+                page = ROOT / "content" / subject / number / "PastYears/index.md"
                 self.assertIn(f"papers: {code}", page.read_text(encoding="utf-8"))
                 self.assertTrue(course["items"])
                 self.assertNotIn("https://", course["folder-code"])
@@ -373,19 +373,20 @@ class SiteAssetTests(unittest.TestCase):
             {"fallback"},
         )
 
-    def test_course_cheatsheets_keep_cs_urls_and_ship_one_pdf_each(self):
-        for code, filename in site.CHEATSHEETS.items():
+    def test_course_cheatsheets_use_named_folders_and_ship_one_pdf_each(self):
+        for route in sorted((ROOT / "content").glob("*/*/Cheatsheets/index.md")):
+            code = route.parents[2].name + route.parents[1].name
+            filename = site.CHEATSHEET_PDF
             with self.subTest(course=code):
-                subject, number = code[:4], code[4:]
-                course = ROOT / "content" / subject / number
-                route = course / "CS/index.md"
+                course = route.parent.parent
                 pdf = route.with_name(filename)
                 preview = route.with_name(f"{pdf.stem}-preview.webp")
                 source = ROOT / "assets/cheatsheets" / f"{code.lower()}.typ"
 
                 self.assertIn(f"cheatsheet: {code}", route.read_text(encoding="utf-8"))
                 self.assertIn(
-                    "[Cheatsheet](CS/index.md)", (course / "index.md").read_text()
+                    "[Cheatsheets](Cheatsheets/index.md)",
+                    (course / "index.md").read_text(),
                 )
                 self.assertTrue(source.is_file())
                 self.assertTrue(pdf.read_bytes().startswith(b"%PDF-"))
@@ -415,7 +416,7 @@ class SiteAssetTests(unittest.TestCase):
             for item in config["catalogues"]
             if item["course"] == "MECH2700" and item["type"] == "prac"
         )
-        self.assertEqual(catalogue["route"], "/MECH/2700/Practical/")
+        self.assertEqual(catalogue["route"], "/MECH/2700/Practicals/")
         self.assertEqual(len(catalogue["items"]), 12)
         self.assertTrue((ROOT / "assets/materials/mech2700/prac/handout.typ").is_file())
 
@@ -449,12 +450,12 @@ class SiteAssetTests(unittest.TestCase):
         self.assertEqual(typst_count, 11)
         self.assertFalse(any((ROOT / "assets/materials").rglob("*.adv.py")))
         self.assertIn(
-            "[Practicals](Practical/index.md)",
+            "[Practicals](Practicals/index.md)",
             (ROOT / "content/MECH/2700/index.md").read_text(encoding="utf-8"),
         )
 
     def test_mech2700_workshops_use_the_contact_session_material(self):
-        workshop = ROOT / "content/MECH/2700/Tutorial"
+        workshop = ROOT / "content/MECH/2700/Workshops"
         index = (workshop / "index.md").read_text(encoding="utf-8")
         week4 = (workshop / "W4.md").read_text(encoding="utf-8")
         week9 = (workshop / "W9.md").read_text(encoding="utf-8")
@@ -465,8 +466,7 @@ class SiteAssetTests(unittest.TestCase):
         self.assertIn("LBM_opt.npz", week9)
         self.assertIn("10^5\\hat p(a)", week9)
         self.assertNotIn("outer diameter", week9.lower())
-        self.assertEqual(site.ROUTE_LABELS["Tutorial"], "Workshops")
-        self.assertEqual(site.ROUTE_LABELS["Practical"], "Practicals")
+        self.assertEqual(site.ROUTE_LABELS, {"PastYears": "Past Years"})
 
     def test_paper_library_uses_one_natural_language_search(self):
         template = (ROOT / "site/web/theme/partials/papers.html").read_text(

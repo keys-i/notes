@@ -121,4 +121,4 @@ $$
 - compare model families by likelihood access, sampling, representation and training
 
 [Return to evaluation](evaluation.md) · [Topic map](index.md#topic-map) ·
-[Past papers](../PY/index.md)
+[Past papers](../PastYears/index.md)

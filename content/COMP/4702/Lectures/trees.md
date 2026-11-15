@@ -107,4 +107,4 @@ $$
 - distinguish pruning, bagging, random forests and boosting
 
 [Next: neural networks](neural.md) · [Topic map](index.md#topic-map) ·
-[Past papers](../PY/index.md)
+[Past papers](../PastYears/index.md)

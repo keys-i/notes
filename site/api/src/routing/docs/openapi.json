@@ -521,7 +521,7 @@
           "catalogue_label": { "type": "string" },
           "source_label": { "type": "string", "enum": ["UQ catalogue", "Course archive"] },
           "offering": { "type": "string", "maxLength": 120 },
-          "papers_route": { "type": "string", "pattern": "^/[A-Z]{4}/[0-9]{4}/PY/$" },
+          "papers_route": { "type": "string", "pattern": "^/[A-Z]{4}/[0-9]{4}/PastYears/$" },
           "cheatsheet_route": { "type": "string", "maxLength": 241 },
           "source_url": { "type": "string", "format": "uri" },
           "capabilities": {
@@ -539,7 +539,7 @@
           "updated": { "type": "string", "format": "date" },
           "course": { "type": "string", "pattern": "^[A-Z]{4}[0-9]{4}$" },
           "type": { "type": "string", "enum": ["prac", "lec", "wks", "assign"] },
-          "route": { "type": "string", "pattern": "^/[A-Z]{4}/[0-9]{4}/(Practical|Lectures|Tutorial|Assignment)/$" },
+          "route": { "type": "string", "pattern": "^/[A-Z]{4}/[0-9]{4}/[A-Za-z][A-Za-z0-9-]{0,39}/$" },
           "source": { "type": "string", "format": "uri", "pattern": "^https://github\\.com/" },
           "items": {
             "type": "array",
@@ -555,8 +555,8 @@
         "required": ["label", "page"],
         "properties": {
           "label": { "type": "string", "minLength": 1, "maxLength": 80 },
-          "page": { "type": "string", "pattern": "^/[A-Z]{4}/[0-9]{4}/(Practical|Lectures|Tutorial|Assignment)/[^/]+/$" },
-          "pdf": { "type": "string", "pattern": "^/[A-Z]{4}/[0-9]{4}/(Practical|Lectures|Tutorial|Assignment)/[^/]+\\.pdf$" },
+          "page": { "type": "string", "pattern": "^/[A-Z]{4}/[0-9]{4}/[A-Za-z][A-Za-z0-9-]{0,39}/[^/]+/$" },
+          "pdf": { "type": "string", "pattern": "^/[A-Z]{4}/[0-9]{4}/[A-Za-z][A-Za-z0-9-]{0,39}/[^/]+\\.pdf$" },
           "python": { "type": "string", "pattern": "^/assets/materials/[a-z]{4}[0-9]{4}/(prac|lec|wks|assign)/(?![^/]+\\.adv\\.py$)[^/]+\\.py$" }
         },
         "anyOf": [

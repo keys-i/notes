@@ -11,7 +11,7 @@ storage, indexing, and query processing to transactions, concurrency, and
 recovery.
 
 1. [Lecture notes](Lectures/index.md)
-2. [Tutorials](Tutorial/index.md)
-3. [Practicals](Practical/index.md)
-4. [Past year papers](PY/index.md)
-5. [Cheatsheet](CS/index.md)
+2. [Tutorials](Tutorials/index.md)
+3. [Practicals](Practicals/index.md)
+4. [Past year papers](PastYears/index.md)
+5. [Cheatsheets](Cheatsheets/index.md)

@@ -124,7 +124,7 @@ def _course(raw: object, content_root: Path, today: date) -> dict:
     relative_route = f"{code[:4]}/{code[4:]}/"
     route = _canonical_route(raw.get("route"), relative_route, code)
     papers_route = _canonical_route(
-        raw.get("papers-route"), f"{relative_route}PY/", code
+        raw.get("papers-route"), f"{relative_route}PastYears/", code
     )
     cheatsheet_route = _cheatsheet_route(
         raw.get("cheatsheet-route"), relative_route, code
@@ -202,11 +202,11 @@ def _local_course(code: str, root: Path) -> dict:
         "route": route,
         "capabilities": ["notes"],
     }
-    if (root / "PY/index.md").is_file():
-        course["papers_route"] = f"{route}PY/"
+    if (root / "PastYears/index.md").is_file():
+        course["papers_route"] = f"{route}PastYears/"
         course["capabilities"].append("papers")
-    if (root / "CS/index.md").is_file():
-        course["cheatsheet_route"] = f"{route}CS/"
+    if (root / "Cheatsheets/index.md").is_file():
+        course["cheatsheet_route"] = f"{route}Cheatsheets/"
         course["capabilities"].append("cheatsheet")
     return course
 

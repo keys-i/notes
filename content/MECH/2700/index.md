@@ -10,11 +10,11 @@ Use these notes to move from mathematical modelling and numerical foundations
 through differential equations, optimisation, and computational engineering.
 
 1. [Lecture notes](Lectures/index.md)
-2. [Workshops](Tutorial/index.md)
-3. [Practicals](Practical/index.md)
-4. [Assignments](Assignment/index.md)
-5. [Past year papers](PY/index.md)
-6. [Cheatsheet](CS/index.md)
+2. [Workshops](Workshops/index.md)
+3. [Practicals](Practicals/index.md)
+4. [Assignments](Assignments/index.md)
+5. [Past year papers](PastYears/index.md)
+6. [Cheatsheets](Cheatsheets/index.md)
 
 ## Interactive plotter
 

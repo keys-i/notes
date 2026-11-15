@@ -125,7 +125,7 @@
       text(source.source_label, 120);
       var prefix = "/" + code.slice(0, 4) + "/" + code.slice(4) + "/";
       var localRoute = route(source.route, prefix);
-      var papersRoute = route(source.papers_route, prefix + "PY/");
+      var papersRoute = route(source.papers_route, prefix + "PastYears/");
       var sheetRoute = cheatsheetRoute(source.cheatsheet_route, prefix);
       var archive = sourceUrl(source.source_url);
       var uqCatalogue = catalogueUrl(source.catalogue_url);

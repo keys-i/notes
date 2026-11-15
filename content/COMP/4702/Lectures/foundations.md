@@ -115,4 +115,4 @@ $$
 - state what the regulariser prefers and what $\lambda$ controls
 
 [Next: linear models](linear.md) · [Topic map](index.md#topic-map) ·
-[Past papers](../PY/index.md)
+[Past papers](../PastYears/index.md)

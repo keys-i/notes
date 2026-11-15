@@ -166,7 +166,7 @@ fn build_course(source: &SourceCourse, now_ms: u64) -> Result<Course, ConfigErro
     }
 
     let course_route = format!("{}/{}/", &source.code[..4], &source.code[4..]);
-    let paper_route = format!("{course_route}PY/");
+    let paper_route = format!("{course_route}PastYears/");
     validate_route(source.route.as_deref(), &course_route)?;
     validate_route(source.papers_route.as_deref(), &paper_route)?;
     validate_cheatsheet(source.cheatsheet_route.as_deref(), &course_route)?;
@@ -455,7 +455,7 @@ mod tests {
         let route = format!("COMP/{index:04}/");
         if detailed {
             format!(
-                "\n[[courses]]\ncode = \"{code}\"\ntitle = \"{}\"\nmaturity = \"resources\"\nroute = \"{route}\"\nverified = \"2026-11-13\"\ncatalogue-id = \"{}\"\noffering = \"{}\"\npapers-route = \"{route}PY/\"\ncheatsheet-route = \"{route}{}.pdf\"\nfolder-code = \"{}\"\n\n[courses.source-permission]\nstatus = \"allowed\"\nrecord = \"docs/sources/{code}.md\"\nexpires = \"2027-11-13\"\n",
+                "\n[[courses]]\ncode = \"{code}\"\ntitle = \"{}\"\nmaturity = \"resources\"\nroute = \"{route}\"\nverified = \"2026-11-13\"\ncatalogue-id = \"{}\"\noffering = \"{}\"\npapers-route = \"{route}PastYears/\"\ncheatsheet-route = \"{route}{}.pdf\"\nfolder-code = \"{}\"\n\n[courses.source-permission]\nstatus = \"allowed\"\nrecord = \"docs/sources/{code}.md\"\nexpires = \"2027-11-13\"\n",
                 "T".repeat(120),
                 "I".repeat(128),
                 "O".repeat(120),
@@ -508,7 +508,7 @@ mod tests {
         let resources = response("valid-resources");
         let resources = &resources["courses"][0];
         assert_eq!(resources["route"], "/COMP/4702/");
-        assert_eq!(resources["papers_route"], "/COMP/4702/PY/");
+        assert_eq!(resources["papers_route"], "/COMP/4702/PastYears/");
         assert_eq!(
             resources["capabilities"],
             serde_json::json!(["notes", "source"])

@@ -73,5 +73,5 @@ variation rather than pretending the models are equivalent in stability.
 ## Next practice
 
 Work through the hidden-answer item on each [topic page](../Lectures/index.md),
-then use the [past papers](../PY/index.md) under a
+then use the [past papers](../PastYears/index.md) under a
 time limit.

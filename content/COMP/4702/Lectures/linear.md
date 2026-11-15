@@ -132,4 +132,4 @@ and the predicted class is $1$.
 - check feature scaling before interpreting coefficients
 
 [Next: trees and ensembles](trees.md) · [Topic map](index.md#topic-map) ·
-[Past papers](../PY/index.md)
+[Past papers](../PastYears/index.md)

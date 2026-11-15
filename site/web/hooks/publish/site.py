@@ -34,15 +34,9 @@ WEEK_TITLE = re.compile(r"^(?:W|Week\s+)(\d+)\b", re.IGNORECASE)
 COURSE_ROUTE = re.compile(r"^(COMP|INFS|MECH)/(\d{4})/?$")
 PRACTICAL_PDF = re.compile(r"^week_(\d{2})\.pdf$")
 ROUTE_LABELS = {
-    "PY": "Past years",
-    "CS": "Cheatsheet",
-    "Practical": "Practicals",
-    "Tutorial": "Workshops",
+    "PastYears": "Past Years",
 }
-CHEATSHEETS = {
-    "INFS2200": "INFS2200-cheatsheet.pdf",
-    "MECH2700": "MECH2700-cheatsheet.pdf",
-}
+CHEATSHEET_PDF = "cheatsheet.pdf"
 
 
 def _pdf_controls(pdf, open_label, download_label):
@@ -218,7 +212,7 @@ def on_page_markdown(markdown, page, **_):
     code = page.meta.get("cheatsheet") if page.meta else None
     if not code:
         return markdown
-    pdf = CHEATSHEETS[code]
+    pdf = CHEATSHEET_PDF
     preview = f"{Path(pdf).stem}-preview.webp"
     return (
         f'<section class="cheatsheet pdf-reader" aria-label="{code} cheatsheet reader">'

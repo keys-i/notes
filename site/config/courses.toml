@@ -8,7 +8,7 @@ route = "COMP/4702/"
 verified = "2026-11-13"
 catalogue-id = "COMP4702_7620_21208"
 offering = "Semester 1, 2026"
-papers-route = "COMP/4702/PY/"
+papers-route = "COMP/4702/PastYears/"
 
 [[courses]]
 code = "COMP4500"

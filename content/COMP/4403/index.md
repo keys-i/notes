@@ -10,6 +10,6 @@ Use these notes to follow the path from formal grammars and parsing through
 semantic analysis, interpretation, and runtime representation.
 
 1. [Lecture notes](Lectures/index.md)
-2. [Tutorials](Tutorial/index.md)
-3. [Assignments](Assignment/index.md)
-4. [Past year papers](PY/index.md)
+2. [Tutorials](Tutorials/index.md)
+3. [Assignments](Assignments/index.md)
+4. [Past year papers](PastYears/index.md)

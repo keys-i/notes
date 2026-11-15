@@ -5,10 +5,10 @@ description: COMP4702 study resources for machine learning theory and practice, 
 learning:
   topic-map: Lectures/index.md#topic-map
   concepts: Lectures/foundations.md#frame-the-problem
-  worked-example: Tutorial/index.md#worked-example
-  practice: Tutorial/index.md#practice
+  worked-example: Tutorials/index.md#worked-example
+  practice: Tutorials/index.md#practice
   misconceptions: Lectures/index.md#misconceptions
-  assessment: PY/index.md
+  assessment: PastYears/index.md
 ---
 
 # COMP4702 Machine Learning
@@ -16,6 +16,6 @@ learning:
 ## Study resources
 
 1. [Lecture notes](Lectures/index.md)
-2. [Tutorials](Tutorial/index.md)
-3. [Assignments](Assignment/index.md)
-4. [Past year papers](PY/index.md)
+2. [Tutorials](Tutorials/index.md)
+3. [Assignments](Assignments/index.md)
+4. [Past year papers](PastYears/index.md)

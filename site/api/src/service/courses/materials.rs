@@ -51,15 +51,6 @@ impl MaterialKind {
         }
     }
 
-    fn folder(self) -> &'static str {
-        match self {
-            Self::Prac => "Practical",
-            Self::Lec => "Lectures",
-            Self::Wks => "Tutorial",
-            Self::Assign => "Assignment",
-        }
-    }
-
     fn name(self) -> &'static str {
         match self {
             Self::Prac => "prac",
@@ -150,10 +141,16 @@ fn validate(config: &SourceConfig) -> Result<(), ConfigError> {
 
         let subject = &catalogue.course[..4];
         let number = &catalogue.course[4..];
-        let expected_route = format!("/{subject}/{number}/{}/", catalogue.kind.folder());
-        if catalogue.route != expected_route {
+        let course_route = format!("/{subject}/{number}/");
+        if !local_route(&catalogue.route)
+            || !catalogue.route.starts_with(&course_route)
+            || !catalogue.route.ends_with('/')
+            || catalogue.route[course_route.len()..catalogue.route.len() - 1].is_empty()
+            || catalogue.route[course_route.len()..catalogue.route.len() - 1].contains('/')
+        {
             return Err(ConfigError);
         }
+        let expected_route = &catalogue.route;
 
         let asset_root = format!(
             "/assets/materials/{}/{}/",
@@ -166,7 +163,7 @@ fn validate(config: &SourceConfig) -> Result<(), ConfigError> {
             if !text(&item.label, 80)
                 || !labels.insert(item.label.as_str())
                 || !local_route(&item.page)
-                || !item.page.starts_with(&expected_route)
+                || !item.page.starts_with(expected_route)
                 || !item.page.ends_with('/')
                 || item.typst.is_none() && item.python.is_none()
             {
@@ -182,7 +179,7 @@ fn validate(config: &SourceConfig) -> Result<(), ConfigError> {
                 .as_deref()
                 .is_some_and(|path| !path.starts_with(&asset_root) || !path.ends_with(".typ"))
                 || item.pdf.as_deref().is_some_and(|path| {
-                    !path.starts_with(&expected_route) || !path.ends_with(".pdf")
+                    !path.starts_with(expected_route) || !path.ends_with(".pdf")
                 })
                 || item.python.as_deref().is_some_and(|path| {
                     !path.starts_with(&asset_root)
@@ -223,7 +220,10 @@ mod tests {
         assert_eq!(value["type"], "prac");
         assert_eq!(value["items"].as_array().unwrap().len(), 12);
         assert!(value["items"][0].get("typst").is_none());
-        assert_eq!(value["items"][0]["pdf"], "/MECH/2700/Practical/week_01.pdf");
+        assert_eq!(
+            value["items"][0]["pdf"],
+            "/MECH/2700/Practicals/week_01.pdf"
+        );
         assert_eq!(
             value["items"][11]["python"],
             "/assets/materials/mech2700/prac/week_13.py"
@@ -243,7 +243,7 @@ mod tests {
     fn material_config_rejects_advanced_python_and_cross_course_assets() {
         assert!(parse_source(&SOURCE.replace("week_02.py", "week_02.adv.py")).is_err());
         assert!(
-            parse_source(&SOURCE.replacen("pdf = \"/MECH/2700/Practical/week_01.pdf\"\n", "", 1))
+            parse_source(&SOURCE.replacen("pdf = \"/MECH/2700/Practicals/week_01.pdf\"\n", "", 1))
                 .is_err()
         );
         assert!(
@@ -253,5 +253,6 @@ mod tests {
             ))
             .is_err()
         );
+        assert!(parse_source(&SOURCE.replace("/Practicals/", "/PracticalSheets/")).is_ok());
     }
 }

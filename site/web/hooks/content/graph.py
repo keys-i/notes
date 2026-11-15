@@ -15,7 +15,7 @@ repository_root = Path(__file__).parents[4]
 nodes_by_url = {}
 edges = set()
 seen_links = 0
-PAPER_ROUTE = re.compile(r"^/(?:COMP|INFS|MECH)/\d{4}/PY/?$")
+PAPER_ROUTE = re.compile(r"^/(?:COMP|INFS|MECH)/\d{4}/PastYears/?$")
 COURSE_ROUTE = re.compile(r"^/(?:COMP|INFS|MECH)/\d{4}/?$")
 
 
