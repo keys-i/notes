@@ -15,6 +15,7 @@ from unittest.mock import patch
 
 from hooks.content import plot
 from hooks.publish import site
+from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[3]
 
@@ -389,10 +390,14 @@ class SiteAssetTests(unittest.TestCase):
                     (course / "index.md").read_text(),
                 )
                 self.assertTrue(source.is_file())
-                self.assertTrue(pdf.read_bytes().startswith(b"%PDF-"))
-                self.assertGreater(pdf.stat().st_size, 100_000)
-                self.assertTrue(preview.read_bytes().startswith(b"RIFF"))
-                self.assertGreater(preview.stat().st_size, 100_000)
+                pdf_bytes = pdf.read_bytes()
+                self.assertTrue(pdf_bytes.startswith(b"%PDF-"))
+                self.assertIn(b"/Type/Pages/Count 1/", pdf_bytes)
+                self.assertTrue(pdf_bytes.rstrip().endswith(b"%%EOF"))
+                with Image.open(preview) as image:
+                    self.assertEqual(image.format, "WEBP")
+                    self.assertGreater(image.width, image.height)
+                    image.verify()
                 template_text = (ROOT / "assets/cheatsheets/template.typ").read_text(
                     encoding="utf-8"
                 )
