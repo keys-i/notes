@@ -474,7 +474,8 @@ class SiteAssetTests(unittest.TestCase):
         )
         self.assertIn('id="papers-search"', template)
         self.assertIn("latest paper", template)
-        self.assertRegex(template, r">\s*Open source ↗</a\s*>")
+        self.assertRegex(template, r">\s*Open source</a\s*>")
+        self.assertNotIn("Open source ↗", template)
         self.assertNotIn("Paper not loading", template)
         self.assertNotIn("papers__years", template)
 
