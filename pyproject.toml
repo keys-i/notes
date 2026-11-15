@@ -18,7 +18,7 @@ dependencies = [
     "mkdocs-git-authors-plugin (>=0.10.0,<0.11.0)",
     "mkdocs-obsidian-support-plugin (>=1.4.1,<2.0.0)",
     "mkdocs-print-site-plugin>=2.9,<3.0",
-    "pillow>=12.0.0,<13.0.0",
+    "pillow>=13.0.0,<14.0.0",
 ]
 
 [project.scripts]
