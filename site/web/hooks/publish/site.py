@@ -100,13 +100,15 @@ def on_config(config):
 
 
 def on_files(files, config):
-    """Expose authored assets at their stable public paths"""
+    """Expose public assets at their stable paths"""
     existing = {getattr(file, "dest_uri", None) or file.src_uri for file in files}
     for root, prefix in ((ASSETS, "assets"), (STYLES, "assets/styles")):
         for path in sorted(root.rglob("*")):
             if path.is_symlink():
                 raise ValueError(f"asset symlinks are not allowed: {path}")
             if not path.is_file():
+                continue
+            if path.suffix.casefold() == ".typ":
                 continue
             source = path.relative_to(root).as_posix()
             public = f"{prefix}/{source}"
@@ -258,7 +260,13 @@ def on_post_build(config):
         "papers.toml": "source paper catalogue",
     }
     for candidate in site.rglob("*"):
-        if candidate.is_file() and candidate.name in blocked_catalogues:
+        if not candidate.is_file():
+            continue
+        if candidate.suffix.casefold() == ".typ":
+            raise RuntimeError(
+                f"built site contains Typst source: {candidate.relative_to(site)}"
+            )
+        if candidate.name in blocked_catalogues:
             raise RuntimeError(
                 f"built site contains the {blocked_catalogues[candidate.name]}: "
                 f"{candidate.relative_to(site)}"

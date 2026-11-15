@@ -1119,6 +1119,7 @@ class SiteEdgeCoverageTests(unittest.TestCase):
             (assets / "nested").mkdir(parents=True)
             styles.mkdir()
             (assets / "nested/new.txt").write_text("new", encoding="utf-8")
+            (assets / "nested/source.typ").write_text("private", encoding="utf-8")
             (assets / "known.txt").write_text("known", encoding="utf-8")
             (styles / "theme.css").write_text("body {}", encoding="utf-8")
             outside = root / "outside.txt"
@@ -1145,6 +1146,18 @@ class SiteEdgeCoverageTests(unittest.TestCase):
                     "assets/styles/theme.css",
                 ],
             )
+
+    def test_site_build_rejects_published_typst_sources(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            leaked = root / "assets/materials/mech2700/prac/week_01.typ"
+            leaked.parent.mkdir(parents=True)
+            leaked.write_text("private", encoding="utf-8")
+
+            with self.assertRaisesRegex(RuntimeError, "Typst source"):
+                site_hook.on_post_build(
+                    SimpleNamespace(site_dir=root, extra={"asset_version": "dev"})
+                )
 
     def test_redirect_escapes_target_and_preserves_navigation_state(self):
         redirect = site_hook._redirect('../new?value="<unsafe>"')
