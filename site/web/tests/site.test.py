@@ -430,7 +430,9 @@ class SiteAssetTests(unittest.TestCase):
             self.assertTrue(python.is_file())
             self.assertNotIn(".adv.py", item["python"])
             self.assertIn(item["python"].removeprefix("/"), page_text)
-            self.assertIn(f'``` python title="{python.name}" linenums="1"', page_text)
+            self.assertIn(
+                f'``` {{ .python title="{python.name}" linenums="1" }}', page_text
+            )
 
             if typst_route := item.get("typst"):
                 typst_count += 1
