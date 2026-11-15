@@ -32,6 +32,7 @@ COURSE_ASSET_BUDGETS = {
 }
 WEEK_TITLE = re.compile(r"^(?:W|Week\s+)(\d+)\b", re.IGNORECASE)
 COURSE_ROUTE = re.compile(r"^(COMP|INFS|MECH)/(\d{4})/?$")
+PRACTICAL_PDF = re.compile(r"^week_(\d{2})\.pdf$")
 ROUTE_LABELS = {
     "PY": "Past years",
     "CS": "Cheatsheet",
@@ -42,6 +43,53 @@ CHEATSHEETS = {
     "INFS2200": "INFS2200-cheatsheet.pdf",
     "MECH2700": "MECH2700-cheatsheet.pdf",
 }
+
+
+def _pdf_controls(pdf, open_label, download_label):
+    safe_pdf = html.escape(pdf, quote=True)
+    safe_open = html.escape(open_label, quote=True)
+    safe_download = html.escape(download_label, quote=True)
+    return (
+        '<nav class="pdf-reader__controls" aria-label="PDF controls">'
+        '<button type="button" data-pdf-zoom="-1" aria-label="Zoom out" '
+        'title="Zoom out"><svg viewBox="0 0 24 24" aria-hidden="true">'
+        '<circle cx="9.5" cy="9.5" r="5.5"/><path d="M13.5 13.5 21 21M7 9.5h5"/>'
+        "</svg></button>"
+        '<button type="button" data-pdf-zoom="1" aria-label="Zoom in" '
+        'title="Zoom in"><svg viewBox="0 0 24 24" aria-hidden="true">'
+        '<circle cx="9.5" cy="9.5" r="5.5"/><path d="M13.5 13.5 21 21M7 9.5h5M9.5 7v5"/>'
+        "</svg></button>"
+        f'<a class="pdf-reader__open" href="{safe_pdf}" target="_blank" '
+        f'rel="noopener" aria-label="{safe_open}" title="Open PDF">'
+        '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" '
+        'height="16" rx="3"/><path d="M10 14 17 7m-5 0h5v5"/></svg></a>'
+        f'<a class="pdf-reader__download" href="{safe_pdf}" download '
+        f'aria-label="{safe_download}" title="Download">'
+        '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" '
+        'r="9"/><path d="M12 6v9m-4-4 4 4 4-4"/></svg></a>'
+        "</nav>"
+    )
+
+
+def _practical_reader(markdown, pdf):
+    match = PRACTICAL_PDF.fullmatch(pdf) if isinstance(pdf, str) else None
+    if not match:
+        raise ValueError("practical PDF must be a local week PDF")
+    body = markdown.lstrip()
+    heading, separator, remainder = body.partition("\n")
+    if not separator or not heading.startswith("# "):
+        raise ValueError("practical PDF page must start with a level-one heading")
+    week = int(match.group(1))
+    label = f"Week {week} solved practical sheet"
+    route = f"../{pdf}"
+    reader = (
+        f'<section class="pdf-reader pdf-reader--practical" aria-label="{label} reader">'
+        f'<div class="pdf-reader__viewer" aria-label="{label}" tabindex="0">'
+        f'<iframe class="pdf-reader__document pdf-reader__document--frame" '
+        f'src="{route}#view=FitH" title="{label}" loading="lazy"></iframe></div>'
+        f"{_pdf_controls(route, f'Open {label}', f'Download {label}')}</section>"
+    )
+    return f"{heading}\n\n{reader}\n\n{remainder.lstrip()}"
 
 
 def on_config(config):
@@ -162,36 +210,23 @@ def on_page_markdown(markdown, page, **_):
         )
         authored = markdown.strip()
         return f"{body}\n{authored}\n" if authored else body
+    practical_pdf = page.meta.get("practical_pdf") if page.meta else None
+    if practical_pdf:
+        return _practical_reader(markdown, practical_pdf)
     code = page.meta.get("cheatsheet") if page.meta else None
     if not code:
         return markdown
     pdf = CHEATSHEETS[code]
     preview = f"{Path(pdf).stem}-preview.webp"
     return (
-        f'<section class="cheatsheet" aria-label="{code} cheatsheet reader">'
-        f'<div class="cheatsheet__viewer" aria-label="{code} cheatsheet preview" '
+        f'<section class="cheatsheet pdf-reader" aria-label="{code} cheatsheet reader">'
+        f'<div class="pdf-reader__viewer" aria-label="{code} cheatsheet preview" '
         'tabindex="0">'
-        f'<img class="cheatsheet__preview" src="{preview}" '
+        f'<img class="pdf-reader__document pdf-reader__document--image" src="{preview}" '
         f'alt="{code} cheatsheet preview" width="2246" height="1588" '
         'loading="eager"></div>'
-        '<nav class="cheatsheet__controls" aria-label="Preview controls">'
-        '<button type="button" data-cheatsheet-zoom="-1" aria-label="Zoom out" '
-        'title="Zoom out"><svg viewBox="0 0 24 24" aria-hidden="true">'
-        '<circle cx="9.5" cy="9.5" r="5.5"/><path d="M13.5 13.5 21 21M7 9.5h5"/>'
-        "</svg></button>"
-        '<button type="button" data-cheatsheet-zoom="1" aria-label="Zoom in" '
-        'title="Zoom in"><svg viewBox="0 0 24 24" aria-hidden="true">'
-        '<circle cx="9.5" cy="9.5" r="5.5"/><path d="M13.5 13.5 21 21M7 9.5h5M9.5 7v5"/>'
-        "</svg></button>"
-        f'<a class="cheatsheet__open" href="{pdf}" target="_blank" rel="noopener" '
-        f'aria-label="Open {code} PDF" title="Open PDF">'
-        '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" '
-        'height="16" rx="3"/><path d="M10 14 17 7m-5 0h5v5"/></svg></a>'
-        f'<a class="cheatsheet__download" href="{pdf}" download '
-        f'aria-label="Download {code} cheatsheet" title="Download">'
-        '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" '
-        'r="9"/><path d="M12 6v9m-4-4 4 4 4-4"/></svg></a>'
-        "</nav></section>"
+        f"{_pdf_controls(pdf, f'Open {code} PDF', f'Download {code} cheatsheet')}"
+        "</section>"
     )
 
 

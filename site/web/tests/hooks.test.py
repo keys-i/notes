@@ -518,10 +518,33 @@ class HookTests(unittest.TestCase):
                 self.assertIn(f"Download {code} cheatsheet", body)
                 self.assertNotIn(f"# {code} Cheatsheet", body)
                 self.assertNotIn(f"Back to {code}", body)
-                self.assertIn('class="cheatsheet__controls"', body)
-                self.assertEqual(body.count("data-cheatsheet-zoom"), 2)
+                self.assertIn('class="cheatsheet pdf-reader"', body)
+                self.assertIn('class="pdf-reader__controls"', body)
+                self.assertEqual(body.count("data-pdf-zoom"), 2)
                 self.assertNotIn("Exam reference", body)
                 self.assertNotIn('class="cheatsheet__bar"', body)
+
+    def test_practical_routes_share_the_pdf_reader_controls(self):
+        page = SimpleNamespace(meta={"practical_pdf": "week_09.pdf"})
+        body = site_hook.on_page_markdown("# Week 9\n\n## Python\n", page)
+
+        self.assertLess(body.index("# Week 9"), body.index("pdf-reader"))
+        self.assertIn('class="pdf-reader pdf-reader--practical"', body)
+        self.assertIn('src="../week_09.pdf#view=FitH"', body)
+        self.assertIn('aria-label="Open Week 9 solved practical sheet"', body)
+        self.assertIn('aria-label="Download Week 9 solved practical sheet"', body)
+        self.assertEqual(body.count("data-pdf-zoom"), 2)
+        self.assertIn("## Python", body)
+
+    def test_practical_reader_rejects_unsafe_or_unstructured_pages(self):
+        with self.assertRaisesRegex(ValueError, "local week PDF"):
+            site_hook.on_page_markdown(
+                "# Week 1\n", SimpleNamespace(meta={"practical_pdf": "../sheet.pdf"})
+            )
+        with self.assertRaisesRegex(ValueError, "level-one heading"):
+            site_hook.on_page_markdown(
+                "No heading\n", SimpleNamespace(meta={"practical_pdf": "week_01.pdf"})
+            )
 
     def test_game_config(self):
         settings = game.on_config(self.config).extra["game"]

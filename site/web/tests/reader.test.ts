@@ -3,13 +3,13 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import vm from "node:vm";
 
-const source = readFileSync("assets/js/study/cheatsheet.js", "utf8");
+const source = readFileSync("assets/js/study/reader.js", "utf8");
 
 function button(direction: number) {
   const listeners: Record<string, () => void> = {};
   return {
     attributes: {} as Record<string, string>,
-    dataset: { cheatsheetZoom: String(direction) },
+    dataset: { pdfZoom: String(direction) },
     disabled: false,
     addEventListener(type: string, listener: () => void) {
       listeners[type] = listener;
@@ -23,7 +23,7 @@ function button(direction: number) {
   };
 }
 
-test("cheatsheet preview zoom stays bounded and keeps its centre", () => {
+test("PDF reader zoom stays bounded and keeps its centre", () => {
   const viewer = {
     clientHeight: 280,
     clientWidth: 400,
@@ -43,16 +43,16 @@ test("cheatsheet preview zoom stays bounded and keeps its centre", () => {
   };
   const zoomOut = button(-1);
   const zoomIn = button(1);
-  const cheatsheet = {
+  const reader = {
     querySelector(selector: string) {
-      return selector === ".cheatsheet__viewer" ? viewer : preview;
+      return selector === ".pdf-reader__viewer" ? viewer : preview;
     },
     querySelectorAll() {
       return [zoomOut, zoomIn];
     },
   };
   const context = {
-    document: { querySelector: () => cheatsheet },
+    document: { querySelectorAll: () => [reader] },
     requestAnimationFrame(callback: () => void) {
       preview.getBoundingClientRect();
       callback();
@@ -78,10 +78,10 @@ test("cheatsheet preview zoom stays bounded and keeps its centre", () => {
   assert.equal(zoomOut.disabled, true);
 });
 
-test("cheatsheet preview is inert on other pages", () => {
+test("PDF reader is inert on other pages", () => {
   assert.doesNotThrow(() => {
     vm.runInNewContext(source, {
-      document: { querySelector: () => null },
+      document: { querySelectorAll: () => [] },
       requestAnimationFrame() {},
     });
   });

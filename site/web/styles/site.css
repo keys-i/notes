@@ -575,11 +575,15 @@ body {
   transform: translate(-0.12rem, 0.08rem);
 }
 
-/* == Cheatsheet reader == */
-.cheatsheet {
+/* == PDF reader == */
+.pdf-reader {
   position: relative;
   max-width: 80rem;
   margin-top: 1.4rem;
+}
+
+.pdf-reader--practical {
+  margin-bottom: 1.4rem;
 }
 
 .md-content__inner:has(.cheatsheet) > .md-source-file {
@@ -595,7 +599,7 @@ body {
   white-space: nowrap;
 }
 
-.cheatsheet__viewer {
+.pdf-reader__viewer {
   overflow: auto;
   max-height: min(78vh, 59rem);
   border: 1px solid var(--site-panel-border);
@@ -606,20 +610,29 @@ body {
   scrollbar-color: rgb(71 72 78 / 0.65) transparent;
 }
 
-.cheatsheet__viewer:focus-visible {
+.pdf-reader__viewer:focus-visible {
   outline: 3px solid var(--md-accent-fg-color);
   outline-offset: 3px;
 }
 
-.md-typeset .cheatsheet__preview {
+.md-typeset .pdf-reader__document {
   display: block;
   width: 100%;
   max-width: none;
-  height: auto;
   margin-inline: auto;
 }
 
-.cheatsheet__controls {
+.md-typeset .pdf-reader__document--image {
+  height: auto;
+}
+
+.md-typeset .pdf-reader__document--frame {
+  height: clamp(36rem, 78vh, 64rem);
+  border: 0;
+  background: #fff;
+}
+
+.pdf-reader__controls {
   position: absolute;
   z-index: 2;
   bottom: 0.85rem;
@@ -635,7 +648,7 @@ body {
   transform: translateX(-50%);
 }
 
-.md-typeset .cheatsheet__controls :is(button, a) {
+.md-typeset .pdf-reader__controls :is(button, a) {
   display: grid;
   box-sizing: border-box;
   width: 2.5rem;
@@ -656,7 +669,7 @@ body {
     opacity 140ms ease;
 }
 
-.cheatsheet__controls svg {
+.pdf-reader__controls svg {
   width: 1.55rem;
   height: 1.55rem;
   fill: none;
@@ -666,53 +679,36 @@ body {
   stroke-linejoin: round;
 }
 
-.md-typeset .cheatsheet__controls :is(button, a):is(:hover, :focus-visible) {
+.md-typeset .pdf-reader__controls :is(button, a):is(:hover, :focus-visible) {
   background: rgb(255 255 255 / 0.16);
   outline: 2px solid #fff;
   outline-offset: 2px;
 }
 
-.md-typeset .cheatsheet__controls :is(button, a):active {
+.md-typeset .pdf-reader__controls :is(button, a):active {
   transform: scale(0.94);
 }
-.md-typeset .cheatsheet__controls button:disabled {
+.md-typeset .pdf-reader__controls button:disabled {
   cursor: default;
   opacity: 0.32;
 }
 
 @media (max-width: 40rem) {
-  body:has(.cheatsheet) #dock-pet,
-  body:has(.cheatsheet) #dock-pet-help {
+  body:has(.pdf-reader) #dock-pet,
+  body:has(.pdf-reader) #dock-pet-help {
     display: none;
   }
 
-  .cheatsheet {
+  .pdf-reader {
     margin-inline: -0.5rem;
   }
 
-  .cheatsheet__viewer {
+  .pdf-reader__viewer {
     max-height: 72vh;
   }
-  .cheatsheet__controls {
+  .pdf-reader__controls {
     bottom: 0.6rem;
   }
-}
-
-/* == Practical sheet reader == */
-.md-typeset .practical-sheet {
-  display: block;
-  width: 100%;
-  height: clamp(36rem, 78vh, 64rem);
-  margin: 1.2rem 0 0.8rem;
-  border: 1px solid var(--site-panel-border);
-  border-radius: 0.8rem;
-  corner-shape: squircle;
-  background: #fff;
-}
-
-.md-typeset .practical-sheet:focus-visible {
-  outline: 3px solid var(--md-accent-fg-color);
-  outline-offset: 3px;
 }
 
 .papers__tools {
@@ -1950,7 +1946,7 @@ body {
   .md-footer__link,
   .md-header__button,
   .md-header__topic,
-  .cheatsheet__controls :is(button, a) {
+  .pdf-reader__controls :is(button, a) {
     transition: none;
   }
 
