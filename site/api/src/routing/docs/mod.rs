@@ -103,6 +103,9 @@ mod tests {
                 .get("MaterialCatalogue")
                 .is_some()
         );
+        let material = &contract["components"]["schemas"]["Material"]["properties"];
+        assert!(material.get("typst").is_none());
+        assert!(material.get("pdf").is_some());
         assert!(
             contract["paths"]["/healthz/{service}"]["get"]["parameters"][0]["schema"]["enum"]
                 .as_array()

@@ -75,7 +75,7 @@ impl MaterialKind {
 struct Material {
     label: String,
     page: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing)]
     typst: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pdf: Option<String>,
@@ -189,7 +189,7 @@ fn validate(config: &SourceConfig) -> Result<(), ConfigError> {
                         || !path.ends_with(".py")
                         || path.ends_with(".adv.py")
                 })
-                || item.pdf.is_some() && item.typst.is_none()
+                || item.pdf.is_some() != item.typst.is_some()
             {
                 return Err(ConfigError);
             }
@@ -216,16 +216,14 @@ mod tests {
     use super::{SOURCE, catalogue, parse_source, ready};
 
     #[test]
-    fn configured_practicals_expose_typst_pdfs_and_plain_python() {
+    fn configured_practicals_expose_pdfs_and_plain_python() {
         assert!(ready());
         let response = catalogue("MECH2700", "prac").unwrap().unwrap();
         let value = serde_json::to_value(response).unwrap();
         assert_eq!(value["type"], "prac");
         assert_eq!(value["items"].as_array().unwrap().len(), 12);
-        assert_eq!(
-            value["items"][0]["typst"],
-            "/assets/materials/mech2700/prac/week_01.typ"
-        );
+        assert!(value["items"][0].get("typst").is_none());
+        assert_eq!(value["items"][0]["pdf"], "/MECH/2700/Practical/week_01.pdf");
         assert_eq!(
             value["items"][11]["python"],
             "/assets/materials/mech2700/prac/week_13.py"
@@ -244,6 +242,10 @@ mod tests {
     #[test]
     fn material_config_rejects_advanced_python_and_cross_course_assets() {
         assert!(parse_source(&SOURCE.replace("week_02.py", "week_02.adv.py")).is_err());
+        assert!(
+            parse_source(&SOURCE.replacen("pdf = \"/MECH/2700/Practical/week_01.pdf\"\n", "", 1))
+                .is_err()
+        );
         assert!(
             parse_source(&SOURCE.replace(
                 "/assets/materials/mech2700/prac/week_02.typ",

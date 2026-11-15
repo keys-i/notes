@@ -556,12 +556,11 @@
         "properties": {
           "label": { "type": "string", "minLength": 1, "maxLength": 80 },
           "page": { "type": "string", "pattern": "^/[A-Z]{4}/[0-9]{4}/(Practical|Lectures|Tutorial|Assignment)/[^/]+/$" },
-          "typst": { "type": "string", "pattern": "^/assets/materials/[a-z]{4}[0-9]{4}/(prac|lec|wks|assign)/[^/]+\\.typ$" },
           "pdf": { "type": "string", "pattern": "^/[A-Z]{4}/[0-9]{4}/(Practical|Lectures|Tutorial|Assignment)/[^/]+\\.pdf$" },
           "python": { "type": "string", "pattern": "^/assets/materials/[a-z]{4}[0-9]{4}/(prac|lec|wks|assign)/(?![^/]+\\.adv\\.py$)[^/]+\\.py$" }
         },
         "anyOf": [
-          { "required": ["typst"] },
+          { "required": ["pdf"] },
           { "required": ["python"] }
         ]
       },
