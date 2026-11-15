@@ -417,6 +417,7 @@ class SiteAssetTests(unittest.TestCase):
         )
         self.assertEqual(catalogue["route"], "/MECH/2700/Practical/")
         self.assertEqual(len(catalogue["items"]), 12)
+        self.assertTrue((ROOT / "assets/materials/mech2700/prac/handout.typ").is_file())
 
         typst_count = 0
         for item in catalogue["items"]:
@@ -435,6 +436,9 @@ class SiteAssetTests(unittest.TestCase):
                 typst = ROOT / typst_route.removeprefix("/")
                 pdf = ROOT / "content" / item["pdf"].removeprefix("/")
                 self.assertTrue(typst.is_file())
+                typst_text = typst.read_text(encoding="utf-8")
+                self.assertIn('#import "handout.typ"', typst_text)
+                self.assertNotRegex(typst_text, r"\b[0-9]+(?: [0-9]{3})+\b")
                 self.assertTrue(pdf.read_bytes().startswith(b"%PDF-"))
                 self.assertGreater(pdf.stat().st_size, 20_000)
                 self.assertIn(pdf.name, page_text)

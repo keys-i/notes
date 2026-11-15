@@ -1,78 +1,141 @@
-#import "template.typ": sheet
-#show: body => sheet(week: 1, body)
+#import "handout.typ": handout, result
+#show: handout.with(title: "Week 1")
 
-#heading(level: 1, numbering: none)[Question 1.]
-<question-1.>
-#block[
-Divide repeatedly by $2$, keeping track of the remainders and then reading remainders bottoms-up.
+= Question 1
 
-#block[
-\1. $ 17 / 2 & = 8 upright(" rem ") 1\
-8 / 2 & = 4 upright(" rem ") 0\
-4 / 2 & = 2 upright(" rem ") 0\
-2 / 2 & = 1 upright(" rem ") 0\
-1 / 2 & = 0 upright(" rem ") 1 $ It gives us, $#box(stroke: black, inset: 3pt, [$ 17_10 =\(10001\)_2 $])$
+Divide by $2$ repeatedly, keep each remainder, then read the remainders from
+bottom to top
 
+== 1
+
+$
+  17 / 2 &= 8 quad "rem" quad 1 \
+  8 / 2  &= 4 quad "rem" quad 0 \
+  4 / 2  &= 2 quad "rem" quad 0 \
+  2 / 2  &= 1 quad "rem" quad 0 \
+  1 / 2  &= 0 quad "rem" quad 1
+$
+
+#align(center)[#result[$17_10 = (10001)_2$]]
+
+== 2
+
+$
+  227 / 2 &= 113 quad "rem" quad 1 \
+  113 / 2 &= 56  quad "rem" quad 1 \
+  56 / 2  &= 28  quad "rem" quad 0 \
+  28 / 2  &= 14  quad "rem" quad 0 \
+  14 / 2  &= 7   quad "rem" quad 0 \
+  7 / 2   &= 3   quad "rem" quad 1 \
+  3 / 2   &= 1   quad "rem" quad 1 \
+  1 / 2   &= 0   quad "rem" quad 1
+$
+
+#align(center)[#result[$227_10 = (11100011)_2$]]
+
+#pagebreak(weak: true)
+
+== 3
+
+Start with the whole-number part:
+
+$
+  55 / 2 &= 27 quad "rem" quad 1 \
+  27 / 2 &= 13 quad "rem" quad 1 \
+  13 / 2 &= 6  quad "rem" quad 1 \
+  6 / 2  &= 3  quad "rem" quad 0 \
+  3 / 2  &= 1  quad "rem" quad 1 \
+  1 / 2  &= 0  quad "rem" quad 1
+$
+
+This gives $55_10 = (110111)_2$. For the fractional part,
+
+$
+  0.4 times 2 &= 0.8 &&arrow 0 \
+  0.8 times 2 &= 1.6 &&arrow 1 \
+  0.6 times 2 &= 1.2 &&arrow 1 \
+  0.2 times 2 &= 0.4 &&arrow 0
+$
+
+The same four digits now repeat, so $0.4_10 = (0.overline(0110))_2$ and
+
+#align(center)[#result[$55.4_10 = (110111.overline(0110))_2$]]
+
+= Question 2
+
+Each binary digit contributes its value times the matching power of $2$
+
+== 1
+
+$
+  (1010101)_2
+  &= 1(2^6) + 0(2^5) + 1(2^4) + 0(2^3) + 1(2^2) + 0(2^1) + 1(2^0) \
+  &= 64 + 16 + 4 + 1 \
+  &= 85
+$
+
+#align(center)[#result[$(1010101)_2 = 85_10$]]
+
+== 2
+
+The whole-number part is
+
+$ (11)_2 = 1(2^1) + 1(2^0) = 3 $
+
+The fractional part is a geometric series:
+
+$ (0.101010 dots.h)_2 = 1 / 2 + 1 / 2^3 + 1 / 2^5 + dots.h = 2 / 3 $
+
+Combining the two parts,
+
+$
+  (11.overline(10))_2
+  &= 3 + 2 / 3 \
+  &= 11 / 3 \
+  &= (3.overline(6))_10
+$
+
+#align(center)[#result[$(11.overline(10))_2 = 3.overline(6)_10$]]
+
+#pagebreak(weak: true)
+
+= Question 3
+
+== 1
+
+IEEE 754 single precision divides its $32$ bits into
+
+#align(center)[
+  #result[1 sign bit + 8 exponent bits + 23 fraction bits]
 ]
-#block[
-\2. $ 227 / 2 & = 113 upright(" rem ") 1\
-113 / 2 & = 56 upright(" rem ") 1\
-56 / 2 & = 28 upright(" rem ") 0\
-28 / 2 & = 14 upright(" rem ") 0\
-14 / 2 & = 7 upright(" rem ") 0\
-7 / 2 & = 3 upright(" rem ") 1\
-3 / 2 & = 1 upright(" rem ") 1\
-1 / 2 & = 0 upright(" rem ") 1 $ Therefore, $#box(stroke: black, inset: 3pt, [$ 227_10 =\(11100011\)_2 $])$
 
-]
-#block[
-\3. First, convert the whole number part: $ 55 / 2 & = 27 upright(" rem ") 1\
-27 / 2 & = 13 upright(" rem ") 1\
-13 / 2 & = 6 upright(" rem ") 1\
-6 / 2 & = 3 upright(" rem ") 0\
-3 / 2 & = 1 upright(" rem ") 1\
-1 / 2 & = 0 upright(" rem ") 1 $ Hence, $#box(stroke: black, inset: 3pt, [$ 55_10 =\(110111\)_2 $])$ For the fractional part: $ 0.4 times 2 & = 0.8 &  & arrow.r.double 0\
-0.8 times 2 & = 1.6 &  & arrow.r.double 1\
-0.6 times 2 & = 1.2 &  & arrow.r.double 1\
-0.2 times 2 & = 0.4 &  & arrow.r.double 0 $ which gives, $0.4_10 =\(0 . overline(0110)\)_2$ \ \ Therefore, $#box(stroke: black, inset: 3pt, [$ 55.4_10 =\(110111 . overline(0110)\)_2 $])$
+The sign bit sets the sign, the exponent sets the scale, and the fraction holds
+the significant digits. Normal values have an implied leading $1$, giving $24$
+bits of precision in total
 
-]
-]
-#heading(level: 1, numbering: none)[Question 2.]
-<question-2.>
-#block[
-Each digit is multiplied by its corresponding power of $2$.
+== 2
 
-#block[
-\1. $ \(1010101\)_2 & = 1\(2^6\)+ 0\(2^5\)+ 1\(2^4\)+ 0\(2^3\)+ 1\(2^2\)+ 0\(2^1\)+ 1\(2^0\)\
- & = 64 + 16 + 4 + 1\
- & = 85 $ Hence, $#box(stroke: black, inset: 3pt, [$ \(1010101\)_2 = 85_10 $])$
+Machine epsilon for single precision is
 
-]
-#block[
-\2. For whole number part, $ \(11\)_2 = 1\(2^1\)+ 1\(2^0\)= 3 $ For fractional part, $ \(0.101010 dots.h\)_2 = 1 / 2 + 1 / 2^3 + 1 / 2^5 + dots.h.c $ The sum of this GP is $2 / 3$ \ \ Therefore, $ \(11 . overline(10)\)_2 & = 3 + 2 / 3\
- & = 11 / 3\
- & =\(3 . overline(6)\)_10 $ Hence, $#box(stroke: black, inset: 3pt, [$ \(11 . overline(10)\)_2 = 3 . overline(6)_10 $])$
+$ epsilon_m approx 1.19 times 10^(-7) $
 
-]
-]
-#heading(level: 1, numbering: none)[Question 3.]
-<question-3.>
-#block[
-#block[
-\1. The 32 bits are divided as follows: $ #box(stroke: black, inset: 3pt, [$ 1 upright(" sign bit") thick + thick 8 upright(" exponent bits") thick + thick 23 upright(" mantissa bits") $]) $ The sign bit determines whether the number is positive or negative. The exponent controls the scale of the number, while the mantissa stores its significant digits. For normalised values, the leading $1$ is implied, giving effectively $24$ bits of precision.
+It is the smallest value for which $1 + epsilon_m > 1$ is represented as a
+different single-precision number. In practice, that is about seven significant
+decimal digits
 
-]
-#block[
-\2. Machine epsilon, $ epsilon_m approx 1.19 times 10^(- 7) $ is the smallest value such that $ 1 + epsilon_m > 1 $ can be represented as a different single-precision floating-point number. It means single precision provides roughly $7$ significant decimal digits. \ \ This matters because each calculation may introduce a small rounding error. During many stress-analysis iterations, these errors can accumulate or affect whether the solution appears to converge. The engineer should therefore avoid using a convergence tolerance smaller than the available floating-point precision.
+Rounding enters at every step of an iterative stress calculation. Over many
+iterations it can accumulate or make convergence tests misleading, so a
+tolerance below the available precision is not useful
 
-]
-#block[
-\3. The most likely explanation is that decimal values such as $0.3$ cannot be represented exactly in binary floating-point. The two formulas may therefore produce slightly different stored values due to rounding, even though both are displayed as $0.3000$. \ \
+== 3
 
-For example, $a = 0.30000000000000004\,#h(2em) b = 0.29999999999999999$
+Most decimal fractions, including $0.3$, have no exact binary floating-point
+representation. Two formulas can display the same rounded value while storing
+slightly different numbers, for example
 
-Since `a == b` compares the exact stored values, the condition evaluates as false. A tolerance should be used instead: $ \|a - b\|< epsilon $
+$ a = 0.30000000000000004, quad b = 0.29999999999999999 $
 
-]
-]
+The comparison `a == b` checks those stored values exactly and is therefore
+false. Compare within a suitable tolerance instead:
+
+$ abs(a - b) < epsilon $

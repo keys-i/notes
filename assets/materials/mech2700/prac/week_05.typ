@@ -1,27 +1,56 @@
-#import "template.typ": sheet
-#show: body => sheet(week: 5, body)
+#import "handout.typ": handout, result
+#show: handout.with(title: "Week 5")
 
-#heading(level: 1, numbering: none)[Question 1.]
-<question-1.>
-#block[
-The combustion reaction is $ upright(C H)_4 + alpha upright(O)_2 + 4 alpha upright(N)_2 arrow.r upright(C O)_2 + 2 upright(H)_2 upright(O) + beta upright(N O) + gamma upright(N)_2 . $
+= Question 1
 
-Equating the number of oxygen atoms on each side, $ 2 alpha = 2 + 2 + beta . $ Therefore, $ #box(stroke: black, inset: 3pt, [$ 2 alpha - beta = 4 $]) . $
+The combustion reaction is
 
-Equating the number of nitrogen atoms on each side, $ 2\(4 alpha\)= beta + 2 gamma . $ Therefore, $ #box(stroke: black, inset: 3pt, [$ 8 alpha - beta - 2 gamma = 0 $]) . $
+$
+  upright("CH")_4 + alpha upright("O")_2 + 4 alpha upright("N")_2
+  arrow.r
+  upright("CO")_2 + 2 upright("H")_2 upright("O")
+  + beta upright("NO") + gamma upright("N")_2
+$
 
-]
-#heading(level: 1, numbering: none)[Question 2.]
-<question-2.>
-#block[
-The three equations are $ 2 alpha - beta & = 4\,\
-8 alpha - beta - 2 gamma & = 0\,\
-2 beta - gamma & = 0 $
+Balancing oxygen atoms gives
 
-Let $ upright(bold(x)) = mat(delim: "[", alpha; beta; gamma) $
+$ 2 alpha = 2 + 2 + beta $
 
-The equations can be written as $ underbrace(mat(delim: "[", 2, - 1, 0; 8, - 1, - 2; 0, 2, - 1), upright(bold(A))) underbrace(mat(delim: "[", alpha; beta; gamma), upright(bold(x))) = underbrace(mat(delim: "[", 4; 0; 0), upright(bold(b))) $
+or
 
-Therefore, $ #box(stroke: black, inset: 3pt, [$ upright(bold(A)) = mat(delim: "[", 2, - 1, 0; 8, - 1, - 2; 0, 2, - 1)\,#h(2em) upright(bold(b)) = mat(delim: "[", 4; 0; 0) $]) $
+#align(center)[#result[$2 alpha - beta = 4$]]
 
+Balancing nitrogen atoms gives
+
+$ 2(4 alpha) = beta + 2 gamma $
+
+or
+
+#align(center)[#result[$8 alpha - beta - 2 gamma = 0$]]
+
+= Question 2
+
+The full system is
+
+$
+  2 alpha - beta &= 4 \
+  8 alpha - beta - 2 gamma &= 0 \
+  2 beta - gamma &= 0
+$
+
+With $bold(x) = mat(alpha; beta; gamma)$, the matrix equation is
+
+$
+  underbrace(mat(2, -1, 0; 8, -1, -2; 0, 2, -1), bold(A))
+  underbrace(mat(alpha; beta; gamma), bold(x))
+  = underbrace(mat(4; 0; 0), bold(b))
+$
+
+In matrix form,
+
+#align(center)[
+  #result[$
+    bold(A) = mat(2, -1, 0; 8, -1, -2; 0, 2, -1), quad
+    bold(b) = mat(4; 0; 0)
+  $]
 ]
