@@ -34,8 +34,14 @@ jobs:
           enable-cache: true
           python-version: "3.13"
           version: "0.11.32"
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          cache: npm
+          node-version: 24
+      - run: npm ci --ignore-scripts --no-audit
       - name: Test and lint
         run: |
+          npm run --silent build:web
           uv run --locked coverage erase
           uv run --locked coverage run site/web/tests/hooks.test.py
           uv run --locked coverage report
