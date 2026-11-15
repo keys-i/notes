@@ -122,6 +122,7 @@ async function loadLibrary(catalog: unknown) {
           json: async () => ({
             items: [
               { label: "Question 1. (3 Marks)", anchor: "h.q1", level: 1 },
+              { label: "1.1) [2 marks]", anchor: "h.q1a", level: 2 },
               { label: "Question 2. (6 Marks)", anchor: "h.q2", level: 1 },
             ],
           }),
@@ -201,9 +202,10 @@ test("paper library loads, searches, and reads without leaving the page", async 
   assert.equal(outline.hidden, false);
   assert.equal(preview.dataset.outline, "true");
   const questionLinks = outlineItems.querySelectorAll("button");
-  assert.equal(questionLinks.length, 2);
+  assert.equal(questionLinks.length, 3);
+  assert.equal(outlineItems.children[1].dataset.level, "2");
   questionLinks[1].click();
-  assert.equal(frame.src, "https://docs.google.com/document/d/abc123/mobilebasic?resourcekey=key#h.q2");
+  assert.equal(frame.src, "https://docs.google.com/document/d/abc123/mobilebasic?resourcekey=key#h.q1a");
   assert.equal(questionLinks[1].attributes["aria-current"], "true");
   edit.click();
   assert.equal(frame.src, previewButton.dataset.paperPreview);

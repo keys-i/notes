@@ -75,6 +75,7 @@ pub(super) async fn respond(
 
 fn parse(source: &str) -> Outline {
     let mut cursor = 0;
+    let mut question_level = None;
     let mut seen = HashSet::new();
     let mut items = Vec::new();
     while items.len() < MAX_ITEMS {
@@ -110,12 +111,19 @@ fn parse(source: &str) -> Outline {
             continue;
         }
         let label = plain_text(&source[content_start..content_end]);
-        if question_label(&label) {
+        let is_question = question_label(&label);
+        let belongs_to_question = question_level.is_some_and(|parent| level > parent);
+        if is_question || belongs_to_question {
+            if is_question && !belongs_to_question {
+                question_level = Some(level);
+            }
             items.push(Heading {
                 label: label.chars().take(160).collect(),
                 anchor: anchor.into(),
                 level,
             });
+        } else {
+            question_level = None;
         }
     }
     Outline { items }
@@ -175,15 +183,19 @@ mod tests {
     fn extracts_only_real_question_headings_in_source_order() {
         let source = r#"
             <h1 id="h.intro"><span>Questions and corrections</span></h1>
+            <h2 id="h.intro-help">Adding answers</h2>
             <h1 id="h.q1"><span>Question 1. (3 Marks)</span></h1>
-            <h2 id="h.q1a">Question 1a &amp; working</h2>
+            <h2 id="h.q1a">1.1) [2 marks]</h2>
+            <h3 id="h.q1ai">(a) First part</h3>
             <h1 id="unsafe-anchor!">Question 2</h1>
             <h1 id="h.q3">Q3</h1>
         "#;
         let value = serde_json::to_value(parse(source)).unwrap();
-        assert_eq!(value["items"].as_array().unwrap().len(), 3);
+        assert_eq!(value["items"].as_array().unwrap().len(), 4);
         assert_eq!(value["items"][0]["label"], "Question 1. (3 Marks)");
-        assert_eq!(value["items"][1]["label"], "Question 1a & working");
-        assert_eq!(value["items"][2]["anchor"], "h.q3");
+        assert_eq!(value["items"][1]["label"], "1.1) [2 marks]");
+        assert_eq!(value["items"][1]["level"], 2);
+        assert_eq!(value["items"][2]["label"], "(a) First part");
+        assert_eq!(value["items"][3]["anchor"], "h.q3");
     }
 }

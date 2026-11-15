@@ -80,11 +80,15 @@
       })
       .then(function (result) {
         if (request !== outlineRequest || !result || !Array.isArray(result.items)) return;
-        var entries = result.items.filter(function (item) {
+        var headings = result.items.filter(function (item) {
           return item && typeof item.label === "string" &&
-            typeof item.anchor === "string" && /^h\.[\w.-]+$/.test(item.anchor);
-        }).map(function (item) {
+            typeof item.anchor === "string" && /^h\.[\w.-]+$/.test(item.anchor) &&
+            Number.isInteger(item.level) && item.level >= 1 && item.level <= 3;
+        });
+        var baseLevel = Math.min(...headings.map(function (item) { return item.level; }));
+        var entries = headings.map(function (item) {
           var entry = document.createElement("li");
+          entry.dataset.level = String(item.level - baseLevel + 1);
           var button = document.createElement("button");
           button.type = "button";
           button.textContent = item.label;
