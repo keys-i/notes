@@ -910,6 +910,19 @@ body {
   height: 1.2rem;
 }
 
+.papers__fullscreen-exit,
+.papers__preview-actions
+  > button[aria-pressed="true"]
+  .papers__fullscreen-enter {
+  display: none;
+}
+
+.papers__preview-actions
+  > button[aria-pressed="true"]
+  .papers__fullscreen-exit {
+  display: block;
+}
+
 .papers__preview-actions > button:is(:hover, :focus-visible),
 .papers__edit:is(:hover, :focus-visible) {
   border-color: #ffff31;
@@ -983,60 +996,83 @@ body {
   display: none;
 }
 
-.papers__preview[data-outline="true"] .papers__viewport {
-  width: calc(100% - 16rem);
-  margin-left: 16rem;
-}
-
 .papers__outline {
+  --outline-root: rgb(218 220 223 / 0.98);
+  --outline-root-edge: rgb(181 184 189 / 0.98);
+  --outline-ink: #17181a;
+  --outline-pill-1: rgb(238 239 241 / 0.98);
+  --outline-pill-2: rgb(218 220 223 / 0.98);
+  --outline-pill-3: rgb(198 201 205 / 0.98);
+  --outline-edge-1: rgb(183 186 191 / 0.98);
+  --outline-edge-2: rgb(164 168 173 / 0.98);
+  --outline-edge-3: rgb(145 150 156 / 0.98);
+
   position: absolute;
-  z-index: 2;
+  z-index: 4;
   top: 1rem;
-  left: 1rem;
-  display: grid;
+  left: 0;
+  display: block;
   box-sizing: border-box;
-  grid-template-rows: auto minmax(0, 1fr);
-  overflow: hidden;
-  width: min(15rem, calc(100% - 2rem));
-  max-height: min(calc(100% - 2rem), 22rem);
-  padding: 0.55rem;
-  border: 1px solid rgb(255 255 255 / 0.18);
-  border-radius: 1.35rem;
-  corner-shape: squircle;
-  background: rgb(40 40 42 / 0.92);
-  box-shadow:
-    inset 0 1px rgb(255 255 255 / 0.12),
-    0 1rem 2.6rem rgb(0 0 0 / 0.42);
+  width: min(17rem, calc(100% - 1rem));
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--outline-ink);
 }
 
 .papers__outline > strong {
-  display: block;
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
   margin: 0;
-  padding: 0.1rem 0.25rem 0.55rem;
-  border-bottom: 1px solid rgb(255 255 255 / 0.14);
-  color: #f1f2f4;
-  font-size: 0.72rem;
-  font-weight: 720;
-  letter-spacing: -0.015em;
-  text-align: center;
+  padding: 0.45rem 1rem 0.45rem 1.25rem;
+  border: 1px solid rgb(0 0 0 / 0.16);
+  border-left: 0;
+  border-radius: 0 999px 999px 0;
+  background:
+    linear-gradient(90deg, var(--outline-root-edge) 0 0.38rem, transparent 0.38rem),
+    var(--outline-root);
+  box-shadow:
+    inset 0 1px rgb(255 255 255 / 0.75),
+    0 0.45rem 1.25rem rgb(0 0 0 / 0.28);
+  font-size: 0.75rem;
+  font-weight: 760;
+  letter-spacing: -0.01em;
 }
 
 .papers__outline ol {
-  position: relative;
+  position: absolute;
+  top: calc(100% + 0.45rem);
+  left: 0.55rem;
   display: grid;
   overflow-y: auto;
-  min-height: 0;
-  gap: 0.35rem;
+  visibility: hidden;
+  width: calc(100% - 0.55rem);
+  max-height: min(22rem, calc(70vh - 5rem));
+  gap: 0.4rem;
   margin: 0;
-  padding: 0.55rem 0.25rem 0.1rem 1rem;
+  padding: 0.1rem 0.7rem 0.75rem 0.45rem;
+  opacity: 0;
+  background: transparent;
   list-style: none;
   overscroll-behavior: contain;
+  pointer-events: none;
   scrollbar-color: transparent transparent;
   scrollbar-width: thin;
+  transform: translateX(-0.35rem);
+  transition:
+    opacity 150ms ease,
+    transform 180ms cubic-bezier(0.16, 1, 0.3, 1),
+    visibility 150ms;
 }
 
 .papers__outline:is(:hover, :focus-within) ol {
-  scrollbar-color: rgb(255 255 255 / 0.38) transparent;
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+  scrollbar-color: rgb(88 91 96 / 0.7) transparent;
+  transform: translateX(0);
 }
 
 .papers__outline ol::-webkit-scrollbar {
@@ -1049,31 +1085,27 @@ body {
 }
 
 .papers__outline:is(:hover, :focus-within) ol::-webkit-scrollbar-thumb {
-  background: rgb(255 255 255 / 0.38);
-}
-
-.papers__outline ol::before {
-  position: absolute;
-  top: 1.6rem;
-  bottom: 1.15rem;
-  left: 0.45rem;
-  width: 1px;
-  background: rgb(255 255 255 / 0.25);
-  content: "";
+  background: rgb(88 91 96 / 0.7);
 }
 
 .papers__outline li {
+  --outline-pill: var(--outline-pill-1);
+  --outline-edge: var(--outline-edge-1);
+
   position: relative;
+  width: 100%;
 }
 
 .papers__outline li::before {
   position: absolute;
   z-index: 0;
-  top: 50%;
-  left: -0.55rem;
-  width: 0.55rem;
-  height: 1px;
-  background: rgb(255 255 255 / 0.25);
+  top: 0.38rem;
+  bottom: 0.38rem;
+  left: -0.4rem;
+  width: 0.9rem;
+  border-radius: 999px 0 0 999px;
+  background: var(--outline-edge);
+  box-shadow: 0 0.25rem 0.65rem rgb(0 0 0 / 0.2);
   content: "";
 }
 
@@ -1081,17 +1113,17 @@ body {
   position: relative;
   z-index: 1;
   width: 100%;
-  min-height: 2.2rem;
-  padding: 0.42rem 0.65rem;
-  border: 1px solid rgb(255 255 255 / 0.1);
+  min-height: 2.75rem;
+  padding: 0.5rem 0.8rem;
+  border: 1px solid rgb(0 0 0 / 0.14);
   border-radius: 999px;
-  color: #f4f5f6;
-  background: rgb(69 70 67 / 0.88);
+  color: var(--outline-ink);
+  background: var(--outline-pill);
   box-shadow:
-    inset 0 1px rgb(255 255 255 / 0.1),
-    0 0.18rem 0.55rem rgb(0 0 0 / 0.24);
-  font-size: 0.68rem;
-  font-weight: 620;
+    inset 0 1px rgb(255 255 255 / 0.72),
+    0 0.35rem 0.9rem rgb(0 0 0 / 0.24);
+  font-size: 0.72rem;
+  font-weight: 730;
   line-height: 1.3;
   text-align: left;
   transition:
@@ -1100,28 +1132,42 @@ body {
     transform 140ms ease;
 }
 
+.papers__outline li[data-level="2"] {
+  --outline-pill: var(--outline-pill-2);
+  --outline-edge: var(--outline-edge-2);
+
+  width: calc(100% - 1.25rem);
+  margin-left: 0.65rem;
+}
+
 .papers__outline li[data-level="2"] button {
-  padding-left: 1.05rem;
-  color: #d7d8dc;
-  font-weight: 520;
+  font-weight: 620;
+}
+
+.papers__outline li[data-level="3"] {
+  --outline-pill: var(--outline-pill-3);
+  --outline-edge: var(--outline-edge-3);
+
+  width: calc(100% - 2.5rem);
+  margin-left: 1.3rem;
 }
 
 .papers__outline li[data-level="3"] button {
-  padding-left: 1.55rem;
-  color: #c4c5ca;
-  font-weight: 500;
+  font-weight: 540;
 }
 
 .papers
   .papers__outline
   button:is(:hover, :focus-visible, [aria-current="true"]) {
-  color: #fff;
-  background: rgb(88 89 85 / 0.96);
+  color: var(--outline-ink);
+  filter: brightness(1.08);
 }
 
 .papers .papers__outline button[aria-current="true"] {
-  border-color: #f4f5f6;
-  box-shadow: 0 0 0 2px #f4f5f6;
+  border-color: currentcolor;
+  box-shadow:
+    0 0 0 2px var(--outline-root),
+    0 0.45rem 1rem rgb(0 0 0 / 0.32);
 }
 
 .papers .papers__outline button:active {
@@ -1133,7 +1179,45 @@ body {
   outline-offset: 2px;
 }
 
+.papers__outline:focus-visible {
+  outline: none;
+}
+
+.papers__outline:focus-visible > strong {
+  outline: 3px solid #ffff31;
+  outline-offset: 2px;
+}
+
+[data-md-color-scheme="slate"] .papers__outline,
+.papers__preview[data-dark="true"] .papers__outline {
+  --outline-root: rgb(62 64 69 / 0.98);
+  --outline-root-edge: rgb(109 112 119 / 0.98);
+  --outline-ink: #fafafa;
+  --outline-pill-1: rgb(74 77 83 / 0.98);
+  --outline-pill-2: rgb(57 60 65 / 0.98);
+  --outline-pill-3: rgb(41 43 48 / 0.98);
+  --outline-edge-1: rgb(128 132 140 / 0.98);
+  --outline-edge-2: rgb(100 104 111 / 0.98);
+  --outline-edge-3: rgb(76 79 85 / 0.98);
+}
+
+[data-md-color-scheme="slate"] .papers__outline > strong,
+[data-md-color-scheme="slate"] .papers .papers__outline button,
+.papers__preview[data-dark="true"] .papers__outline > strong,
+.papers__preview[data-dark="true"] .papers__outline button {
+  border-color: rgb(255 255 255 / 0.2);
+  box-shadow:
+    inset 0 1px rgb(255 255 255 / 0.18),
+    0 0.5rem 1.3rem rgb(0 0 0 / 0.48);
+}
+
 .md-typeset details.papers__display {
+  --display-shell: rgb(239 240 242 / 0.98);
+  --display-control: #fff;
+  --display-control-strong: #d7d9dd;
+  --display-border: rgb(20 21 24 / 0.2);
+  --display-ink: #17181a;
+
   position: absolute;
   z-index: 3;
   bottom: 1.35rem;
@@ -1142,14 +1226,16 @@ body {
   padding: 0;
   border: 0;
   background: transparent;
-  color: var(--md-default-fg-color);
+  color: var(--display-ink);
 }
 
 .md-typeset details.papers__display > summary {
+  position: relative;
   display: grid;
   box-sizing: border-box;
-  width: 2.4rem;
-  height: 2.4rem;
+  z-index: 1;
+  width: 2.75rem;
+  height: 2.75rem;
   place-items: center;
   padding: 0;
   border: 0;
@@ -1157,7 +1243,7 @@ body {
   corner-shape: round;
   background: transparent;
   box-shadow: none;
-  color: #f4f5f6;
+  color: var(--display-ink);
   list-style: none;
 }
 
@@ -1171,14 +1257,16 @@ body {
 
 .papers__display-glyph {
   display: grid;
-  width: 1.9rem;
-  height: 1.9rem;
-  border: 1px solid rgb(255 255 255 / 0.14);
+  width: 2.3rem;
+  height: 2.3rem;
+  border: 1px solid var(--display-border);
   border-radius: 50%;
   place-items: center;
-  background: rgb(60 61 58 / 0.96);
-  box-shadow: 0 0.25rem 0.75rem rgb(0 0 0 / 0.28);
-  font-size: 0.72rem;
+  background: var(--display-control-strong);
+  box-shadow:
+    inset 0 1px rgb(255 255 255 / 0.8),
+    0 0.4rem 1rem rgb(0 0 0 / 0.3);
+  font-size: 0.75rem;
   font-weight: 750;
   line-height: 1;
   transition:
@@ -1187,44 +1275,33 @@ body {
 }
 
 .papers__display > summary:is(:hover, :focus-visible) .papers__display-glyph {
-  background: rgb(42 43 41 / 0.98);
+  filter: brightness(1.08);
   transform: translateY(-1px);
 }
 
 .papers__display-options {
   position: absolute;
-  bottom: calc(100% + 0.55rem);
-  left: 0;
+  z-index: 0;
+  bottom: -0.45rem;
+  left: -0.45rem;
   display: grid;
   box-sizing: border-box;
-  width: min(15.5rem, calc(100vw - 2rem));
-  gap: 0.55rem;
-  padding: 0.75rem;
-  border: 1px solid rgb(255 255 255 / 0.18);
-  border-radius: 1.35rem;
+  width: min(14rem, calc(100vw - 2rem));
+  gap: 0.45rem;
+  padding: 0.7rem 0.7rem 3.75rem;
+  border: 1px solid var(--display-border);
+  border-radius: 1.2rem;
   corner-shape: squircle;
-  background: rgb(40 40 42 / 0.92);
-  box-shadow: 0 1rem 2.6rem rgb(0 0 0 / 0.46);
-}
-
-.papers__display-options::after {
-  position: absolute;
-  bottom: -0.34rem;
-  left: 1.05rem;
-  width: 0.68rem;
-  height: 0.68rem;
-  border-right: 1px solid rgb(255 255 255 / 0.14);
-  border-bottom: 1px solid rgb(255 255 255 / 0.14);
-  background: rgb(40 40 42 / 0.92);
-  content: "";
-  pointer-events: none;
-  transform: rotate(45deg);
+  background: var(--display-shell);
+  box-shadow:
+    inset 0 1px rgb(255 255 255 / 0.75),
+    0 1.2rem 3rem rgb(0 0 0 / 0.4);
 }
 
 .papers__display-title {
-  padding: 0.05rem 0 0.6rem;
-  color: #f1f2f4;
-  border-bottom: 1px solid rgb(255 255 255 / 0.14);
+  padding: 0 0 0.45rem;
+  color: var(--display-ink);
+  border-bottom: 1px solid var(--display-border);
   font-size: 0.72rem;
   font-weight: 720;
   letter-spacing: -0.015em;
@@ -1233,19 +1310,19 @@ body {
 
 .papers__display-controls {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 3.25rem;
-  gap: 0.55rem;
+  grid-template-columns: minmax(0, 1fr) 2.75rem;
+  gap: 0.45rem;
 }
 
 .papers__display-size {
   display: grid;
   grid-template-columns: 1fr 1fr;
   overflow: hidden;
-  min-height: 3.25rem;
-  border: 1px solid rgb(255 255 255 / 0.08);
+  min-height: 2.75rem;
+  border: 1px solid var(--display-border);
   border-radius: 1.4rem;
   corner-shape: round;
-  background: #3b3c41;
+  background: var(--display-control-strong);
 }
 
 .papers__display-options .papers__display-size button {
@@ -1256,7 +1333,7 @@ body {
 }
 
 .papers__display-options .papers__display-size button + button {
-  border-left: 1px solid rgb(255 255 255 / 0.24);
+  border-left: 1px solid var(--display-border);
 }
 
 .papers__display-size button:first-child span {
@@ -1280,14 +1357,14 @@ body {
 .papers__display-options button {
   display: grid;
   min-width: 0;
-  min-height: 3.25rem;
+  min-height: 2.75rem;
   place-items: center;
   padding: 0.35rem;
-  border: 1px solid rgb(255 255 255 / 0.08);
+  border: 1px solid var(--display-border);
   border-radius: 0.75rem;
   corner-shape: squircle;
-  background: #34353a;
-  color: #fff;
+  background: var(--display-control);
+  color: var(--display-ink);
   font-size: 0.68rem;
   font-weight: 650;
   line-height: 1.1;
@@ -1310,17 +1387,17 @@ body {
 }
 .papers__display-controls > button {
   box-sizing: border-box;
-  width: 3.25rem;
-  height: 3.25rem;
+  width: 2.75rem;
+  height: 2.75rem;
   padding: 0;
   border-radius: 50%;
   corner-shape: round;
-  background: #575860;
+  background: var(--display-control-strong);
 }
 .papers__display-themes button {
   grid-template-columns: 1fr;
   grid-template-rows: auto auto;
-  min-height: 3.65rem;
+  min-height: 3.2rem;
   gap: 0.1rem;
   justify-items: center;
   padding: 0.4rem 0.15rem;
@@ -1358,12 +1435,30 @@ body {
   color: #f5f3dd;
 }
 .papers__display-options button[aria-pressed="true"] {
-  border-color: #f4f5f6;
-  box-shadow: 0 0 0 2px #f4f5f6;
+  border-color: currentcolor;
+  box-shadow: 0 0 0 2px var(--display-shell), 0 0 0 3px currentcolor;
 }
 .papers__display :is(summary, button):focus-visible {
   outline: 3px solid #ffff31;
   outline-offset: 2px;
+}
+
+[data-md-color-scheme="slate"] details.papers__display,
+.papers__preview[data-dark="true"] details.papers__display {
+  --display-shell: rgb(38 40 45 / 0.98);
+  --display-control: #33353b;
+  --display-control-strong: #50535b;
+  --display-border: rgb(255 255 255 / 0.22);
+  --display-ink: #fafafa;
+}
+
+[data-md-color-scheme="slate"] .papers__display-options,
+[data-md-color-scheme="slate"] .papers__display-glyph,
+.papers__preview[data-dark="true"] .papers__display-options,
+.papers__preview[data-dark="true"] .papers__display-glyph {
+  box-shadow:
+    inset 0 1px rgb(255 255 255 / 0.16),
+    0 1.2rem 3rem rgb(0 0 0 / 0.62);
 }
 
 .papers__preview iframe {
@@ -1501,21 +1596,11 @@ body {
 
   .papers__display-options {
     left: -1.25rem;
-    width: min(15.5rem, calc(100vw - 4.5rem));
+    width: min(14rem, calc(100vw - 4.5rem));
   }
 
   .papers__outline {
-    position: relative;
-    top: auto;
-    left: auto;
-    width: 100%;
-    max-height: min(13rem, 45vh);
-    margin-bottom: 0.55rem;
-  }
-
-  .papers__preview[data-outline="true"] .papers__viewport {
-    width: 100%;
-    margin-left: 0;
+    width: min(15rem, calc(100% - 0.75rem));
   }
 }
 
@@ -2084,6 +2169,10 @@ body {
   .md-footer__link,
   .md-header__button,
   .md-header__topic,
+  .papers__outline ol,
+  .papers__outline button,
+  .papers__display-glyph,
+  .papers__display-options button,
   .pdf-reader__controls :is(button, a) {
     transition: none;
   }

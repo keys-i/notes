@@ -77,6 +77,15 @@ pub(crate) fn method_error(
     Ok(response)
 }
 
+pub(crate) fn allow_origin(mut response: Response, origin: Option<&str>) -> Result<Response> {
+    if let Some(origin) = origin {
+        let mut response = response.cloned()?;
+        set_cors(response.headers_mut(), origin)?;
+        return Ok(response);
+    }
+    Ok(response)
+}
+
 fn secure(response: Response, origin: Option<&str>, cache_control: &str) -> Result<Response> {
     secure_with_policy(
         response,
@@ -105,11 +114,15 @@ fn secure_with_policy(
     headers.set("X-Content-Type-Options", "nosniff")?;
     headers.set("X-Frame-Options", "DENY")?;
     if let Some(origin) = origin {
-        headers.set("Access-Control-Allow-Origin", origin)?;
-        headers.set("Access-Control-Allow-Headers", "Content-Type")?;
-        headers.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")?;
-        headers.set("Access-Control-Max-Age", "86400")?;
-        headers.set("Vary", "Origin")?;
+        set_cors(headers, origin)?;
     }
     Ok(response)
+}
+
+fn set_cors(headers: &mut Headers, origin: &str) -> Result<()> {
+    headers.set("Access-Control-Allow-Origin", origin)?;
+    headers.set("Access-Control-Allow-Headers", "Content-Type")?;
+    headers.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")?;
+    headers.set("Access-Control-Max-Age", "86400")?;
+    headers.set("Vary", "Origin")
 }

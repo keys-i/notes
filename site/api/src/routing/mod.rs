@@ -5,7 +5,7 @@ mod health;
 pub(crate) mod response;
 pub(crate) mod telemetry;
 
-use response::{json_error, preflight};
+use response::{allow_origin, json_error, preflight};
 use telemetry::request_log_line;
 use worker::{Context, Date, Env, Method, Request, Response, Result, event};
 
@@ -86,12 +86,13 @@ async fn dispatch(request: Request, env: Env, context: Context, started: u64) ->
         };
     }
     if let Some(route) = paper_route(&path) {
-        return match route {
-            PaperRoute::Catalog(code) => crate::service::papers::respond(&request, code),
+        let response = match route {
+            PaperRoute::Catalog(code) => crate::service::papers::respond(&request, code)?,
             PaperRoute::Outline { code, id } => {
-                crate::service::papers::outline(&request, code, id, &context).await
+                crate::service::papers::outline(&request, code, id, &context).await?
             }
         };
+        return allow_origin(response, origin.as_deref());
     }
     if path == "/api/manuals/freebsd" {
         return crate::service::manuals::respond(&request, &context).await;

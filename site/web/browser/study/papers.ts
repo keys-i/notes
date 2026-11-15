@@ -4,18 +4,28 @@
 
   var search = library.querySelector<HTMLInputElement>("#papers-search")!;
   var groupsRoot = library.querySelector<HTMLElement>("#papers-groups")!;
-  var itemTemplate = library.querySelector<HTMLTemplateElement>("#papers-item-template")!;
+  var itemTemplate = library.querySelector<HTMLTemplateElement>(
+    "#papers-item-template",
+  )!;
   var status = library.querySelector<HTMLElement>("#papers-status")!;
   var items: HTMLElement[] = [];
   var empty = library.querySelector<HTMLElement>("#papers-empty")!;
   var preview = library.querySelector<HTMLElement>("#papers-preview")!;
-  var frame = library.querySelector<HTMLIFrameElement>("#papers-preview-frame")!;
+  var frame = library.querySelector<HTMLIFrameElement>(
+    "#papers-preview-frame",
+  )!;
   var outline = library.querySelector<HTMLElement>("#papers-outline")!;
-  var outlineItems = library.querySelector<HTMLOListElement>("#papers-outline-items")!;
+  var outlineItems = library.querySelector<HTMLOListElement>(
+    "#papers-outline-items",
+  )!;
   var title = library.querySelector<HTMLElement>("#papers-preview-title")!;
   var mode = library.querySelector<HTMLElement>("#papers-preview-mode")!;
-  var fallback = library.querySelector<HTMLAnchorElement>("#papers-preview-fallback")!;
-  var fullscreen = library.querySelector<HTMLButtonElement>("#papers-preview-fullscreen")!;
+  var fallback = library.querySelector<HTMLAnchorElement>(
+    "#papers-preview-fallback",
+  )!;
+  var fullscreen = library.querySelector<HTMLButtonElement>(
+    "#papers-preview-fullscreen",
+  )!;
   var edit = library.querySelector<HTMLButtonElement>("#papers-preview-edit")!;
   var display = library.querySelector<HTMLDetailsElement>("#papers-display")!;
   var dark = library.querySelector<HTMLButtonElement>("#papers-dark")!;
@@ -23,25 +33,59 @@
   var readUrl = "";
   var outlineRequest = 0;
   var zoom = 1;
+  var apiOrigin = ["127.0.0.1", "localhost"].includes(window.location.hostname)
+    ? "https://uni.keysi.dev"
+    : "";
+
+  function apiUrl(path) {
+    return apiOrigin + path;
+  }
 
   function searchTerms(value) {
-    var words = value
-      .normalize("NFKD")
-      .toLocaleLowerCase()
-      .match(/[a-z0-9]+/g) || [];
+    var words =
+      value
+        .normalize("NFKD")
+        .toLocaleLowerCase()
+        .match(/[a-z0-9]+/g) || [];
     var years = items
       .map(function (item) {
         return Number(item.dataset.paperYear);
       })
       .filter(Number.isFinite);
     var stop = new Set([
-      "a", "all", "an", "any", "exam", "exams", "find", "for", "from",
-      "get", "give", "in", "latest", "me", "most", "newest", "of", "paper",
-      "papers", "please", "recent", "show", "the", "with", "year", "years",
+      "a",
+      "all",
+      "an",
+      "any",
+      "exam",
+      "exams",
+      "find",
+      "for",
+      "from",
+      "get",
+      "give",
+      "in",
+      "latest",
+      "me",
+      "most",
+      "newest",
+      "of",
+      "paper",
+      "papers",
+      "please",
+      "recent",
+      "show",
+      "the",
+      "with",
+      "year",
+      "years",
     ]);
-    if (words.some(function (word) {
-      return ["latest", "newest", "recent"].includes(word);
-    }) && years.length) {
+    if (
+      words.some(function (word) {
+        return ["latest", "newest", "recent"].includes(word);
+      }) &&
+      years.length
+    ) {
       words.push(String(Math.max(...years)));
     }
     return words.filter(function (word) {
@@ -73,19 +117,35 @@
   function loadOutline(url) {
     if (!url) return;
     var request = ++outlineRequest;
-    window.fetch(url, { headers: { Accept: "application/json" } })
+    window
+      .fetch(apiUrl(url), { headers: { Accept: "application/json" } })
       .then(function (response) {
         if (!response.ok) throw new Error(String(response.status));
         return response.json();
       })
       .then(function (result) {
-        if (request !== outlineRequest || !result || !Array.isArray(result.items)) return;
+        if (
+          request !== outlineRequest ||
+          !result ||
+          !Array.isArray(result.items)
+        )
+          return;
         var headings = result.items.filter(function (item) {
-          return item && typeof item.label === "string" &&
-            typeof item.anchor === "string" && /^h\.[\w.-]+$/.test(item.anchor) &&
-            Number.isInteger(item.level) && item.level >= 1 && item.level <= 3;
+          return (
+            item &&
+            typeof item.label === "string" &&
+            typeof item.anchor === "string" &&
+            /^h\.[\w.-]+$/.test(item.anchor) &&
+            Number.isInteger(item.level) &&
+            item.level >= 1 &&
+            item.level <= 3
+          );
         });
-        var baseLevel = Math.min(...headings.map(function (item) { return item.level; }));
+        var baseLevel = Math.min(
+          ...headings.map(function (item) {
+            return item.level;
+          }),
+        );
         var entries = headings.map(function (item) {
           var entry = document.createElement("li");
           entry.dataset.level = String(item.level - baseLevel + 1);
@@ -118,13 +178,24 @@
     button.addEventListener("click", function () {
       var url = new URL(button.dataset.paperPreview!);
       var id = url.pathname.match(/^\/(?:file|document)\/d\/([\w-]+)\//)?.[1];
-      if (!id || !["drive.google.com", "docs.google.com"].includes(url.hostname)) return;
-      var previewUrl = url.hostname === "drive.google.com"
-        ? new URL("https://drive.google.com/file/d/" + id + "/preview")
-        // shortcut: Google controls mobilebasic availability, use an owned reader if it disappears
-        : new URL(url.pathname.replace(/\/(?:edit|view)\/?$/, "/mobilebasic"), url.origin);
+      if (
+        !id ||
+        !["drive.google.com", "docs.google.com"].includes(url.hostname)
+      )
+        return;
+      var previewUrl =
+        url.hostname === "drive.google.com"
+          ? new URL("https://drive.google.com/file/d/" + id + "/preview")
+          : // shortcut: Google controls mobilebasic availability, use an owned reader if it disappears
+            new URL(
+              url.pathname.replace(/\/(?:edit|view)\/?$/, "/mobilebasic"),
+              url.origin,
+            );
       if (url.searchParams.has("resourcekey")) {
-        previewUrl.searchParams.set("resourcekey", url.searchParams.get("resourcekey")!);
+        previewUrl.searchParams.set(
+          "resourcekey",
+          url.searchParams.get("resourcekey")!,
+        );
       }
       sourceUrl = url.href;
       readUrl = previewUrl.href;
@@ -146,7 +217,8 @@
   }
 
   function renderCatalog(catalog) {
-    if (!catalog || !Array.isArray(catalog.items)) throw new Error("Invalid paper catalogue");
+    if (!catalog || !Array.isArray(catalog.items))
+      throw new Error("Invalid paper catalogue");
     catalog.items.forEach(function (paper) {
       if (
         !paper ||
@@ -156,63 +228,98 @@
         typeof paper.url !== "string" ||
         (paper.outline !== undefined && typeof paper.outline !== "string") ||
         (paper.solutions !== undefined && typeof paper.solutions !== "boolean")
-      ) throw new Error("Invalid paper item");
+      )
+        throw new Error("Invalid paper item");
     });
     var rendered = catalog.items
       .slice()
-      .sort(function (left, right) { return right.year - left.year; })
+      .sort(function (left, right) {
+        return right.year - left.year;
+      })
       .map(function (paper) {
-        var article = itemTemplate.content.firstElementChild!.cloneNode(true) as HTMLElement;
+        var article = itemTemplate.content.firstElementChild!.cloneNode(
+          true,
+        ) as HTMLElement;
         var button = article.querySelector<HTMLButtonElement>("button")!;
         var hasSolutions = paper.solutions === undefined || paper.solutions;
         article.dataset.paperYear = String(paper.year);
         article.dataset.paperSearch = [
-          paper.title, paper.kind, paper.year,
+          paper.title,
+          paper.kind,
+          paper.year,
           hasSolutions ? "solution solutions answer answers worked" : "",
           "paper exam",
-        ].join(" ").toLocaleLowerCase();
+        ]
+          .join(" ")
+          .toLocaleLowerCase();
         button.dataset.paperPreview = paper.url;
         button.dataset.paperTitle = paper.title;
         if (paper.outline) button.dataset.paperOutline = paper.outline;
-        button.setAttribute("aria-label", "Read " + paper.year + " " + paper.title + " here");
-        button.querySelector<HTMLElement>(".papers__year")!.textContent = String(paper.year);
-        button.querySelector<HTMLElement>(".papers__title")!.textContent = paper.title;
+        button.setAttribute(
+          "aria-label",
+          "Read " + paper.year + " " + paper.title + " here",
+        );
+        button.querySelector<HTMLElement>(".papers__year")!.textContent =
+          String(paper.year);
+        button.querySelector<HTMLElement>(".papers__title")!.textContent =
+          paper.title;
         bindPreview(button);
         return article;
       });
     groupsRoot.replaceChildren(...rendered);
-    items = Array.from(groupsRoot.querySelectorAll<HTMLElement>(".papers__item"));
+    items = Array.from(
+      groupsRoot.querySelectorAll<HTMLElement>(".papers__item"),
+    );
     search.disabled = false;
     status.hidden = true;
     filter();
   }
 
-  window.fetch("/api/papers/" + encodeURIComponent(library.dataset.course || "") + "?include=all", {
-    headers: { Accept: "application/json" },
-  }).then(function (response) {
-    if (!response.ok) throw new Error(String(response.status));
-    return response.json();
-  }).then(renderCatalog).catch(function () {
-    status.textContent = "Papers are unavailable right now. Refresh to try again.";
-  });
+  window
+    .fetch(
+      apiUrl(
+        "/api/papers/" +
+          encodeURIComponent(library.dataset.course || "") +
+          "?include=all",
+      ),
+      {
+        headers: { Accept: "application/json" },
+      },
+    )
+    .then(function (response) {
+      if (!response.ok) throw new Error(String(response.status));
+      return response.json();
+    })
+    .then(renderCatalog)
+    .catch(function () {
+      status.textContent =
+        "Papers are unavailable right now. Refresh to try again.";
+    });
 
   edit.addEventListener("click", function () {
     var editing = preview.dataset.mode === "read";
     frame.src = editing ? sourceUrl : readUrl;
     preview.dataset.mode = editing ? "edit" : "read";
     mode.textContent = editing ? "Editing" : "Reading";
-    edit.setAttribute("aria-label", editing ? "Return to reading" : "Edit paper here");
+    edit.setAttribute(
+      "aria-label",
+      editing ? "Return to reading" : "Edit paper here",
+    );
     edit.title = editing ? "Return to reading" : "Edit paper here";
   });
 
-  library.querySelectorAll<HTMLButtonElement>("[data-paper-theme]").forEach(function (button) {
-    button.addEventListener("click", function () {
-      preview.dataset.theme = button.dataset.paperTheme!;
-      library.querySelectorAll<HTMLButtonElement>("[data-paper-theme]").forEach(function (choice) {
-        choice.setAttribute("aria-pressed", String(choice === button));
+  library
+    .querySelectorAll<HTMLButtonElement>("[data-paper-theme]")
+    .forEach(function (button) {
+      button.addEventListener("click", function () {
+        preview.dataset.theme = button.dataset.paperTheme!;
+        library
+          .querySelectorAll<HTMLButtonElement>("[data-paper-theme]")
+          .forEach(function (choice) {
+            choice.setAttribute("aria-pressed", String(choice === button));
+          });
       });
     });
-  });
 
   var zoomButtons = Array.from(
     library.querySelectorAll<HTMLButtonElement>("[data-paper-zoom]"),
@@ -246,19 +353,37 @@
     dark.setAttribute("aria-pressed", String(enabled));
   });
 
-  library.querySelector<HTMLButtonElement>("#papers-preview-close")!.addEventListener("click", function () {
-    if (document.fullscreenElement === preview) void document.exitFullscreen();
-    preview.hidden = true;
-    clearOutline();
-    display.open = false;
-    frame.removeAttribute("src");
-    search.focus();
-  });
+  library
+    .querySelector<HTMLButtonElement>("#papers-preview-close")!
+    .addEventListener("click", function () {
+      if (document.fullscreenElement === preview)
+        void document.exitFullscreen();
+      preview.hidden = true;
+      clearOutline();
+      display.open = false;
+      frame.removeAttribute("src");
+      search.focus();
+    });
   if (!preview.requestFullscreen) {
     fullscreen.hidden = true;
   } else {
+    function syncFullscreen() {
+      var expanded = document.fullscreenElement === preview;
+      fullscreen.setAttribute("aria-pressed", String(expanded));
+      fullscreen.setAttribute(
+        "aria-label",
+        expanded ? "Exit full screen" : "View paper full screen",
+      );
+      fullscreen.title = expanded ? "Exit full screen" : "Full screen";
+    }
+    document.addEventListener("fullscreenchange", syncFullscreen);
+    syncFullscreen();
     fullscreen.addEventListener("click", function () {
-      void preview.requestFullscreen().catch(function () {
+      var action =
+        document.fullscreenElement === preview
+          ? document.exitFullscreen()
+          : preview.requestFullscreen();
+      void action.catch(function () {
         fullscreen.title = "Full screen unavailable";
       });
     });
