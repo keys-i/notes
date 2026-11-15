@@ -11,9 +11,10 @@ through differential equations, optimisation, and computational engineering.
 
 1. [Lecture notes](Lectures/index.md)
 2. [Workshops](Tutorial/index.md)
-3. [Assignments](Assignment/index.md)
-4. [Past year papers](PY/index.md)
-5. [Cheatsheet](CS/index.md)
+3. [Practicals](Practical/index.md)
+4. [Assignments](Assignment/index.md)
+5. [Past year papers](PY/index.md)
+6. [Cheatsheet](CS/index.md)
 
 ## Interactive plotter
 

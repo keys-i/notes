@@ -99,6 +99,9 @@ markdown_extensions:
         - name: plot
           class: note-plot
           format: !!python/name:hooks.content.plot.format_plot
+  - pymdownx.snippets:
+      base_path: .
+      check_paths: true
   - pymdownx.details # Adds collapsible detail/summary blocks
   - pymdownx.magiclink # Automatically turns URLs into clickable links
   - pymdownx.tasklist # Adds support for task lists

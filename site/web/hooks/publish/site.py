@@ -32,7 +32,12 @@ COURSE_ASSET_BUDGETS = {
 }
 WEEK_TITLE = re.compile(r"^(?:W|Week\s+)(\d+)\b", re.IGNORECASE)
 COURSE_ROUTE = re.compile(r"^(COMP|INFS|MECH)/(\d{4})/?$")
-ROUTE_LABELS = {"PY": "Past years", "CS": "Cheatsheet"}
+ROUTE_LABELS = {
+    "PY": "Past years",
+    "CS": "Cheatsheet",
+    "Practical": "Practicals",
+    "Tutorial": "Workshops",
+}
 CHEATSHEETS = {
     "INFS2200": "INFS2200-cheatsheet.pdf",
     "MECH2700": "MECH2700-cheatsheet.pdf",

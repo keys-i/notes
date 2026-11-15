@@ -698,6 +698,23 @@ body {
   }
 }
 
+/* == Practical sheet reader == */
+.md-typeset .practical-sheet {
+  display: block;
+  width: 100%;
+  height: clamp(36rem, 78vh, 64rem);
+  margin: 1.2rem 0 0.8rem;
+  border: 1px solid var(--site-panel-border);
+  border-radius: 0.8rem;
+  corner-shape: squircle;
+  background: #fff;
+}
+
+.md-typeset .practical-sheet:focus-visible {
+  outline: 3px solid var(--md-accent-fg-color);
+  outline-offset: 3px;
+}
+
 .papers__tools {
   display: flex;
   gap: 0.8rem;
