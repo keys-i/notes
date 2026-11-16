@@ -211,13 +211,16 @@ def on_page_markdown(markdown, page, **_):
     code = page.meta.get("cheatsheet") if page.meta else None
     if not code:
         return markdown
+    pages = page.meta.get("cheatsheet_pages", 1)
+    if not isinstance(pages, int) or isinstance(pages, bool) or pages < 1:
+        raise ValueError("cheatsheet_pages must be a positive integer")
     return (
         f'<section class="cheatsheet pdf-reader" aria-label="{code} cheatsheet reader">'
         f'<div class="pdf-reader__viewer" aria-label="{code} cheatsheet preview" '
         'tabindex="0">'
         f'<img class="pdf-reader__document pdf-reader__document--image" '
         f'src="{CHEATSHEET_PREVIEW}" '
-        f'alt="{code} cheatsheet preview" width="2246" height="1588" '
+        f'alt="{code} cheatsheet preview" width="2246" height="{1588 * pages}" '
         'loading="eager"></div>'
         f"{_pdf_controls(CHEATSHEET_PDF, f'Open {code} PDF', f'Download {code} cheatsheet')}"
         "</section>"

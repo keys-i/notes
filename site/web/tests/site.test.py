@@ -420,16 +420,21 @@ class SiteAssetTests(unittest.TestCase):
                 cheatsheets.build(source, pdf, preview, ROOT)
                 pdf_bytes = pdf.read_bytes()
                 self.assertTrue(pdf_bytes.startswith(b"%PDF-"))
-                self.assertIn(b"/Type/Pages/Count 1/", pdf_bytes)
+                page_count = 2 if code == "INFS2200" else 1
+                self.assertIn(f"/Type/Pages/Count {page_count}/".encode(), pdf_bytes)
                 self.assertTrue(pdf_bytes.rstrip().endswith(b"%%EOF"))
                 with Image.open(preview) as image:
                     self.assertEqual(image.format, "WEBP")
-                    self.assertGreater(image.width, image.height)
+                    if page_count == 1:
+                        self.assertGreater(image.width, image.height)
+                    else:
+                        self.assertGreater(image.height, image.width)
                     image.verify()
                 template_text = (ROOT / "assets/cheatsheets/template.typ").read_text(
                     encoding="utf-8"
                 )
-                self.assertIn("columns(3", template_text)
+                self.assertIn("column-count: 3", template_text)
+                self.assertIn("columns(column-count", template_text)
                 self.assertIn("flipped: true", template_text)
                 self.assertNotIn("EXAM CHEATSHEET", template_text)
                 self.assertNotIn("Write the symbolic form first", template_text)

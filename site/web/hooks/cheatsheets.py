@@ -43,7 +43,7 @@ def build(source, pdf, preview, root=ROOT):
     with TemporaryDirectory() as directory:
         temporary = Path(directory)
         generated_pdf = temporary / PDF
-        generated_png = temporary / "cheatsheet.png"
+        generated_png = temporary / "cheatsheet-{p}.png"
         generated_preview = temporary / PREVIEW
         run(
             [
@@ -73,8 +73,25 @@ def build(source, pdf, preview, root=ROOT):
             cwd=root,
             check=True,
         )
-        with Image.open(generated_png) as image:
-            image.save(generated_preview, "WEBP", quality=86, method=6)
+        pages = sorted(
+            temporary.glob("cheatsheet-*.png"),
+            key=lambda path: int(path.stem.rsplit("-", 1)[1]),
+        )
+        if not pages:
+            raise RuntimeError(f"Typst generated no preview pages for {source}")
+        with Image.open(pages[0]) as first:
+            if len(pages) == 1:
+                first.save(generated_preview, "WEBP", quality=86, method=6)
+            else:
+                with Image.new(
+                    "RGB", (first.width, first.height * len(pages)), "#fffefa"
+                ) as preview_image:
+                    for number, page in enumerate(pages):
+                        with Image.open(page) as image:
+                            if image.size != first.size:
+                                raise ValueError("cheatsheet preview pages must match")
+                            preview_image.paste(image, (0, number * first.height))
+                    preview_image.save(generated_preview, "WEBP", quality=86, method=6)
         _install(generated_pdf, pdf)
         _install(generated_preview, preview)
 

@@ -19,7 +19,7 @@
     inset: (x: 4.5pt, y: 2.5pt),
     radius: 3pt,
     fill: blue-soft,
-  )[#text(size: 8.3pt, weight: 800, fill: blue, tracking: 0.03em)[#upper(title)]]
+  )[#text(size: 0.99em, weight: 800, fill: blue, tracking: 0.03em)[#upper(title)]]
   #v(4pt)
   #body
 ]
@@ -28,20 +28,28 @@
   #text(weight: 700, fill: blue)[#label] #body
 ]
 
-#let sheet(body) = {
+#let sheet(
+  body,
+  column-count: 3,
+  text-size: 8.4pt,
+  paragraph-leading: 0.63em,
+  bottom-margin: 2mm,
+  numbering: none,
+) = {
   set page(
     paper: "a4",
     flipped: true,
-    margin: (top: 6mm, bottom: 2mm, x: 6mm),
+    margin: (top: 6mm, bottom: bottom-margin, x: 6mm),
     fill: paper,
+    numbering: numbering,
   )
-  set text(font: "Arial", size: 8.4pt, fill: charcoal)
-  set par(leading: 0.63em, spacing: 2.45pt)
+  set text(font: "Arial", size: text-size, fill: charcoal)
+  set par(leading: paragraph-leading, spacing: 2.45pt)
   set list(indent: 7.5pt, body-indent: 3.5pt, spacing: 1.5pt)
   set enum(indent: 8.5pt, body-indent: 3.5pt, spacing: 1.5pt)
   set math.equation(block: false)
-  show math.equation: set text(size: 8.4pt)
+  show math.equation: set text(size: text-size)
   show strong: set text(weight: 750)
 
-  columns(3, gutter: 4mm, body)
+  columns(column-count, gutter: 4mm, body)
 }

@@ -136,7 +136,7 @@ class CheatsheetHookTests(unittest.TestCase):
                 Path(target).write_bytes(b"webp")
 
         def compile(command, **_):
-            Path(command[-1]).write_bytes(
+            Path(command[-1].replace("{p}", "1")).write_bytes(
                 b"pdf" if command[-1].endswith(".pdf") else b"png"
             )
 
@@ -630,6 +630,29 @@ class HookTests(unittest.TestCase):
                 self.assertEqual(body.count("data-pdf-zoom"), 2)
                 self.assertNotIn("Exam reference", body)
                 self.assertNotIn('class="cheatsheet__bar"', body)
+
+    def test_cheatsheet_pages(self):
+        for pages, height in ((1, 1588), (2, 3176), (3, 4764)):
+            with self.subTest(pages=pages):
+                body = site_hook.on_page_markdown(
+                    "",
+                    SimpleNamespace(
+                        meta={"cheatsheet": "INFS2200", "cheatsheet_pages": pages}
+                    ),
+                )
+                self.assertIn(f'width="2246" height="{height}"', body)
+
+        for pages in (0, True, "2"):
+            with (
+                self.subTest(pages=pages),
+                self.assertRaisesRegex(ValueError, "positive integer"),
+            ):
+                site_hook.on_page_markdown(
+                    "",
+                    SimpleNamespace(
+                        meta={"cheatsheet": "INFS2200", "cheatsheet_pages": pages}
+                    ),
+                )
 
     def test_practical_routes_share_the_pdf_reader_controls(self):
         page = SimpleNamespace(meta={"practical_pdf": "week_09.pdf"})
