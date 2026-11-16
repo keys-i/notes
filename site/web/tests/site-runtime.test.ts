@@ -264,9 +264,16 @@ test("math rendering loads only for equations and fails visibly", () => {
   assert.match(script.integrity, /^sha384-/);
   assert.equal(script.crossOrigin, "anonymous");
   assert.equal(math.window.MathJax.options.processHtmlClass, "arithmatex");
+  assert.deepEqual(JSON.parse(JSON.stringify(math.window.MathJax.loader.load)), [
+    "[tex]/boldsymbol",
+  ]);
   assert.deepEqual(
     JSON.parse(JSON.stringify(math.window.MathJax.tex.inlineMath)),
     [["\\(", "\\)"]],
+  );
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(math.window.MathJax.tex.packages["[+]"])),
+    ["boldsymbol"],
   );
 
   script.onerror();

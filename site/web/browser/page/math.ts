@@ -15,6 +15,9 @@
     if (loading) return loading;
 
     window.MathJax = {
+      loader: {
+        load: ["[tex]/boldsymbol"],
+      },
       options: {
         ignoreHtmlClass: ".*|",
         processHtmlClass: "arithmatex",
@@ -22,6 +25,7 @@
       tex: {
         displayMath: [["\\[", "\\]"]],
         inlineMath: [["\\(", "\\)"]],
+        packages: { "[+]": ["boldsymbol"] },
         processEnvironments: true,
         processEscapes: true,
       },

@@ -21,7 +21,7 @@ routes = [
 ]
 
 [build]
-command = "cargo install -q worker-build@^0.8 && worker-build --release"
+command = "cargo install -q worker-build@^0.9 && worker-build --release"
 cwd = "site/api"
 
 [observability]
