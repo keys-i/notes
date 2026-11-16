@@ -300,6 +300,22 @@ test("math rendering typesets equations inserted after page load", async () => {
   assert.equal(typeset.at(-1)[0], equation);
 });
 
+test("math rendering typesets the page element after initial load", async () => {
+  const runtime = mathHarness(true);
+  const script: any = runtime.head.children[0];
+  const cleared: any[] = [];
+  const typeset: any[] = [];
+  runtime.window.MathJax.typesetClear = (roots: any[]) => cleared.push(roots);
+  runtime.window.MathJax.typesetPromise = async (roots: any[]) => {
+    typeset.push(roots);
+  };
+  script.dispatch("load");
+  await settle();
+
+  assert.equal(cleared[0][0], runtime.root);
+  assert.equal(typeset[0][0], runtime.root);
+});
+
 function commentHarness(mode: "giscus" | "utterances", observed: boolean) {
   const host = new RuntimeElement();
   host.id = "comments-provider";

@@ -50,11 +50,12 @@
 
   window.notesMath = function (root: ParentNode | Element = document) {
     if (!containsMath(root)) return Promise.resolve();
+    var target = root === document ? document.documentElement : root;
     return load()
       .then(function () {
         if (!window.MathJax?.typesetPromise) return;
-        window.MathJax.typesetClear?.([root]);
-        return window.MathJax.typesetPromise([root]);
+        window.MathJax.typesetClear?.([target]);
+        return window.MathJax.typesetPromise([target]);
       })
       .catch(function () {
         // The visible source remains usable when the optional renderer fails

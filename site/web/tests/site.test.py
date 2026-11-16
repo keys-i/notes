@@ -504,9 +504,9 @@ class SiteAssetTests(unittest.TestCase):
 
     def test_mech2700_week_6_and_9_math_is_github_compatible(self):
         for week in (6, 9):
-            lecture = (
-                ROOT / f"content/MECH/2700/Lectures/W{week}.md"
-            ).read_text(encoding="utf-8")
+            lecture = (ROOT / f"content/MECH/2700/Lectures/W{week}.md").read_text(
+                encoding="utf-8"
+            )
             self.assertNotRegex(lecture, r"(?m)^>?\s*=\s*$")
 
     def test_paper_library_uses_one_natural_language_search(self):
