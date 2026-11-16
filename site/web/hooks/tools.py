@@ -56,6 +56,7 @@ def serve():
         "--config-file",
         "site/mkdocs.yml",
         "--livereload",
+        "--dirtyreload",
         "--open",
         "-w",
         "assets",

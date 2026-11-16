@@ -101,25 +101,60 @@
   text-transform: capitalize;
 }
 
-.course-catalog__tag--computing { --course-tag-colour: var(--color-primary-700); }
-.course-catalog__tag--design { --course-tag-colour: var(--color-tertiary-700); }
-.course-catalog__tag--engineering { --course-tag-colour: var(--color-warning-700); }
-.course-catalog__tag--information-systems { --course-tag-colour: var(--color-secondary-700); }
-.course-catalog__tag--mathematics { --course-tag-colour: var(--color-success-700); }
-.course-catalog__tag--science { --course-tag-colour: var(--color-success-700); }
-.course-catalog__tag--security { --course-tag-colour: var(--color-error-700); }
-.course-catalog__tag--statistics { --course-tag-colour: var(--color-tertiary-700); }
-.course-catalog__tag--term { --course-tag-colour: var(--color-accent-700); }
-
-[data-md-color-scheme="slate"] .course-catalog__tag--computing { --course-tag-colour: var(--color-primary-300); }
-[data-md-color-scheme="slate"] .course-catalog__tag--design { --course-tag-colour: var(--color-tertiary-300); }
-[data-md-color-scheme="slate"] .course-catalog__tag--engineering { --course-tag-colour: var(--color-warning-300); }
-[data-md-color-scheme="slate"] .course-catalog__tag--information-systems { --course-tag-colour: var(--color-secondary-300); }
-[data-md-color-scheme="slate"] .course-catalog__tag--mathematics { --course-tag-colour: var(--color-success-300); }
-[data-md-color-scheme="slate"] .course-catalog__tag--science { --course-tag-colour: var(--color-success-300); }
-[data-md-color-scheme="slate"] .course-catalog__tag--security { --course-tag-colour: var(--color-error-300); }
-[data-md-color-scheme="slate"] .course-catalog__tag--statistics { --course-tag-colour: var(--color-tertiary-300); }
-[data-md-color-scheme="slate"] .course-catalog__tag--term { --course-tag-colour: var(--color-accent-300); }
+.course-catalog__tag--computing {
+  --course-tag-colour: light-dark(
+    var(--color-primary-700),
+    var(--color-primary-300)
+  );
+}
+.course-catalog__tag--design {
+  --course-tag-colour: light-dark(
+    var(--color-tertiary-700),
+    var(--color-tertiary-300)
+  );
+}
+.course-catalog__tag--engineering {
+  --course-tag-colour: light-dark(
+    var(--color-warning-700),
+    var(--color-warning-300)
+  );
+}
+.course-catalog__tag--information-systems {
+  --course-tag-colour: light-dark(
+    var(--color-secondary-700),
+    var(--color-secondary-300)
+  );
+}
+.course-catalog__tag--mathematics {
+  --course-tag-colour: light-dark(
+    var(--color-success-700),
+    var(--color-success-300)
+  );
+}
+.course-catalog__tag--science {
+  --course-tag-colour: light-dark(
+    var(--color-success-700),
+    var(--color-success-300)
+  );
+}
+.course-catalog__tag--security {
+  --course-tag-colour: light-dark(
+    var(--color-error-700),
+    var(--color-error-300)
+  );
+}
+.course-catalog__tag--statistics {
+  --course-tag-colour: light-dark(
+    var(--color-tertiary-700),
+    var(--color-tertiary-300)
+  );
+}
+.course-catalog__tag--term {
+  --course-tag-colour: light-dark(
+    var(--color-accent-700),
+    var(--color-accent-300)
+  );
+}
 
 .course-catalog__actions {
   display: flex;

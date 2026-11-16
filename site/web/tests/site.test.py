@@ -13,6 +13,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
+from hooks import cheatsheets
 from hooks.content import plot
 from hooks.publish import site
 from PIL import Image
@@ -182,6 +183,29 @@ class SiteAssetTests(unittest.TestCase):
         self.assertNotIn("graph-preview", graph)
         self.assertNotIn("IntersectionObserver", graph)
         self.assertEqual(graph.count("load_echarts()"), 2)
+
+    def test_adaptive_colours_use_the_native_colour_scheme(self):
+        styles = {
+            path.name: path.read_text(encoding="utf-8")
+            for path in (
+                ROOT / "site/web/styles/site.css",
+                ROOT / "site/web/styles/graph.css",
+                ROOT / "site/web/styles/pet.css",
+                ROOT / "site/web/styles/study/courses.css",
+            )
+        }
+
+        for name, source in styles.items():
+            with self.subTest(name=name):
+                self.assertIn("light-dark(", source)
+        self.assertIn("color-scheme: light", styles["site.css"])
+        self.assertIn("color-scheme: dark", styles["site.css"])
+        for name in ("graph.css", "pet.css", "courses.css"):
+            self.assertNotIn('[data-md-color-scheme="slate"]', styles[name])
+        self.assertEqual(
+            styles["site.css"].count('[data-md-color-scheme="slate"]'),
+            1,
+        )
 
     def test_external_code_is_pinned_and_integrity_checked(self):
         config = (ROOT / "site/mkdocs.yml").read_text(encoding="utf-8")
@@ -374,7 +398,10 @@ class SiteAssetTests(unittest.TestCase):
             {"fallback"},
         )
 
-    def test_course_cheatsheets_use_named_folders_and_ship_one_pdf_each(self):
+    def test_course_cheatsheets_generate_named_runtime_assets(self):
+        ignored = (ROOT / ".gitignore").read_text(encoding="utf-8")
+        self.assertIn("/content/*/*/Cheatsheets/cheatsheet.pdf", ignored)
+        self.assertIn("/content/*/*/Cheatsheets/cheatsheet-preview.webp", ignored)
         for route in sorted((ROOT / "content").glob("*/*/Cheatsheets/index.md")):
             code = route.parents[2].name + route.parents[1].name
             filename = site.CHEATSHEET_PDF
@@ -390,6 +417,7 @@ class SiteAssetTests(unittest.TestCase):
                     (course / "index.md").read_text(),
                 )
                 self.assertTrue(source.is_file())
+                cheatsheets.build(source, pdf, preview, ROOT)
                 pdf_bytes = pdf.read_bytes()
                 self.assertTrue(pdf_bytes.startswith(b"%PDF-"))
                 self.assertIn(b"/Type/Pages/Count 1/", pdf_bytes)
@@ -409,7 +437,9 @@ class SiteAssetTests(unittest.TestCase):
                 body = site.on_page_markdown(
                     "", SimpleNamespace(meta={"cheatsheet": code})
                 )
-                self.assertIn(filename, body)
+                self.assertIn('href="cheatsheet.pdf"', body)
+                self.assertIn('src="cheatsheet-preview.webp"', body)
+                self.assertNotIn(f"{code}-cheatsheet", body)
                 self.assertNotIn("printable formula sheet", body)
 
     def test_mech2700_practicals_ship_solved_pdfs_and_plain_python(self):
@@ -471,7 +501,6 @@ class SiteAssetTests(unittest.TestCase):
         self.assertIn("LBM_opt.npz", week9)
         self.assertIn("10^5\\hat p(a)", week9)
         self.assertNotIn("outer diameter", week9.lower())
-        self.assertEqual(site.ROUTE_LABELS, {"PastYears": "Past Years"})
 
     def test_paper_library_uses_one_natural_language_search(self):
         template = (ROOT / "site/web/theme/partials/papers.html").read_text(

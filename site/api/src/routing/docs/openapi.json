@@ -16,7 +16,10 @@
     { "name": "Courses", "description": "Validated UQ course discovery" },
     { "name": "Papers", "description": "Validated past-paper catalogues" },
     { "name": "Manuals", "description": "FreeBSD manual lookup and search" },
-    { "name": "Operations", "description": "Health, readiness and Prometheus metrics" }
+    {
+      "name": "Operations",
+      "description": "Health, readiness and Prometheus metrics"
+    }
   ],
   "paths": {
     "/api/pet": {
@@ -120,7 +123,10 @@
             "in": "path",
             "required": true,
             "description": "Course material type",
-            "schema": { "type": "string", "enum": ["prac", "lec", "wks", "assign"] },
+            "schema": {
+              "type": "string",
+              "enum": ["prac", "lec", "wks", "assign"]
+            },
             "example": "prac"
           }
         ],
@@ -220,7 +226,11 @@
           {
             "name": "section",
             "in": "query",
-            "schema": { "type": "string", "pattern": "^[0-9]$", "default": "0" },
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9]$",
+              "default": "0"
+            },
             "example": "1"
           },
           {
@@ -277,7 +287,10 @@
             "name": "service",
             "in": "path",
             "required": true,
-            "schema": { "type": "string", "enum": ["courses", "koala", "manuals", "papers"] }
+            "schema": {
+              "type": "string",
+              "enum": ["courses", "koala", "manuals", "papers"]
+            }
           }
         ],
         "responses": {
@@ -364,45 +377,81 @@
     "responses": {
       "BadRequest": {
         "description": "Invalid request",
-        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ApiError" }
+          }
+        }
       },
       "Forbidden": {
         "description": "Identity or origin is not allowed",
-        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ApiError" }
+          }
+        }
       },
       "Invalid": {
         "description": "Request failed semantic validation",
-        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ApiError" }
+          }
+        }
       },
       "MethodNotAllowed": {
         "description": "Method is not supported for this route",
         "headers": {
           "Allow": { "schema": { "type": "string" } }
         },
-        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ApiError" }
+          }
+        }
       },
       "NotFound": {
         "description": "Resource not found",
-        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ApiError" }
+          }
+        }
       },
       "RateLimited": {
         "description": "Request limit exceeded",
-        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ApiError" }
+          }
+        }
       },
       "TooLarge": {
         "description": "Request body is too large",
-        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ApiError" }
+          }
+        }
       },
       "Unsupported": {
         "description": "Unsupported media type or encoding",
-        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ApiError" }
+          }
+        }
       },
       "Unavailable": {
         "description": "Required dependency is unavailable",
         "headers": {
           "Retry-After": { "schema": { "type": "integer" } }
         },
-        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ApiError" }
+          }
+        }
       }
     },
     "schemas": {
@@ -445,7 +494,11 @@
               { "type": "null" }
             ]
           },
-          "scope": { "type": "string", "enum": ["public", "minis"], "default": "public" }
+          "scope": {
+            "type": "string",
+            "enum": ["public", "minis"],
+            "default": "public"
+          }
         }
       },
       "Section": {
@@ -504,30 +557,68 @@
       "Course": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["code", "title", "area", "maturity", "verified", "stale", "source_label", "capabilities"],
+        "required": [
+          "code",
+          "title",
+          "area",
+          "maturity",
+          "verified",
+          "stale",
+          "source_label",
+          "capabilities"
+        ],
         "properties": {
           "code": { "type": "string", "pattern": "^[A-Z]{4}[0-9]{4}$" },
           "title": { "type": "string", "minLength": 1, "maxLength": 120 },
           "area": {
             "type": "string",
-            "enum": ["computing", "design", "engineering", "information-systems", "mathematics", "science", "security", "statistics"]
+            "enum": [
+              "computing",
+              "design",
+              "engineering",
+              "information-systems",
+              "mathematics",
+              "science",
+              "security",
+              "statistics"
+            ]
           },
-          "maturity": { "type": "string", "enum": ["source", "resources", "learning"] },
+          "maturity": {
+            "type": "string",
+            "enum": ["source", "resources", "learning"]
+          },
           "route": { "type": "string", "pattern": "^/[A-Z]{4}/[0-9]{4}/$" },
           "verified": { "type": "string", "format": "date" },
           "stale": { "type": "boolean" },
-          "catalogue_id": { "type": "string", "minLength": 10, "maxLength": 128 },
-          "catalogue_url": { "type": "string", "format": "uri", "const": "https://learn.uq.edu.au/ultra/catalog" },
+          "catalogue_id": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 128
+          },
+          "catalogue_url": {
+            "type": "string",
+            "format": "uri",
+            "const": "https://learn.uq.edu.au/ultra/catalog"
+          },
           "catalogue_label": { "type": "string" },
-          "source_label": { "type": "string", "enum": ["UQ catalogue", "Course archive"] },
+          "source_label": {
+            "type": "string",
+            "enum": ["UQ catalogue", "Course archive"]
+          },
           "offering": { "type": "string", "maxLength": 120 },
-          "papers_route": { "type": "string", "pattern": "^/[A-Z]{4}/[0-9]{4}/PastYears/$" },
+          "papers_route": {
+            "type": "string",
+            "pattern": "^/[A-Z]{4}/[0-9]{4}/PastYears/$"
+          },
           "cheatsheet_route": { "type": "string", "maxLength": 241 },
           "source_url": { "type": "string", "format": "uri" },
           "capabilities": {
             "type": "array",
             "uniqueItems": true,
-            "items": { "type": "string", "enum": ["notes", "papers", "solutions", "cheatsheet", "source"] }
+            "items": {
+              "type": "string",
+              "enum": ["notes", "papers", "solutions", "cheatsheet", "source"]
+            }
           }
         }
       },
@@ -538,9 +629,19 @@
         "properties": {
           "updated": { "type": "string", "format": "date" },
           "course": { "type": "string", "pattern": "^[A-Z]{4}[0-9]{4}$" },
-          "type": { "type": "string", "enum": ["prac", "lec", "wks", "assign"] },
-          "route": { "type": "string", "pattern": "^/[A-Z]{4}/[0-9]{4}/[A-Za-z][A-Za-z0-9-]{0,39}/$" },
-          "source": { "type": "string", "format": "uri", "pattern": "^https://github\\.com/" },
+          "type": {
+            "type": "string",
+            "enum": ["prac", "lec", "wks", "assign"]
+          },
+          "route": {
+            "type": "string",
+            "pattern": "^/[A-Z]{4}/[0-9]{4}/[A-Za-z][A-Za-z0-9-]{0,39}/$"
+          },
+          "source": {
+            "type": "string",
+            "format": "uri",
+            "pattern": "^https://github\\.com/"
+          },
           "items": {
             "type": "array",
             "minItems": 1,
@@ -555,14 +656,20 @@
         "required": ["label", "page"],
         "properties": {
           "label": { "type": "string", "minLength": 1, "maxLength": 80 },
-          "page": { "type": "string", "pattern": "^/[A-Z]{4}/[0-9]{4}/[A-Za-z][A-Za-z0-9-]{0,39}/[^/]+/$" },
-          "pdf": { "type": "string", "pattern": "^/[A-Z]{4}/[0-9]{4}/[A-Za-z][A-Za-z0-9-]{0,39}/[^/]+\\.pdf$" },
-          "python": { "type": "string", "pattern": "^/assets/materials/[a-z]{4}[0-9]{4}/(prac|lec|wks|assign)/(?![^/]+\\.adv\\.py$)[^/]+\\.py$" }
+          "page": {
+            "type": "string",
+            "pattern": "^/[A-Z]{4}/[0-9]{4}/[A-Za-z][A-Za-z0-9-]{0,39}/[^/]+/$"
+          },
+          "pdf": {
+            "type": "string",
+            "pattern": "^/[A-Z]{4}/[0-9]{4}/[A-Za-z][A-Za-z0-9-]{0,39}/[^/]+\\.pdf$"
+          },
+          "python": {
+            "type": "string",
+            "pattern": "^/assets/materials/[a-z]{4}[0-9]{4}/(prac|lec|wks|assign)/(?![^/]+\\.adv\\.py$)[^/]+\\.py$"
+          }
         },
-        "anyOf": [
-          { "required": ["pdf"] },
-          { "required": ["python"] }
-        ]
+        "anyOf": [{ "required": ["pdf"] }, { "required": ["python"] }]
       },
       "PaperCatalogue": {
         "type": "object",
@@ -579,9 +686,15 @@
               "properties": {
                 "title": { "type": "string" },
                 "year": { "type": "integer" },
-                "kind": { "type": "string", "enum": ["paper", "practice", "solution"] },
+                "kind": {
+                  "type": "string",
+                  "enum": ["paper", "practice", "solution"]
+                },
                 "url": { "type": "string", "format": "uri" },
-                "outline": { "type": "string", "pattern": "^/api/papers/[A-Z]{4}[0-9]{4}/[A-Za-z0-9_-]+/outline$" },
+                "outline": {
+                  "type": "string",
+                  "pattern": "^/api/papers/[A-Z]{4}[0-9]{4}/[A-Za-z0-9_-]+/outline$"
+                },
                 "solutions": { "type": "boolean" }
               }
             }
@@ -591,8 +704,21 @@
       "PaperOutline": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["items"],
+        "required": ["tabs", "items"],
         "properties": {
+          "tabs": {
+            "type": "array",
+            "maxItems": 16,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["label", "id"],
+              "properties": {
+                "label": { "type": "string", "maxLength": 160 },
+                "id": { "type": "string", "pattern": "^t\\.[A-Za-z0-9._-]+$" }
+              }
+            }
+          },
           "items": {
             "type": "array",
             "maxItems": 64,
@@ -602,7 +728,10 @@
               "required": ["label", "anchor", "level"],
               "properties": {
                 "label": { "type": "string", "maxLength": 160 },
-                "anchor": { "type": "string", "pattern": "^h\\.[A-Za-z0-9._-]+$" },
+                "anchor": {
+                  "type": "string",
+                  "pattern": "^h\\.[A-Za-z0-9._-]+$"
+                },
                 "level": { "type": "integer", "minimum": 1, "maximum": 3 }
               }
             }
@@ -616,7 +745,10 @@
           "release": { "type": "string" },
           "source": { "type": "string", "format": "uri" },
           "renderer": { "type": "string", "format": "uri" },
-          "aliases": { "type": "object", "additionalProperties": { "type": "string" } }
+          "aliases": {
+            "type": "object",
+            "additionalProperties": { "type": "string" }
+          }
         }
       },
       "ManualContent": {
@@ -629,7 +761,15 @@
       },
       "HealthReport": {
         "type": "object",
-        "required": ["service", "status", "version", "checked_at_ms", "runtime", "stats", "services"],
+        "required": [
+          "service",
+          "status",
+          "version",
+          "checked_at_ms",
+          "runtime",
+          "stats",
+          "services"
+        ],
         "properties": {
           "service": { "const": "notes-api" },
           "status": { "type": "string", "enum": ["ok", "degraded"] },
@@ -653,7 +793,13 @@
       },
       "Liveness": {
         "type": "object",
-        "required": ["service", "status", "version", "checked_at_ms", "runtime"],
+        "required": [
+          "service",
+          "status",
+          "version",
+          "checked_at_ms",
+          "runtime"
+        ],
         "properties": {
           "service": { "const": "notes-api" },
           "status": { "const": "ok" },
@@ -664,14 +810,24 @@
       },
       "Readiness": {
         "type": "object",
-        "required": ["service", "status", "version", "checked_at_ms", "stats", "services"],
+        "required": [
+          "service",
+          "status",
+          "version",
+          "checked_at_ms",
+          "stats",
+          "services"
+        ],
         "properties": {
           "service": { "const": "notes-api" },
           "status": { "type": "string", "enum": ["ok", "unavailable"] },
           "version": { "type": "string" },
           "checked_at_ms": { "type": "integer" },
           "stats": { "$ref": "#/components/schemas/HealthStats" },
-          "services": { "type": "object", "additionalProperties": { "type": "string" } }
+          "services": {
+            "type": "object",
+            "additionalProperties": { "type": "string" }
+          }
         }
       },
       "Runtime": {

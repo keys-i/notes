@@ -31,6 +31,7 @@
   var dark = library.querySelector<HTMLButtonElement>("#papers-dark")!;
   var sourceUrl = "";
   var readUrl = "";
+  var currentReadUrl = "";
   var outlineRequest = 0;
   var zoom = 1;
   var apiOrigin = ["127.0.0.1", "localhost"].includes(window.location.hostname)
@@ -141,31 +142,106 @@
             item.level <= 3
           );
         });
-        var baseLevel = Math.min(
-          ...headings.map(function (item) {
-            return item.level;
-          }),
-        );
-        var entries = headings.map(function (item) {
+        var tabs = Array.isArray(result.tabs)
+          ? result.tabs.filter(function (tab) {
+              return (
+                tab &&
+                typeof tab.label === "string" &&
+                typeof tab.id === "string" &&
+                /^t\.[\w.-]+$/.test(tab.id)
+              );
+            })
+          : [];
+        var guidelinesTab = tabs.find(function (tab) {
+          return tab.label.toLocaleLowerCase() === "guidelines";
+        });
+        var answersTab = tabs.find(function (tab) {
+          return tab.label.toLocaleLowerCase() === "answers";
+        });
+        var entries = headings.flatMap(function (item) {
+          var question = item.label.match(/^(?:question\s*|q\s*)(\d+)/i);
+          var part = item.label.match(/^(\d+)[.-](\d+)(?=[.)\s-]|$)/);
+          var subpart = item.label.match(
+            /^\(?([a-z]|[ivxlcdm]+)\)?(?=[.)\s-]|$)/i,
+          );
+          if (!question && !part && !subpart) return [];
           var entry = document.createElement("li");
-          entry.dataset.level = String(item.level - baseLevel + 1);
+          entry.dataset.level = question ? "2" : "3";
           var button = document.createElement("button");
           button.type = "button";
-          button.textContent = item.label;
+          button.textContent = question
+            ? "Q" + question[1] + "."
+            : part
+              ? part[1] + "." + part[2]
+              : subpart![1].toLocaleLowerCase();
           button.addEventListener("click", function () {
             var destination = new URL(readUrl);
+            if (answersTab) destination.searchParams.set("tab", answersTab.id);
             destination.hash = item.anchor;
-            frame.src = destination.href;
+            currentReadUrl = destination.href;
+            frame.src = currentReadUrl;
+            tabButtons.forEach(function (tabButton) {
+              tabButton.setAttribute(
+                "aria-selected",
+                String(tabButton.dataset.paperTab === answersTab?.id),
+              );
+            });
+            entries.forEach(function (question) {
+              question.hidden = false;
+            });
             outlineItems.querySelectorAll("button").forEach(function (choice) {
               choice.removeAttribute("aria-current");
             });
             button.setAttribute("aria-current", "true");
           });
           entry.append(button);
-          return entry;
+          return [entry];
         });
-        if (!entries.length) return;
-        outlineItems.replaceChildren(...entries);
+        var tabsItem = document.createElement("li");
+        var tabButtons = [guidelinesTab, answersTab]
+          .filter(Boolean)
+          .map(function (tab) {
+            var button = document.createElement("button");
+            button.type = "button";
+            button.dataset.paperTab = tab!.id;
+            button.setAttribute("role", "tab");
+            button.textContent = tab!.label;
+            button.addEventListener("click", function () {
+              var destination = new URL(readUrl);
+              destination.searchParams.set("tab", tab!.id);
+              currentReadUrl = destination.href;
+              frame.src = currentReadUrl;
+              tabButtons.forEach(function (choice) {
+                choice.setAttribute("aria-selected", String(choice === button));
+              });
+              entries.forEach(function (question) {
+                question.hidden = tab === guidelinesTab;
+              });
+              outlineItems
+                .querySelectorAll("button")
+                .forEach(function (choice) {
+                  choice.removeAttribute("aria-current");
+                });
+            });
+            tabsItem.append(button);
+            return button;
+          });
+        if (!entries.length && !tabButtons.length) return;
+        tabsItem.className = "papers__outline-tabs";
+        tabsItem.setAttribute("role", "tablist");
+        tabsItem.setAttribute("aria-label", "Document sections");
+        outlineItems.replaceChildren(
+          ...(tabButtons.length ? [tabsItem] : []),
+          ...entries,
+        );
+        if (tabButtons.length) {
+          var initial = guidelinesTab ? tabButtons[0] : tabButtons.at(-1)!;
+          initial.click();
+        } else if (entries.length) {
+          entries[0]
+            .querySelector("button")!
+            .setAttribute("aria-current", "true");
+        }
         outline.hidden = false;
         preview.dataset.outline = "true";
       })
@@ -199,6 +275,7 @@
       }
       sourceUrl = url.href;
       readUrl = previewUrl.href;
+      currentReadUrl = readUrl;
       clearOutline();
       display.open = false;
       frame.src = readUrl;
@@ -298,7 +375,7 @@
 
   edit.addEventListener("click", function () {
     var editing = preview.dataset.mode === "read";
-    frame.src = editing ? sourceUrl : readUrl;
+    frame.src = editing ? sourceUrl : currentReadUrl;
     preview.dataset.mode = editing ? "edit" : "read";
     mode.textContent = editing ? "Editing" : "Reading";
     edit.setAttribute(

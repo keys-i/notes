@@ -44,6 +44,8 @@ jobs:
           cache: npm
           node-version: 24
       - uses: typst-community/setup-typst@48aeee7543d37f01afd1ffb27307dc277387ba13 # v4
+        with:
+          typst-version: 0.15.1
       - run: npm ci --ignore-scripts --no-audit
       - run: uv run --locked --no-dev mkdocs build --strict --config-file site/mkdocs.yml
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5

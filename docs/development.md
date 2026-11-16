@@ -2,8 +2,8 @@
 
 ## Setup
 
-Install Python 3.13 or later, `uv`, Node.js 24 and npm, then install the locked
-dependencies
+Install Python 3.13 or later, `uv`, Node.js 24, npm and Typst 0.15.1, then
+install the locked dependencies
 
 ```sh
 uv sync --locked
@@ -19,6 +19,10 @@ uv run serve
 The project command watches `assets/`, `site/web/browser/`, `site/web/styles/`,
 `site/web/theme/` and `site/web/hooks/`. Course Markdown is watched by MkDocs
 through `content/`
+
+Cheatsheet PDFs and WebP previews are generated from `assets/cheatsheets/`
+before MkDocs collects content. Both outputs use course-local generic names and
+remain ignored build artefacts
 
 ## Edit the right source
 

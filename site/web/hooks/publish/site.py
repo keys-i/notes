@@ -33,10 +33,9 @@ COURSE_ASSET_BUDGETS = {
 WEEK_TITLE = re.compile(r"^(?:W|Week\s+)(\d+)\b", re.IGNORECASE)
 COURSE_ROUTE = re.compile(r"^(COMP|INFS|MECH)/(\d{4})/?$")
 PRACTICAL_PDF = re.compile(r"^week_(\d{2})\.pdf$")
-ROUTE_LABELS = {
-    "PastYears": "Past Years",
-}
+ROUTE_WORD = re.compile(r"(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])")
 CHEATSHEET_PDF = "cheatsheet.pdf"
+CHEATSHEET_PREVIEW = "cheatsheet-preview.webp"
 
 
 def _pdf_controls(pdf, open_label, download_label):
@@ -161,8 +160,8 @@ def _label_compact_routes(items):
             title = str(getattr(children[0], "title", "")).removeprefix(f"{code} ")
             if title:
                 item.title = f"{course.group(2)}: {title}"
-        elif route in ROUTE_LABELS:
-            item.title = ROUTE_LABELS[route]
+        elif (label := ROUTE_WORD.sub(" ", route)) != route:
+            item.title = label
         if children:
             _label_compact_routes(children)
 
@@ -212,16 +211,15 @@ def on_page_markdown(markdown, page, **_):
     code = page.meta.get("cheatsheet") if page.meta else None
     if not code:
         return markdown
-    pdf = CHEATSHEET_PDF
-    preview = f"{Path(pdf).stem}-preview.webp"
     return (
         f'<section class="cheatsheet pdf-reader" aria-label="{code} cheatsheet reader">'
         f'<div class="pdf-reader__viewer" aria-label="{code} cheatsheet preview" '
         'tabindex="0">'
-        f'<img class="pdf-reader__document pdf-reader__document--image" src="{preview}" '
+        f'<img class="pdf-reader__document pdf-reader__document--image" '
+        f'src="{CHEATSHEET_PREVIEW}" '
         f'alt="{code} cheatsheet preview" width="2246" height="1588" '
         'loading="eager"></div>'
-        f"{_pdf_controls(pdf, f'Open {code} PDF', f'Download {code} cheatsheet')}"
+        f"{_pdf_controls(CHEATSHEET_PDF, f'Open {code} PDF', f'Download {code} cheatsheet')}"
         "</section>"
     )
 

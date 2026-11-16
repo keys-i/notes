@@ -9,10 +9,18 @@ use worker::{Context, Fetch, Method, Request, Response, Result, Url};
 
 const MAX_SOURCE_BYTES: usize = 2_000_000;
 const MAX_ITEMS: usize = 64;
+const MAX_TABS: usize = 16;
 
 #[derive(Debug, Deserialize, Serialize)]
 struct Outline {
+    tabs: Vec<Tab>,
     items: Vec<Heading>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+struct Tab {
+    label: String,
+    id: String,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -39,7 +47,7 @@ pub(super) async fn respond(
         }
     };
     let key = format!(
-        "https://paper-outline-cache.invalid/{}",
+        "https://paper-outline-cache.invalid/v2/{}",
         short_hash(source.as_bytes())
     );
     match edge::response(&key).await {
@@ -47,13 +55,35 @@ pub(super) async fn respond(
         Ok(None) => {}
         Err(error) => worker::console_error!("Paper outline cache read failed: {error}"),
     }
-    let url =
-        Url::parse(&source).map_err(|_| worker::Error::RustError("Invalid paper source".into()))?;
+    let preview_url = document_url(&source, "preview", Some("t.0"))?;
+    let tabs = match fetch_source(preview_url).await? {
+        Some(body) => parse_tabs(&body),
+        None => Vec::new(),
+    };
+    let answer_tab = tabs
+        .iter()
+        .find(|tab| tab.label.eq_ignore_ascii_case("answers"));
+    let url = match answer_tab {
+        Some(tab) => document_url(&source, "mobilebasic", Some(&tab.id))?,
+        None => Url::parse(&source)
+            .map_err(|_| worker::Error::RustError("Invalid paper source".into()))?,
+    };
+    let Some(body) = fetch_source(url).await? else {
+        return unavailable_error("outline_unavailable", "Paper outline is unavailable", None);
+    };
+    let outline = Outline {
+        tabs,
+        items: parse(&body),
+    };
+    let mut response = json_response(&outline, 200, None, PAPERS)?;
+    edge::put(context, key, response.cloned()?);
+    Ok(response)
+}
+
+async fn fetch_source(url: Url) -> Result<Option<String>> {
     let mut upstream = match Fetch::Url(url).send().await {
         Ok(response) if response.status_code() == 200 => response,
-        _ => {
-            return unavailable_error("outline_unavailable", "Paper outline is unavailable", None);
-        }
+        _ => return Ok(None),
     };
     if upstream
         .headers()
@@ -61,19 +91,87 @@ pub(super) async fn respond(
         .and_then(|value| value.parse::<usize>().ok())
         .is_some_and(|length| length > MAX_SOURCE_BYTES)
     {
-        return unavailable_error("outline_unavailable", "Paper outline is unavailable", None);
+        return Ok(None);
     }
     let body = upstream.text().await?;
     if body.len() > MAX_SOURCE_BYTES {
-        return unavailable_error("outline_unavailable", "Paper outline is unavailable", None);
+        return Ok(None);
     }
-    let outline = parse(&body);
-    let mut response = json_response(&outline, 200, None, PAPERS)?;
-    edge::put(context, key, response.cloned()?);
-    Ok(response)
+    Ok(Some(body))
 }
 
-fn parse(source: &str) -> Outline {
+fn document_url(source: &str, view: &str, tab: Option<&str>) -> Result<Url> {
+    let mut url =
+        Url::parse(source).map_err(|_| worker::Error::RustError("Invalid paper source".into()))?;
+    let path = url
+        .path()
+        .strip_suffix("/mobilebasic")
+        .ok_or_else(|| worker::Error::RustError("Invalid paper source".into()))?;
+    url.set_path(&format!("{path}/{view}"));
+    if let Some(tab) = tab {
+        url.query_pairs_mut().append_pair("tab", tab);
+    }
+    Ok(url)
+}
+
+fn parse_tabs(source: &str) -> Vec<Tab> {
+    let mut tabs = Vec::new();
+    let root_marker = r#""ty":"mkch","d":[[1,""#;
+    if let Some(start) = source
+        .find(root_marker)
+        .map(|index| index + root_marker.len())
+        && let Some(end) = source[start..].find('"').map(|index| start + index)
+    {
+        tabs.push(Tab {
+            label: source[start..end].chars().take(160).collect(),
+            id: "t.0".into(),
+        });
+    }
+    let child_marker = r#""ty":"ac","d":[""#;
+    let mut cursor = 0;
+    while tabs.len() < MAX_TABS
+        && let Some(start) = source[cursor..]
+            .find(child_marker)
+            .map(|index| cursor + index + child_marker.len())
+    {
+        let Some(id_end) = source[start..].find('"').map(|index| start + index) else {
+            break;
+        };
+        let label_marker = r#",[1,""#;
+        let Some(label_start) = source[id_end..]
+            .find(label_marker)
+            .map(|index| id_end + index + label_marker.len())
+        else {
+            cursor = id_end + 1;
+            continue;
+        };
+        let Some(label_end) = source[label_start..]
+            .find('"')
+            .map(|index| label_start + index)
+        else {
+            break;
+        };
+        let id = &source[start..id_end];
+        if valid_tab(id) {
+            tabs.push(Tab {
+                label: source[label_start..label_end].chars().take(160).collect(),
+                id: id.into(),
+            });
+        }
+        cursor = label_end + 1;
+    }
+    tabs
+}
+
+fn valid_tab(value: &str) -> bool {
+    value.starts_with("t.")
+        && value.len() <= 80
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'-' | b'_'))
+}
+
+fn parse(source: &str) -> Vec<Heading> {
     let mut cursor = 0;
     let mut question_level = None;
     let mut seen = HashSet::new();
@@ -126,7 +224,7 @@ fn parse(source: &str) -> Outline {
             question_level = None;
         }
     }
-    Outline { items }
+    items
 }
 
 fn attribute<'a>(tag: &'a str, name: &str) -> Option<&'a str> {
@@ -177,7 +275,7 @@ fn question_label(label: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::parse;
+    use super::{document_url, parse, parse_tabs};
 
     #[test]
     fn extracts_only_real_question_headings_in_source_order() {
@@ -191,11 +289,38 @@ mod tests {
             <h1 id="h.q3">Q3</h1>
         "#;
         let value = serde_json::to_value(parse(source)).unwrap();
-        assert_eq!(value["items"].as_array().unwrap().len(), 4);
-        assert_eq!(value["items"][0]["label"], "Question 1. (3 Marks)");
-        assert_eq!(value["items"][1]["label"], "1.1) [2 marks]");
-        assert_eq!(value["items"][1]["level"], 2);
-        assert_eq!(value["items"][2]["label"], "(a) First part");
-        assert_eq!(value["items"][3]["anchor"], "h.q3");
+        assert_eq!(value.as_array().unwrap().len(), 4);
+        assert_eq!(value[0]["label"], "Question 1. (3 Marks)");
+        assert_eq!(value[1]["label"], "1.1) [2 marks]");
+        assert_eq!(value[1]["level"], 2);
+        assert_eq!(value[2]["label"], "(a) First part");
+        assert_eq!(value[3]["anchor"], "h.q3");
+    }
+
+    #[test]
+    fn extracts_real_document_tabs() {
+        let source = r#"
+            {"ty":"mkch","d":[[1,"Guidelines"]]}
+            {"ty":"ac","d":["t.answers_1",[1,"Answers"],[1]]}
+        "#;
+        let value = serde_json::to_value(parse_tabs(source)).unwrap();
+        assert_eq!(value[0]["label"], "Guidelines");
+        assert_eq!(value[0]["id"], "t.0");
+        assert_eq!(value[1]["label"], "Answers");
+        assert_eq!(value[1]["id"], "t.answers_1");
+    }
+
+    #[test]
+    fn document_tab_url_preserves_the_resource_key() {
+        let url = document_url(
+            "https://docs.google.com/document/d/example/mobilebasic?resourcekey=key",
+            "mobilebasic",
+            Some("t.answers"),
+        )
+        .unwrap();
+        assert_eq!(
+            url.as_str(),
+            "https://docs.google.com/document/d/example/mobilebasic?resourcekey=key&tab=t.answers"
+        );
     }
 }

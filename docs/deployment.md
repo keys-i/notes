@@ -9,10 +9,12 @@ The workflow
 
 1. checks out full Git history for author and creation-date metadata
 2. installs the pinned Python and Node toolchains
-3. restores dependencies with `npm ci` and the locked `uv` environment
-4. runs `uv run --locked mkdocs build --strict --config-file site/mkdocs.yml`
-5. uploads `public/` as the GitHub Pages artifact
-6. deploys only for a push event, never for a pull request build
+3. installs the pinned Typst compiler
+4. restores dependencies with `npm ci` and the locked `uv` environment
+5. generates course-local cheatsheet PDFs and WebP previews during the build
+6. runs `uv run --locked mkdocs build --strict --config-file site/mkdocs.yml`
+7. uploads `public/` as the GitHub Pages artifact
+8. deploys only for a push event, never for a pull request build
 
 Pull requests still execute the build job, which catches missing assets,
 invalid plot data, strict MkDocs warnings and template failures before merge

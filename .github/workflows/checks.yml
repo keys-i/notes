@@ -40,6 +40,8 @@ jobs:
           cache: npm
           node-version: 24
       - uses: typst-community/setup-typst@48aeee7543d37f01afd1ffb27307dc277387ba13 # v4
+        with:
+          typst-version: 0.15.1
       - run: npm ci --ignore-scripts --no-audit
       - name: Test and lint
         run: |
@@ -113,5 +115,8 @@ jobs:
         with:
           cache: npm
           node-version: 24
+      - uses: typst-community/setup-typst@48aeee7543d37f01afd1ffb27307dc277387ba13 # v4
+        with:
+          typst-version: 0.15.1
       - run: npm ci --ignore-scripts --no-audit
       - run: uv run --locked --no-dev mkdocs build --strict --config-file site/mkdocs.yml

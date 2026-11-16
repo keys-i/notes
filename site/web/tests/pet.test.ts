@@ -259,7 +259,11 @@ test("voice navigation needs an explicit command and stays same-origin", () => {
     "",
   );
   assert.equal(
-    pure.dockPetVoiceRoute("open MECH2700 answers", links, "https://uni.keysi.dev"),
+    pure.dockPetVoiceRoute(
+      "open MECH2700 answers",
+      links,
+      "https://uni.keysi.dev",
+    ),
     "",
   );
 });
@@ -311,7 +315,10 @@ test("media helpers accept browser-decodable formats and explain failures", () =
   assert.match(pure.dockPetStudyError("invalid_audio"), /clearer clip/);
   assert.match(pure.dockPetStudyError("analysis_failed"), /clearer frame/);
   assert.match(pure.dockPetStudyError("guard_unavailable"), /safety check/);
-  assert.match(pure.dockPetStudyError("backend_unconfigured"), /not configured/);
+  assert.match(
+    pure.dockPetStudyError("backend_unconfigured"),
+    /not configured/,
+  );
   assert.match(pure.dockPetStudyError("unsafe_input"), /safely/);
   assert.match(pure.dockPetStudyError("", true), /longer than expected/);
 });
@@ -412,11 +419,26 @@ test("the site palette exposes complete semantic colour families", () => {
     }
   }
 
-  assert.match(siteStyle, /--site-status-error: var\(--color-error-/);
-  assert.match(siteStyle, /--site-status-success: var\(--color-success-/);
-  assert.match(siteStyle, /--site-status-warning: var\(--color-warning-/);
-  assert.match(graphStyle, /--graph-hub-color: var\(--color-secondary-/);
-  assert.match(graphStyle, /--graph-leaf-color: var\(--color-tertiary-/);
+  assert.match(
+    siteStyle,
+    /--site-status-error: light-dark\([\s\S]*?--color-error-600[\s\S]*?--color-error-400/,
+  );
+  assert.match(
+    siteStyle,
+    /--site-status-success: light-dark\([\s\S]*?--color-success-700[\s\S]*?--color-success-400/,
+  );
+  assert.match(
+    siteStyle,
+    /--site-status-warning: light-dark\([\s\S]*?--color-warning-700[\s\S]*?--color-warning-400/,
+  );
+  assert.match(
+    graphStyle,
+    /--graph-hub-color: light-dark\([\s\S]*?--color-secondary-700[\s\S]*?--color-secondary-300/,
+  );
+  assert.match(
+    graphStyle,
+    /--graph-leaf-color: light-dark\([\s\S]*?--color-tertiary-600[\s\S]*?--color-tertiary-300/,
+  );
   assert.match(style, /color: var\(--color-warning-300\)/);
   assert.match(style, /color: var\(--color-success-300\)/);
 });
@@ -428,7 +450,10 @@ test("site chrome exposes progress and authored footer motion safely", () => {
   assert.match(siteConfig, /link: https:\/\/keysi\.dev/);
   assert.match(siteConfig, /icon: material\/web/);
   assert.match(siteConfig, /link: https:\/\/linkedin\.com\/in\/radhesh-g/);
-  assert.match(headerTemplate, /class="md-header__button md-logo site-home-link"/);
+  assert.match(
+    headerTemplate,
+    /class="md-header__button md-logo site-home-link"/,
+  );
   assert.match(headerTemplate, /class="site-brand__name"/);
   assert.doesNotMatch(headerTemplate, /site-home-link__wordmark/);
   assert.match(
@@ -460,7 +485,10 @@ test("site chrome exposes progress and authored footer motion safely", () => {
   assert.match(siteStyle, /\.site-footer-owner__name/);
   assert.doesNotMatch(siteStyle, /site-footer-network__wordmark/);
   assert.match(graphStyle, /width: min\(42rem, calc\(100% - 28rem\)\)/);
-  assert.match(graphStyle, /\.md-search__overlay[\s\S]*background: transparent/);
+  assert.match(
+    graphStyle,
+    /\.md-search__overlay[\s\S]*background: transparent/,
+  );
   assert.match(graphStyle, /\.md-search__scrollwrap[\s\S]*width: 100%/);
   assert.match(graphStyle, /max-height: min\(60vh, 28rem\)/);
   assert.match(siteStyle, /@property --theme-reveal/);
@@ -483,7 +511,10 @@ test("site chrome exposes progress and authored footer motion safely", () => {
   assert.match(siteStyle, /@keyframes site-owner-rocket/);
   assert.match(siteStyle, /@keyframes site-minis-lift/);
   assert.match(siteStyle, /@keyframes site-minis-halo/);
-  assert.match(siteStyle, /site-footer-network__link--icon[\s\S]*scale\(1\.12\)/);
+  assert.match(
+    siteStyle,
+    /site-footer-network__link--icon[\s\S]*scale\(1\.12\)/,
+  );
   assert.doesNotMatch(siteStyle, /site-minis-pop|rotate\(10deg\)/);
   assert.match(
     siteStyle,
@@ -512,7 +543,10 @@ test("site chrome exposes progress and authored footer motion safely", () => {
   assert.doesNotMatch(style, /html\.pet-help-open \.md-main__inner/);
   assert.match(style, /dock-pet__token--keyword/);
   assert.match(style, /dock-pet__math--display/);
-  assert.match(style, /#dock-pet-send\s*\{[\s\S]*?background: var\(--color-accent-300\)/);
+  assert.match(
+    style,
+    /#dock-pet-send\s*\{[\s\S]*?background: var\(--color-accent-300\)/,
+  );
   assert.doesNotMatch(mainTemplate, /lang\.t|data-lang|giscus/);
 });
 
@@ -2108,7 +2142,9 @@ test("voice input is optional and uses the same grounded answer path", async () 
   assert.match(runtime.threadItems[1].textContent, /From “Dynamics”/);
   await flushStudy();
   recognition.onresult({ results: [[{ transcript: "open MECH2700" }]] });
-  assert.deepEqual(runtime.assignedRoutes, ["https://uni.keysi.dev/MECH/2700/"]);
+  assert.deepEqual(runtime.assignedRoutes, [
+    "https://uni.keysi.dev/MECH/2700/",
+  ]);
   recognition.onresult({ results: [[{ transcript: "open nowhere" }]] });
   assert.equal(runtime.status.textContent, "I couldn’t find that page here");
   recognition.onend();
@@ -2458,7 +2494,10 @@ test("idle messages rotate through motivation and current-note facts", () => {
   };
 
   runIdle();
-  assert.match(runtime.bubbleText.textContent, /example|units|heading|minus sign/);
+  assert.match(
+    runtime.bubbleText.textContent,
+    /example|units|heading|minus sign/,
+  );
   runtime.runTimer(6500);
   runIdle();
   assert.match(runtime.bubbleText.textContent, /^From “Week 2”:/);

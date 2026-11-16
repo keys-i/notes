@@ -537,6 +537,7 @@ class ToolTests(unittest.TestCase):
         program, command, environment = replace.call_args.args
         self.assertEqual(program, "mkdocs")
         self.assertEqual(command[:2], ["mkdocs", "serve"])
+        self.assertIn("--dirtyreload", command)
         self.assertIn("site/web/hooks", command)
         self.assertEqual(environment["NO_MKDOCS_2_WARNING"], "1")
 
@@ -561,7 +562,7 @@ class HookTests(unittest.TestCase):
             catalog = site_hook.on_page_context({}, page)["paper_catalog"]
             self.assertEqual(catalog, {"course": code})
 
-    def test_plural_routes_need_only_the_past_years_navigation_label(self):
+    def test_camel_case_routes_get_readable_navigation_labels(self):
         course_page = SimpleNamespace(
             title="INFS2200 Relational Database Systems",
             url="INFS/2200/",
@@ -578,6 +579,11 @@ class HookTests(unittest.TestCase):
         cheatsheet = SimpleNamespace(
             title="Cheatsheets", url=None, children=[cheatsheet_page]
         )
+        archive = SimpleNamespace(
+            title="SomethingThing",
+            url="INFS/2200/SomethingThing/",
+            children=[],
+        )
         lecture = SimpleNamespace(
             title="Lectures", url="INFS/2200/Lectures/", children=[]
         )
@@ -587,7 +593,7 @@ class HookTests(unittest.TestCase):
         course = SimpleNamespace(
             title="2200",
             url=None,
-            children=[course_page, paper, cheatsheet, lecture, tutorial],
+            children=[course_page, paper, cheatsheet, archive, lecture, tutorial],
         )
         workshop = SimpleNamespace(
             title="Workshops", url="MECH/2700/Workshops/", children=[]
@@ -599,6 +605,7 @@ class HookTests(unittest.TestCase):
         self.assertEqual(paper_page.url, "INFS/2200/PastYears/")
         self.assertEqual(cheatsheet.title, "Cheatsheets")
         self.assertEqual(cheatsheet_page.url, "INFS/2200/Cheatsheets/")
+        self.assertEqual(archive.title, "Something Thing")
         self.assertEqual(lecture.title, "Lectures")
         self.assertEqual(tutorial.title, "Tutorials")
         self.assertEqual(workshop.title, "Workshops")
@@ -606,13 +613,13 @@ class HookTests(unittest.TestCase):
         self.assertEqual(course.title, "2200: Relational Database Systems")
 
     def test_cheatsheet_routes_share_accessible_local_reader(self):
-        for code in ("INFS2200", "MECH2700"):
+        for code in ("INFS2200", "MECH2700", "COMP4702"):
             with self.subTest(code=code):
                 page = SimpleNamespace(meta={"cheatsheet": code})
                 body = site_hook.on_page_markdown("", page)
-                pdf = site_hook.CHEATSHEET_PDF
-                preview = f"{Path(pdf).stem}-preview.webp"
-                self.assertIn(f'src="{preview}"', body)
+                self.assertIn('src="cheatsheet-preview.webp"', body)
+                self.assertIn('href="cheatsheet.pdf"', body)
+                self.assertNotIn(f"{code}-cheatsheet", body)
                 self.assertNotIn("<iframe", body)
                 self.assertIn(f"Open {code} PDF", body)
                 self.assertIn(f"Download {code} cheatsheet", body)
@@ -792,7 +799,10 @@ class HookTests(unittest.TestCase):
     def test_discovery(self):
         with TemporaryDirectory() as directory:
             self.config.site_dir = directory
-            Path(directory, "sitemap.xml").touch()
+            Path(directory, "sitemap.xml").write_text(
+                '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" />',
+                encoding="utf-8",
+            )
             discovery.on_pre_build()
             discovery.on_page_context(
                 {},
@@ -803,6 +813,10 @@ class HookTests(unittest.TestCase):
             self.assertIn(
                 "https://example.test/page/",
                 Path(directory, "llms.txt").read_text(encoding="utf-8"),
+            )
+            self.assertIn(
+                "https://example.test/api/",
+                Path(directory, "sitemap.xml").read_text(encoding="utf-8"),
             )
 
 
@@ -822,7 +836,10 @@ class DiscoveryCoverageTests(unittest.TestCase):
                 site_name="Rad's Notes",
                 site_url="https://example.test/",
             )
-            Path(directory, "sitemap.xml").touch()
+            Path(directory, "sitemap.xml").write_text(
+                '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" />',
+                encoding="utf-8",
+            )
             discovery.on_pre_build()
             context = {}
             self.assertIs(
@@ -836,6 +853,7 @@ class DiscoveryCoverageTests(unittest.TestCase):
             discovery.on_post_build(config)
             llms = Path(directory, "llms.txt").read_text(encoding="utf-8")
             self.assertIn("[\\[Page\\] title](https://example.test/page/)", llms)
+            self.assertIn("[Keysi Notes API](https://example.test/api/)", llms)
             self.assertNotIn("page/):", llms)
             self.assertIn("> Compact notes", llms)
 

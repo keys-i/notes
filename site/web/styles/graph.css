@@ -11,38 +11,31 @@
   font-weight: 700;
 }
 
-[data-md-color-scheme="default"] {
-  --graph-bg-color: var(--color-neutral-cool-100);
-  --graph-grid-color: color-mix(
-    in srgb,
-    var(--color-primary-600) 5.5%,
-    transparent
+[data-md-color-scheme] {
+  --graph-bg-color: light-dark(
+    var(--color-neutral-cool-100),
+    var(--color-neutral-cool-950)
   );
-  --graph-glow-color: color-mix(
-    in srgb,
-    var(--color-primary-600) 48%,
-    transparent
+  --graph-grid-color: light-dark(
+    color-mix(in srgb, var(--color-primary-600) 5.5%, transparent),
+    color-mix(in srgb, var(--color-secondary-300) 5.5%, transparent)
   );
-  --graph-hub-color: var(--color-secondary-700);
-  --graph-leaf-color: var(--color-tertiary-600);
-  --graph-root-color: var(--color-primary-700);
-}
-
-[data-md-color-scheme="slate"] {
-  --graph-bg-color: var(--color-neutral-cool-950);
-  --graph-grid-color: color-mix(
-    in srgb,
-    var(--color-secondary-300) 5.5%,
-    transparent
+  --graph-glow-color: light-dark(
+    color-mix(in srgb, var(--color-primary-600) 48%, transparent),
+    color-mix(in srgb, var(--color-accent-400) 56%, transparent)
   );
-  --graph-glow-color: color-mix(
-    in srgb,
-    var(--color-accent-400) 56%,
-    transparent
+  --graph-hub-color: light-dark(
+    var(--color-secondary-700),
+    var(--color-secondary-300)
   );
-  --graph-hub-color: var(--color-secondary-300);
-  --graph-leaf-color: var(--color-tertiary-300);
-  --graph-root-color: var(--color-accent-300);
+  --graph-leaf-color: light-dark(
+    var(--color-tertiary-600),
+    var(--color-tertiary-300)
+  );
+  --graph-root-color: light-dark(
+    var(--color-primary-700),
+    var(--color-accent-300)
+  );
 }
 
 .graph-shell {

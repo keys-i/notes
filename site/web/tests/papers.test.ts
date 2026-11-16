@@ -190,9 +190,16 @@ async function loadLibrary(catalog: unknown, hostname = "uni.keysi.dev") {
           return {
             ok: true,
             json: async () => ({
+              tabs: [
+                { label: "Guidelines", id: "t.0" },
+                { label: "Answers", id: "t.answers" },
+              ],
               items: [
                 { label: "Question 1. (3 Marks)", anchor: "h.q1", level: 1 },
                 { label: "1.1) [2 marks]", anchor: "h.q1a", level: 2 },
+                { label: "(a) Detail", anchor: "h.q1aa", level: 3 },
+                { label: "(i) Detail", anchor: "h.q1ai", level: 3 },
+                { label: "Worked solution", anchor: "h.q1notes", level: 2 },
                 { label: "Question 2. (6 Marks)", anchor: "h.q2", level: 1 },
               ],
             }),
@@ -335,13 +342,37 @@ test("paper library loads, searches, and reads without leaving the page", async 
   await new Promise((resolve) => setTimeout(resolve, 0));
   assert.equal(outline.hidden, false);
   assert.equal(preview.dataset.outline, "true");
-  const questionLinks = outlineItems.querySelectorAll("button");
-  assert.equal(questionLinks.length, 3);
+  const outlineLinks = outlineItems.querySelectorAll("button");
+  const [guidelinesTab, answersTab, ...questionLinks] = outlineLinks;
+  assert.equal(outlineItems.children[0].className, "papers__outline-tabs");
+  assert.equal(guidelinesTab.textContent, "Guidelines");
+  assert.equal(answersTab.textContent, "Answers");
+  assert.equal(guidelinesTab.attributes["aria-selected"], "true");
+  assert.equal(answersTab.attributes["aria-selected"], "false");
+  assert.equal(questionLinks.length, 5);
+  assert.equal(questionLinks[0].textContent, "Q1.");
+  assert.equal(questionLinks[1].textContent, "1.1");
+  assert.equal(questionLinks[2].textContent, "a");
+  assert.equal(questionLinks[3].textContent, "i");
+  assert.equal(questionLinks[4].textContent, "Q2.");
+  assert.equal(outlineItems.children[1].hidden, true);
   assert.equal(outlineItems.children[1].dataset.level, "2");
+  assert.equal(outlineItems.children[2].dataset.level, "3");
+  assert.equal(
+    frame.src,
+    "https://docs.google.com/document/d/abc123/mobilebasic?resourcekey=key&tab=t.0",
+  );
+  answersTab.click();
+  assert.equal(answersTab.attributes["aria-selected"], "true");
+  assert.equal(outlineItems.children[1].hidden, false);
+  assert.equal(
+    frame.src,
+    "https://docs.google.com/document/d/abc123/mobilebasic?resourcekey=key&tab=t.answers",
+  );
   questionLinks[1].click();
   assert.equal(
     frame.src,
-    "https://docs.google.com/document/d/abc123/mobilebasic?resourcekey=key#h.q1a",
+    "https://docs.google.com/document/d/abc123/mobilebasic?resourcekey=key&tab=t.answers#h.q1a",
   );
   assert.equal(questionLinks[1].attributes["aria-current"], "true");
   edit.click();
