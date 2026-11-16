@@ -21,7 +21,7 @@ pub(crate) enum Asset {
 
 pub(crate) fn route(path: &str) -> Option<Asset> {
     match path {
-        "/api/docs" => Some(Asset::Page),
+        "/api" | "/api/" | "/api/docs" => Some(Asset::Page),
         "/api/reference.js" => Some(Asset::Script),
         "/api/theme.css" => Some(Asset::Theme),
         "/api/openapi.json" => Some(Asset::OpenApi),
@@ -61,6 +61,8 @@ mod tests {
 
     #[test]
     fn reference_routes_are_explicit_and_scalar_is_version_pinned() {
+        assert_eq!(route("/api"), Some(Asset::Page));
+        assert_eq!(route("/api/"), Some(Asset::Page));
         assert_eq!(route("/api/docs"), Some(Asset::Page));
         assert_eq!(route("/api/openapi.json"), Some(Asset::OpenApi));
         assert_eq!(route("/api/reference.js"), Some(Asset::Script));

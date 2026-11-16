@@ -3,6 +3,8 @@ main = "build/worker/shim.mjs"
 compatibility_date = "2026-11-04"
 workers_dev = false
 routes = [
+  { pattern = "uni.keysi.dev/api", zone_name = "keysi.dev" },
+  { pattern = "uni.keysi.dev/api/", zone_name = "keysi.dev" },
   { pattern = "uni.keysi.dev/api/docs", zone_name = "keysi.dev" },
   { pattern = "uni.keysi.dev/api/openapi.json", zone_name = "keysi.dev" },
   { pattern = "uni.keysi.dev/api/reference.js", zone_name = "keysi.dev" },

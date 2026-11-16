@@ -818,6 +818,15 @@ class HookTests(unittest.TestCase):
                 "https://example.test/api/",
                 Path(directory, "sitemap.xml").read_text(encoding="utf-8"),
             )
+            discovery.add_api_reference(
+                Path(directory, "sitemap.xml"), self.config.site_url
+            )
+            self.assertEqual(
+                Path(directory, "sitemap.xml")
+                .read_text(encoding="utf-8")
+                .count("https://example.test/api/"),
+                1,
+            )
 
 
 class DiscoveryCoverageTests(unittest.TestCase):
