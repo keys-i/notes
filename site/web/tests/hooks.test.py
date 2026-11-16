@@ -160,6 +160,65 @@ class CheatsheetHookTests(unittest.TestCase):
             cheatsheets._install(replacement, pdf)
             self.assertEqual(pdf.read_bytes(), b"new")
 
+    def test_preview_pages(self):
+        class Preview:
+            def __init__(self, size=(100, 60)):
+                self.width, self.height = self.size = size
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_):
+                return False
+
+            def paste(self, *_):
+                pass
+
+            def save(self, target, *_args, **_kwargs):
+                Path(target).write_bytes(b"webp")
+
+        for count, mismatch, error in (
+            (0, False, RuntimeError),
+            (2, False, None),
+            (2, True, ValueError),
+        ):
+            with (
+                self.subTest(count=count, mismatch=mismatch),
+                TemporaryDirectory() as directory,
+            ):
+                root = Path(directory)
+                page, source = self.tree(root)
+                pdf = page.with_name("cheatsheet.pdf")
+                preview = page.with_name("cheatsheet-preview.webp")
+
+                def compile(command, page_count=count, **_):
+                    output = command[-1]
+                    if output.endswith(".pdf"):
+                        Path(output).write_bytes(b"pdf")
+                    else:
+                        for number in range(1, page_count + 1):
+                            Path(output.replace("{p}", str(number))).write_bytes(b"png")
+
+                def image(path, different_size=mismatch):
+                    different = different_size and Path(path).stem.endswith("-2")
+                    return Preview((101, 60) if different else (100, 60))
+
+                with (
+                    patch.object(cheatsheets, "run", side_effect=compile),
+                    patch.object(cheatsheets.Image, "open", side_effect=image),
+                    patch.object(
+                        cheatsheets.Image,
+                        "new",
+                        side_effect=lambda _mode, size, _colour: Preview(size),
+                    ),
+                ):
+                    if error:
+                        with self.assertRaises(error):
+                            cheatsheets.build(source, pdf, preview, root)
+                    else:
+                        cheatsheets.build(source, pdf, preview, root)
+                        self.assertEqual(preview.read_bytes(), b"webp")
+
     def test_pre_build_runs_each_job(self):
         job = (Path("source.typ"), Path("cheatsheet.pdf"), Path("preview.webp"))
         with (
