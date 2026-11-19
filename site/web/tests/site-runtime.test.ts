@@ -805,6 +805,7 @@ function graphHarness() {
     palette,
     renderer: () => renderer,
     replay,
+    search,
     timers,
     window,
   };
@@ -829,6 +830,7 @@ test("graph helpers preserve routes, ordering, labels, and timeline state", asyn
   graph.handlers.load[0]({});
   assert.equal(graph.labels[0].dataset.marquee, "Long label");
   assert.match(graph.launcherHtml(), /aria-label="Open graph"/);
+  assert.equal(graph.search.getAttribute("aria-label"), "Search notes");
   assert.doesNotMatch(graph.launcherHtml(), />Graph<\/span>/);
   assert.equal(call("graph_node_size(3, 2)"), 8.5);
   assert.equal(call("graph_label_size(0)"), 18);

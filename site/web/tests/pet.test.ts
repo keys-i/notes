@@ -448,6 +448,7 @@ test("site chrome exposes progress and authored footer motion safely", () => {
   assert.match(siteConfig, /text: IBM Plex Sans/);
   assert.match(siteConfig, /code: IBM Plex Mono/);
   assert.match(siteConfig, /link: https:\/\/keysi\.dev/);
+  assert.match(siteConfig, /name: Keysi\.dev/);
   assert.match(siteConfig, /icon: material\/web/);
   assert.match(siteConfig, /link: https:\/\/linkedin\.com\/in\/radhesh-g/);
   assert.match(
@@ -491,6 +492,7 @@ test("site chrome exposes progress and authored footer motion safely", () => {
   );
   assert.match(graphStyle, /\.md-search__scrollwrap[\s\S]*width: 100%/);
   assert.match(graphStyle, /max-height: min\(60vh, 28rem\)/);
+  assert.match(graphStyle, /\.md-header__graph-option[\s\S]*margin-right: 0/);
   assert.match(siteStyle, /@property --theme-reveal/);
   assert.match(siteStyle, /@keyframes theme-wave-reveal/);
   assert.match(siteStyle, /@keyframes theme-fallback/);

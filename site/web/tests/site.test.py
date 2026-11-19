@@ -172,6 +172,7 @@ class SiteAssetTests(unittest.TestCase):
         self.assertIn(".md-header__inner > .md-search:focus-within", theme)
         self.assertIn("transform: translateX(-50%)", theme)
         self.assertIn("body:has(.papers__preview:not([hidden])) #dock-pet", theme)
+        self.assertIn("body:has(.cheatsheet) .md-sidebar--secondary", theme)
         self.assertIn(".md-content__inner:has(.cheatsheet) > h1", theme)
         self.assertIn("text: IBM Plex Sans", config)
         self.assertIn("code: IBM Plex Mono", config)

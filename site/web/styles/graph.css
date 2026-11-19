@@ -213,6 +213,7 @@
 .md-header__graph-option {
   display: flex;
   align-items: center;
+  margin-right: 0;
   cursor: pointer;
 }
 

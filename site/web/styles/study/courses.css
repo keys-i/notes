@@ -115,7 +115,7 @@
 }
 .course-catalog__tag--engineering {
   --course-tag-colour: light-dark(
-    var(--color-warning-700),
+    var(--color-warning-800),
     var(--color-warning-300)
   );
 }

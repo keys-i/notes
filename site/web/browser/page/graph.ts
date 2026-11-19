@@ -1,4 +1,5 @@
 // Add graph button to the header controls
+document.querySelector(".md-search")?.setAttribute("aria-label", "Search notes");
 document.querySelector(".md-search")?.insertAdjacentHTML(
   "afterend",
   '<button id="graph_button" class="md-header__button md-header__graph-option md-icon" type="button" title="Open graph" aria-label="Open graph"> \

@@ -583,6 +583,10 @@ body {
   margin-bottom: 1.4rem;
 }
 
+body:has(.cheatsheet) .md-sidebar--secondary {
+  display: none;
+}
+
 .md-content__inner:has(.cheatsheet) > .md-source-file {
   display: none;
 }
@@ -1650,8 +1654,12 @@ body {
 }
 
 .note-comments > summary small {
-  color: var(--md-default-fg-color--light);
+  color: light-dark(
+    var(--color-neutral-cool-700),
+    var(--color-neutral-cool-200)
+  );
   font-weight: 450;
+  opacity: 1;
 }
 
 .note-comments__body {
