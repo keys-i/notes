@@ -39,7 +39,7 @@ jobs:
         with:
           cache: npm
           node-version: 24
-      - uses: typst-community/setup-typst@48aeee7543d37f01afd1ffb27307dc277387ba13 # v4
+      - uses: typst-community/setup-typst@00ad6338f0b34724ea002136bfb701a6c18585b0 # v5.3.2
         with:
           typst-version: 0.15.1
       - run: npm ci --ignore-scripts --no-audit
@@ -115,7 +115,7 @@ jobs:
         with:
           cache: npm
           node-version: 24
-      - uses: typst-community/setup-typst@48aeee7543d37f01afd1ffb27307dc277387ba13 # v4
+      - uses: typst-community/setup-typst@00ad6338f0b34724ea002136bfb701a6c18585b0 # v5.3.2
         with:
           typst-version: 0.15.1
       - run: npm ci --ignore-scripts --no-audit
